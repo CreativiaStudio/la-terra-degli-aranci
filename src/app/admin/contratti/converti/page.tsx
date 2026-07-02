@@ -31,7 +31,7 @@ export default async function ConvertiPreventivoPage({ searchParams }: { searchP
   const { prezzo: p, preventivo: prev, sig } = await generateSecureToken(prezzoConcordato, numeroPreventivo);
   
   // URL base
-  const headersList = headers();
+  const headersList = await headers();
   const host = headersList.get('host') || 'ecosistema.laterradegliaranci.it';
   const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
   const baseUrl = `${protocol}://${host}`;
