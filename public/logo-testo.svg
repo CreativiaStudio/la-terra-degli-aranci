@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 150" width="100%" height="100%">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&amp;family=Montserrat:wght@400;500&amp;display=swap');
+      .title {
+        font-family: 'Playfair Display', serif;
+        font-size: 64px;
+        fill: #807261;
+      }
+      .subtitle {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 18px;
+        fill: #807261;
+        letter-spacing: 5px;
+      }
+    </style>
+  </defs>
+  <text x="50%" y="80" text-anchor="middle" class="title">La Terra degli Aranci</text>
+  <text x="50%" y="130" text-anchor="middle" class="subtitle">UN GIARDINO DI EMOZIONI</text>
+</svg>
