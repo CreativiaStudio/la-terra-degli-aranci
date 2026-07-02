@@ -1,0 +1,7 @@
+- [x] Inserimento chiavi Supabase in `.env.local`
+- [x] Creazione client Supabase (`src/lib/supabase.ts`)
+- [x] Creazione script SQL per inizializzare il Database
+- [x] Creazione pagina Lista Preventivi Admin (`/admin/preventivi`)
+- [x] Creazione pagina Costruttore Preventivi Admin (`/admin/preventivi/nuovo`)
+- [x] Creazione pagina Pubblica Preventivo per il Cliente (`/preventivi/[id]`)
+- [x] Integrazione "Genera Contratto" (Conversione 1-click preventivo -> contratto)
