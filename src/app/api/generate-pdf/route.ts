@@ -80,8 +80,8 @@ export async function POST(req: NextRequest) {
       message: "PDF generato e salvato con successo",
       url: fileUrl 
     });
-  } catch (error) {
-    console.error("Errore generazione PDF:", error);
-    return NextResponse.json({ error: "Errore interno durante la generazione del PDF", message: error.message, stack: error.stack }, { status: 500 });
+  } catch (error: any) {
+    console.error("ERRORE GENERALE:", error);
+    return NextResponse.json({ success: false, error: "Errore interno durante la generazione del PDF", message: error.message, stack: error.stack }, { status: 500 });
   }
 }

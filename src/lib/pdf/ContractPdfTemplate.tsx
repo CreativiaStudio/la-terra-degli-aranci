@@ -6,6 +6,7 @@ const styles = StyleSheet.create({
   page: { padding: 40, paddingBottom: 75, fontFamily: 'Times-Roman', fontSize: 11, lineHeight: 1.5, color: '#000000' },
   header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25, alignItems: 'center' },
   title: { fontSize: 13, fontFamily: 'Times-Bold', textAlign: 'center', marginBottom: 15 },
+  titlePrivacy: { fontSize: 14, fontFamily: 'Times-Bold', textAlign: 'center', marginBottom: 15 },
   bold: { fontFamily: 'Times-Bold' },
   paragraph: { marginBottom: 10, textAlign: 'justify' },
   list: { marginLeft: 15, marginBottom: 10 },
