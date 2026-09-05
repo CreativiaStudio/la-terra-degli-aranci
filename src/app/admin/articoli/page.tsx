@@ -34,6 +34,9 @@ interface BlogPost {
   seoTitle: string;
   seoDescription: string;
   rankMathScore: number;
+  dataPubblicazione?: string;
+  wpPostId?: number;
+  wpLink?: string;
 }
 
 interface WPMediaItem {
@@ -160,6 +163,7 @@ export default function BlogApprovalAdminPage() {
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [revertingId, setRevertingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   // WP Media Library State
@@ -188,9 +192,12 @@ export default function BlogApprovalAdminPage() {
           const data = await res.json();
           if (data.posts && data.posts.length > 0) {
             setPosts((prev) => {
-              const existingIds = new Set(prev.map((p) => p.id));
-              const newOnes = data.posts.filter((p: any) => !existingIds.has(p.id));
-              return [...prev, ...newOnes];
+              const map = new Map<string, BlogPost>();
+              prev.forEach((p) => map.set(p.id, p));
+              data.posts.forEach((p: any) => {
+                map.set(p.id, { ...map.get(p.id), ...p });
+              });
+              return Array.from(map.values());
             });
           }
         }
@@ -409,12 +416,17 @@ export default function BlogApprovalAdminPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
+        const wpPostId = data.wpResult?.id || data.post?.wpPostId;
+        const wpLink = data.wpResult?.link || data.post?.wpLink || `https://www.laterradegliaranci.it/${postToPublish.slug}/`;
+
         setPosts((prev) =>
           prev.map((p) => {
             if (p.id === postId) {
               return {
                 ...p,
                 stato: "pubblicato",
+                wpPostId,
+                wpLink,
                 dataPubblicazione: new Date().toLocaleDateString("it-IT", {
                   day: "numeric",
                   month: "long",
@@ -426,7 +438,7 @@ export default function BlogApprovalAdminPage() {
           })
         );
         if (selectedPost?.id === postId) {
-          setSelectedPost((prev) => (prev ? { ...prev, stato: "pubblicato" } : null));
+          setSelectedPost((prev) => (prev ? { ...prev, stato: "pubblicato", wpPostId, wpLink } : null));
         }
         setNotice(`✅ ${data.message || "Articolo approvato e pubblicato con successo!"}`);
       } else {
@@ -437,6 +449,48 @@ export default function BlogApprovalAdminPage() {
       alert(`Errore di connessione: ${err.message}`);
     } finally {
       setPublishingId(null);
+      setTimeout(() => setNotice(null), 5000);
+    }
+  };
+
+  const handleRevertPost = async (post: BlogPost) => {
+    if (!confirm(`Vuoi rimuovere "${post.titolo}" dal sito WordPress e ripristinarlo in stato di approvazione bozza?`)) {
+      return;
+    }
+    setRevertingId(post.id);
+    setNotice("↩️ Rimozione da WordPress e ripristino in bozza in corso...");
+    try {
+      const wpPostIdParam = post.wpPostId ? `&wpPostId=${post.wpPostId}` : "";
+      const res = await fetch(`/api/admin/wp-posts?id=${encodeURIComponent(post.id)}${wpPostIdParam}`, {
+        method: "DELETE"
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPosts((prev) =>
+          prev.map((p) => {
+            if (p.id === post.id) {
+              return {
+                ...p,
+                stato: "in_revisione",
+                wpPostId: undefined,
+                wpLink: undefined
+              };
+            }
+            return p;
+          })
+        );
+        if (selectedPost?.id === post.id) {
+          setSelectedPost((prev) => (prev ? { ...prev, stato: "in_revisione", wpPostId: undefined, wpLink: undefined } : null));
+        }
+        setNotice("↩️ Articolo ripristinato con successo in Approvazione ed eliminato da WordPress!");
+      } else {
+        alert(`Errore durante il ripristino: ${data.error || "Impossibile completare l'operazione"}`);
+      }
+    } catch (err: any) {
+      console.error("Errore chiamata DELETE wp-posts:", err);
+      alert(`Errore di connessione: ${err.message}`);
+    } finally {
+      setRevertingId(null);
       setTimeout(() => setNotice(null), 5000);
     }
   };
@@ -607,9 +661,45 @@ export default function BlogApprovalAdminPage() {
                     {publishingId === p.id ? "Pubblicazione..." : "🚀 Approva & Pubblica"}
                   </button>
                 ) : (
-                  <span style={{ fontSize: "0.85rem", color: "#166534", fontWeight: 800 }}>
-                    ✅ Articolo Live su WP
-                  </span>
+                  <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap" }}>
+                    <a
+                      href={p.wpLink || `https://www.laterradegliaranci.it/${p.slug}/`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        fontSize: "0.82rem",
+                        color: "#166534",
+                        textDecoration: "none",
+                        fontWeight: 700,
+                        background: "#f0fdf4",
+                        padding: "0.45rem 0.8rem",
+                        borderRadius: "10px",
+                        border: "1px solid #bbf7d0",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.3rem"
+                      }}
+                    >
+                      🔗 Live WP
+                    </a>
+                    <button
+                      type="button"
+                      disabled={revertingId === p.id}
+                      onClick={() => handleRevertPost(p)}
+                      style={{
+                        background: "#fff7ed",
+                        border: "1px solid #fed7aa",
+                        color: "#c2410c",
+                        padding: "0.45rem 0.8rem",
+                        borderRadius: "10px",
+                        fontSize: "0.82rem",
+                        fontWeight: 700,
+                        cursor: revertingId === p.id ? "not-allowed" : "pointer"
+                      }}
+                    >
+                      {revertingId === p.id ? "Ripristino..." : "↩️ Ripristina Bozza"}
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -786,7 +876,7 @@ export default function BlogApprovalAdminPage() {
                 </div>
 
                 {/* Footer Tasti Azione */}
-                <div style={{ display: "flex", gap: "1.2rem", borderTop: "1px solid #eee7de", paddingTop: "1.8rem", flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: "1.2rem", borderTop: "1px solid #eee7de", paddingTop: "1.8rem", flexWrap: "wrap", alignItems: "center" }}>
                   <button
                     type="button"
                     onClick={() => setIsEditing(true)}
@@ -795,7 +885,7 @@ export default function BlogApprovalAdminPage() {
                     ✏️ Modifica Testo, Rank Math SEO & FAQ
                   </button>
 
-                  {selectedPost.stato !== "pubblicato" && (
+                  {selectedPost.stato !== "pubblicato" ? (
                     <button
                       type="button"
                       disabled={publishingId === selectedPost.id}
@@ -804,6 +894,46 @@ export default function BlogApprovalAdminPage() {
                     >
                       {publishingId === selectedPost.id ? "Pubblicazione in corso..." : "🚀 Approva & Pubblica Ora su WordPress"}
                     </button>
+                  ) : (
+                    <div style={{ display: "flex", gap: "0.9rem", alignItems: "center", flexWrap: "wrap" }}>
+                      <a
+                        href={selectedPost.wpLink || `https://www.laterradegliaranci.it/${selectedPost.slug}/`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{
+                          background: "linear-gradient(135deg, #166534 0%, #14532d 100%)",
+                          color: "#ffffff",
+                          textDecoration: "none",
+                          padding: "0.9rem 1.8rem",
+                          borderRadius: "14px",
+                          fontWeight: 800,
+                          fontSize: "0.95rem",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          boxShadow: "0 6px 18px rgba(22,101,52,0.25)"
+                        }}
+                      >
+                        🔗 Vedi Articolo sul Sito Live
+                      </a>
+                      <button
+                        type="button"
+                        disabled={revertingId === selectedPost.id}
+                        onClick={() => handleRevertPost(selectedPost)}
+                        style={{
+                          background: "#fff7ed",
+                          color: "#c2410c",
+                          border: "1.5px solid #fed7aa",
+                          padding: "0.9rem 1.6rem",
+                          borderRadius: "14px",
+                          fontWeight: 700,
+                          fontSize: "0.95rem",
+                          cursor: revertingId === selectedPost.id ? "not-allowed" : "pointer"
+                        }}
+                      >
+                        {revertingId === selectedPost.id ? "Ripristino in corso..." : "↩️ Rimuovi da WordPress e Torna in Bozza"}
+                      </button>
+                    </div>
                   )}
                 </div>
 

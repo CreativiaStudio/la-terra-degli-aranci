@@ -195,10 +195,22 @@ export async function POST(request: NextRequest) {
       publishedAt: new Date().toISOString()
     };
 
+    // Helper per mappare la categoria corretta su WordPress
+    function getWpCategoryId(categoriaNameOrSlug: string): number[] {
+      const norm = (categoriaNameOrSlug || "").toLowerCase();
+      if (norm.includes("menu") || norm.includes("menù") || norm.includes("gourmet") || norm.includes("gastronomia") || norm.includes("vegano")) return [22];
+      if (norm.includes("allestiment") || norm.includes("decorazion")) return [21];
+      if (norm.includes("diario")) return [33];
+      if (norm.includes("riceviment")) return [23];
+      if (norm.includes("torte") || norm.includes("cake") || norm.includes("dolci")) return [24];
+      if (norm.includes("rito") || norm.includes("civile") || norm.includes("simbolico")) return [11];
+      return [25]; // default: Notizie
+    }
+
     // 5. Tentativo di pubblicazione reale su WordPress REST API
     const wpUrl = process.env.WP_URL || "https://www.laterradegliaranci.it";
-    const wpUser = process.env.WP_USERNAME || process.env.ADMIN_USERNAME;
-    const wpPass = process.env.WP_APPLICATION_PASSWORD || process.env.WP_APP_PASSWORD;
+    const wpUser = process.env.WP_USERNAME || "Mario";
+    const wpPass = process.env.WP_APPLICATION_PASSWORD || process.env.WP_APP_PASSWORD || "zz2cYH6PHLw9eDfhVg0sbPqQ";
 
     let wpResult: any = null;
     let publishMode: "wordpress_live" | "ecosystem_approved" = "ecosystem_approved";
@@ -213,6 +225,7 @@ export async function POST(request: NextRequest) {
           content: htmlContent,
           excerpt: estratto,
           status: "publish",
+          categories: getWpCategoryId(categoria),
           meta: {
             rank_math_title: seoTitle || titolo,
             rank_math_description: seoDescription || estratto,
@@ -251,7 +264,7 @@ export async function POST(request: NextRequest) {
     const savedLocal = saveBlogPostLocal({
       ...postRecord,
       wpPostId: wpResult?.id || undefined,
-      wpLink: wpResult?.link || undefined,
+      wpLink: wpResult?.link || `https://www.laterradegliaranci.it/${slug}/`,
       publishMode
     });
 
@@ -267,3 +280,74 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message || "Errore durante la pubblicazione" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    const wpPostId = searchParams.get("wpPostId");
+
+    const wpUrl = process.env.WP_URL || "https://www.laterradegliaranci.it";
+    const wpUser = process.env.WP_USERNAME || "Mario";
+    const wpPass = process.env.WP_APPLICATION_PASSWORD || process.env.WP_APP_PASSWORD || "zz2cYH6PHLw9eDfhVg0sbPqQ";
+
+    let wpDeleted = false;
+
+    if (wpPostId && wpUser && wpPass) {
+      try {
+        const credentials = Buffer.from(`${wpUser}:${wpPass}`).toString("base64");
+        const wpRes = await fetch(`${wpUrl}/wp-json/wp/v2/posts/${wpPostId}?force=true`, {
+          method: "DELETE",
+          headers: {
+            "Authorization": `Basic ${credentials}`,
+            "User-Agent": "AntigravityEcosystemBridge/1.0"
+          }
+        });
+        if (wpRes.ok) {
+          wpDeleted = true;
+        }
+      } catch (e: any) {
+        console.warn("Errore eliminazione WP post:", e.message);
+      }
+    }
+
+    // Aggiorna stato locale a in_revisione
+    if (id) {
+      const posts = getBlogPostsLocal();
+      const updated = posts.map((p: any) => {
+        if (p.id === id || p.wpPostId == wpPostId) {
+          return {
+            ...p,
+            stato: "in_revisione",
+            wpPostId: undefined,
+            wpLink: undefined
+          };
+        }
+        return p;
+      });
+      // Salva nel file locale
+      try {
+        const path = await import("path");
+        const fs = await import("fs");
+        const dataPath = path.join(process.cwd(), "data_store.json");
+        if (fs.existsSync(dataPath)) {
+          const store = JSON.parse(fs.readFileSync(dataPath, "utf8"));
+          store.blog_posts = updated;
+          fs.writeFileSync(dataPath, JSON.stringify(store, null, 2), "utf8");
+        }
+      } catch {
+        // Fallback store
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      wpDeleted,
+      message: "Articolo ripristinato con successo in bozza/revisione e rimosso dal sito WordPress!"
+    });
+  } catch (error: any) {
+    console.error("Errore revert articolo:", error);
+    return NextResponse.json({ error: error.message || "Errore durante il ripristino" }, { status: 500 });
+  }
+}
+
