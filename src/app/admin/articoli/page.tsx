@@ -401,6 +401,7 @@ export default function BlogApprovalAdminPage() {
         },
         body: JSON.stringify({
           id: postToPublish.id,
+          wpPostId: postToPublish.wpPostId,
           titolo: postToPublish.titolo,
           slug: postToPublish.slug,
           estratto: postToPublish.estratto,

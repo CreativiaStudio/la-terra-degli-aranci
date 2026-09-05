@@ -207,6 +207,82 @@ export async function POST(request: NextRequest) {
       return [25]; // default: Notizie
     }
 
+    // Helper per trovare o importare l'immagine in evidenza (Featured Media) su WordPress
+    async function getOrCreateWpMediaId(
+      imageUrl: string,
+      targetWpUrl: string,
+      authCredentials: string
+    ): Promise<number | null> {
+      if (!imageUrl || !imageUrl.startsWith("http")) return null;
+
+      try {
+        const urlObj = new URL(imageUrl);
+        const filename = urlObj.pathname.split("/").pop() || "";
+        const cleanFilename = filename.split("?")[0];
+        const baseName = cleanFilename.replace(/\.[^/.]+$/, "");
+
+        // 1. Cerca nella Media Library di WordPress tramite il nome file
+        if (baseName && baseName.length >= 3) {
+          try {
+            const searchRes = await fetch(
+              `${targetWpUrl}/wp-json/wp/v2/media?search=${encodeURIComponent(baseName)}&per_page=10`,
+              {
+                headers: {
+                  Authorization: `Basic ${authCredentials}`,
+                  "User-Agent": "AntigravityEcosystemBridge/1.0"
+                }
+              }
+            );
+            if (searchRes.ok) {
+              const mediaList = await searchRes.json();
+              if (Array.isArray(mediaList) && mediaList.length > 0) {
+                const match = mediaList.find(
+                  (m: any) =>
+                    m.source_url === imageUrl ||
+                    (m.source_url && m.source_url.includes(cleanFilename)) ||
+                    (m.slug && m.slug.toLowerCase().includes(baseName.toLowerCase().slice(0, 15)))
+                );
+                if (match) {
+                  return match.id;
+                }
+              }
+            }
+          } catch (searchErr) {
+            console.warn("Avviso ricerca media WP:", searchErr);
+          }
+        }
+
+        // 2. Se non presente in WP Media (es. da Cloudflare R2 o nuovo upload), scarica e importa come attachment
+        const imgFetch = await fetch(imageUrl);
+        if (!imgFetch.ok) return null;
+
+        const arrayBuffer = await imgFetch.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const contentType = imgFetch.headers.get("content-type") || "image/jpeg";
+        const uploadFilename = cleanFilename || `copertina-${Date.now()}.jpg`;
+
+        const wpUploadRes = await fetch(`${targetWpUrl}/wp-json/wp/v2/media`, {
+          method: "POST",
+          headers: {
+            Authorization: `Basic ${authCredentials}`,
+            "Content-Type": contentType,
+            "Content-Disposition": `attachment; filename="${uploadFilename}"`,
+            "User-Agent": "AntigravityEcosystemBridge/1.0"
+          },
+          body: buffer
+        });
+
+        if (wpUploadRes.ok) {
+          const uploadedMedia = await wpUploadRes.json();
+          return uploadedMedia.id || null;
+        }
+      } catch (err: any) {
+        console.warn("Impossibile associare o caricare featured_media su WP:", err.message);
+      }
+
+      return null;
+    }
+
     // 5. Tentativo di pubblicazione reale su WordPress REST API
     const wpUrl = process.env.WP_URL || "https://www.laterradegliaranci.it";
     const wpUser = process.env.WP_USERNAME || "Mario";
@@ -219,7 +295,14 @@ export async function POST(request: NextRequest) {
     if (wpUser && wpPass) {
       try {
         const credentials = Buffer.from(`${wpUser}:${wpPass}`).toString("base64");
-        const wpPayload = {
+
+        // Risolvi o importa l'immagine in evidenza (featured_media)
+        let featuredMediaId: number | null = null;
+        if (immagine) {
+          featuredMediaId = await getOrCreateWpMediaId(immagine, wpUrl, credentials);
+        }
+
+        const wpPayload: any = {
           title: titolo,
           slug,
           content: htmlContent,
@@ -233,7 +316,36 @@ export async function POST(request: NextRequest) {
           }
         };
 
-        const wpResponse = await fetch(`${wpUrl}/wp-json/wp/v2/posts`, {
+        if (featuredMediaId) {
+          wpPayload.featured_media = featuredMediaId;
+        }
+
+        // Verifica se il post esiste già su WP per aggiornarlo anziché duplicarlo
+        let targetPostId = body.wpPostId;
+        if (!targetPostId) {
+          try {
+            const checkRes = await fetch(`${wpUrl}/wp-json/wp/v2/posts?slug=${encodeURIComponent(slug)}&status=any`, {
+              headers: {
+                Authorization: `Basic ${credentials}`,
+                "User-Agent": "AntigravityEcosystemBridge/1.0"
+              }
+            });
+            if (checkRes.ok) {
+              const existingList = await checkRes.json();
+              if (Array.isArray(existingList) && existingList.length > 0) {
+                targetPostId = existingList[0].id;
+              }
+            }
+          } catch {
+            // ignore
+          }
+        }
+
+        const endpoint = targetPostId
+          ? `${wpUrl}/wp-json/wp/v2/posts/${targetPostId}`
+          : `${wpUrl}/wp-json/wp/v2/posts`;
+
+        const wpResponse = await fetch(endpoint, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
