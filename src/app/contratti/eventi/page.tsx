@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import EventiForm from "./EventiForm";
 import { generateSignature } from "@/lib/crypto";
+import { getQuotesFast } from "@/lib/dataHelper";
 
 export const dynamic = 'force-dynamic';
 
@@ -31,10 +32,23 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ [
     );
   }
 
+  // Cerca il preventivo e il cliente collegato per precompilare automaticamente i dati
+  const quotes = await getQuotesFast();
+  const matchingQuote = quotes.find(q => q.id.toLowerCase().startsWith(preventivo.toLowerCase()));
+  
+  const initialData = matchingQuote ? {
+    nome: matchingQuote.clients?.nome || "",
+    cognome: matchingQuote.clients?.cognome || "",
+    email: matchingQuote.clients?.email || "",
+    telefono: matchingQuote.clients?.telefono || "",
+    codice_fiscale: matchingQuote.clients?.codice_fiscale || "",
+    data_evento: matchingQuote.data_evento || ""
+  } : undefined;
+
   return (
     <div className="container">
       <Suspense fallback={<div style={{ textAlign: "center", padding: "2rem" }}>Caricamento contratto in corso...</div>}>
-        <EventiForm initialPrezzo={prezzo} initialPreventivo={preventivo} />
+        <EventiForm initialPrezzo={prezzo} initialPreventivo={preventivo} initialData={initialData} />
       </Suspense>
     </div>
   );

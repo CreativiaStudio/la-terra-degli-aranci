@@ -1,0 +1,1 @@
+export const PROJECT_BUILDER_ASSETS: any = {}; export function getPhaseAsset(p: any) { return ''; } export function getSpaceAsset(s: any) { return ''; } export function createSvgPlaceholderUrl(t: any) { return ''; }

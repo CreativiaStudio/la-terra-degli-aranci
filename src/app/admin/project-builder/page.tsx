@@ -1,0 +1,1 @@
+"use client"; import React from "react"; export default function ProjectBuilderAdminPage() { return (<div style={{ padding: "2rem", maxWidth: "1150px", margin: "0 auto" }}><h1 style={{ fontFamily: "serif" }}>Project Builder Staff</h1></div>); }

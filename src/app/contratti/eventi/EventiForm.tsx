@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import SignaturePad from "@/components/SignaturePad";
 
-export default function EventiForm({ initialPrezzo, initialPreventivo }: { initialPrezzo: string, initialPreventivo: string }) {
+export default function EventiForm({ initialPrezzo, initialPreventivo }: { initialPrezzo: string, initialPreventivo: string, initialData?: any }) {
   const [lang, setLang] = useState<"it" | "en">("it");
 
   const [firmaContratto, setFirmaContratto] = useState("");

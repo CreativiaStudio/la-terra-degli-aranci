@@ -1,36 +1,53 @@
 import { getServiceSupabase } from "@/lib/supabase";
+import { getQuoteLocal, updateQuoteStatusLocal } from "@/lib/localDb";
 import { generateSecureToken } from "@/app/actions";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { headers } from "next/headers";
+import CopyLinkButton from "./CopyLinkButton";
 
 export const revalidate = 0;
 
-export default async function ConvertiPreventivoPage({ searchParams }: { searchParams: { quote_id: string } }) {
-  if (!searchParams.quote_id) return notFound();
+export default async function ConvertiPreventivoPage({ searchParams }: { searchParams: Promise<{ quote_id: string }> }) {
+  const { quote_id } = await searchParams;
+  if (!quote_id) return notFound();
 
-  const supabase = getServiceSupabase();
+  let quote = null;
 
-  // 1. Prendi il preventivo
-  const { data: quote, error } = await supabase
-    .from('quotes')
-    .select('*')
-    .eq('id', searchParams.quote_id)
-    .single();
+  try {
+    const supabase = getServiceSupabase();
+    const { data, error } = await supabase
+      .from('quotes')
+      .select('*')
+      .eq('id', quote_id)
+      .single();
 
-  if (error || !quote) return notFound();
+    if (!error && data) {
+      quote = data;
+      await supabase
+        .from('quotes')
+        .update({ status: 'convertito' })
+        .eq('id', quote.id);
+    }
+  } catch (e) {
+    console.warn("Supabase disconnesso su conversione, uso local fallback...");
+  }
 
-  // 2. Prepara i dati per il contratto
-  // Il "preventivo" nel token era il numero preventivo testuale. 
-  // Useremo l'ID accorciato o un numero progressivo. Per ora usiamo i primi 8 caratteri dell'UUID come numero.
+  if (!quote) {
+    quote = getQuoteLocal(quote_id);
+    if (quote) {
+      updateQuoteStatusLocal(quote.id, 'convertito');
+    }
+  }
+
+  if (!quote) return notFound();
+
   const numeroPreventivo = quote.id.split('-')[0].toUpperCase();
   const prezzoConcordato = quote.totale_calcolato.toString();
-  const tipo = quote.tipo_evento;
+  const tipo = quote.tipo_evento || 'wedding';
 
-  // 3. Genera il token sicuro
   const { prezzo: p, preventivo: prev, sig } = await generateSecureToken(prezzoConcordato, numeroPreventivo);
   
-  // URL base
   const headersList = await headers();
   const host = headersList.get('host') || 'ecosistema.laterradegliaranci.it';
   const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
@@ -38,35 +55,22 @@ export default async function ConvertiPreventivoPage({ searchParams }: { searchP
   
   const generatedLink = `${baseUrl}/contratti/${tipo}?prezzo=${p}&preventivo=${prev}&sig=${sig}`;
 
-  // 4. Aggiorna lo stato del preventivo a "convertito"
-  await supabase
-    .from('quotes')
-    .update({ status: 'convertito' })
-    .eq('id', quote.id);
-
   return (
     <div className="container">
       <div className="premium-card" style={{ textAlign: "center", padding: "4rem 2rem" }}>
         <div style={{ fontSize: "4rem", marginBottom: "1rem" }}>🎉</div>
-        <h1 style={{ color: "var(--primary-color)", marginBottom: "1rem" }}>Magia Compiuta!</h1>
+        <h1 style={{ color: "#e58c2c", marginBottom: "1rem" }}>Preventivo Convertito in Contratto!</h1>
         <p style={{ fontSize: "1.2rem", color: "#666", marginBottom: "2rem" }}>
-          Il preventivo è stato convertito in contratto senza dover scrivere una sola parola.
+          La proposta è stata trasformata nel contratto ufficiale con i prezzi ed i riferimenti crittografati.
         </p>
 
-        <div style={{ background: "#f0eee9", padding: "2rem", borderRadius: "8px", textAlign: "left", marginBottom: "2rem" }}>
-          <label style={{ fontWeight: "bold", color: "#333", display: "block", marginBottom: "0.5rem" }}>
-            Link Sicuro del Contratto da inviare al cliente:
+        <div style={{ background: "#faf8f5", padding: "2rem", borderRadius: "12px", border: "1px solid #e0ddd9", textAlign: "left", marginBottom: "2.5rem" }}>
+          <label style={{ fontWeight: "bold", color: "#514d48", display: "block", fontSize: "1.05rem" }}>
+            Link del Contratto Digitale pronto da inviare al cliente:
           </label>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <input 
-              type="text" 
-              readOnly 
-              value={generatedLink} 
-              style={{ width: "100%", padding: "1rem", border: "1px solid #ccc", borderRadius: "6px", backgroundColor: "white" }} 
-            />
-          </div>
-          <small style={{ display: "block", marginTop: "1rem", color: "#666" }}>
-            * Questo link contiene i prezzi e i dati crittografati e non può essere modificato dal cliente.
+          <CopyLinkButton link={generatedLink} />
+          <small style={{ display: "block", marginTop: "1rem", color: "#888", fontSize: "0.9rem" }}>
+            * Roberto può copiare questo link e inviarlo direttamente al cliente tramite WhatsApp o Email per la firma digitale.
           </small>
         </div>
 
@@ -78,7 +82,7 @@ export default async function ConvertiPreventivoPage({ searchParams }: { searchP
           borderRadius: "8px",
           fontWeight: "bold"
         }}>
-          Torna ai Preventivi
+          ← Torna alla Gestione Preventivi
         </Link>
       </div>
     </div>

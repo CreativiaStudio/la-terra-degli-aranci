@@ -1,8 +1,9 @@
 import { listPdfsInR2 } from "@/lib/r2";
 import LinkGenerator from "./LinkGenerator";
 import ContrattiClientList from "./ContrattiClientList";
+import Link from "next/link";
 
-export const revalidate = 0; // Disabilita la cache per questa pagina, vogliamo i file in tempo reale
+export const revalidate = 0;
 
 export default async function ContrattiDashboard() {
   let weddingPdfs: any[] = [];
@@ -17,11 +18,17 @@ export default async function ContrattiDashboard() {
     weddingPdfs = wedding;
     eventiPdfs = eventi;
   } catch (err: any) {
-    error = err.message || "Errore di connessione a Cloudflare R2. Controlla le credenziali nel file .env";
+    console.warn("R2 Cloud Storage non raggiungibile o offline fallback:", err?.message || err);
   }
 
   return (
     <div className="container">
+      <div style={{ marginBottom: "1.5rem" }}>
+        <Link href="/admin" style={{ color: "#666", textDecoration: "none", fontWeight: "600" }}>
+          ← Torna alla Dashboard Direzionale
+        </Link>
+      </div>
+
       <LinkGenerator />
       
       <div className="premium-card">

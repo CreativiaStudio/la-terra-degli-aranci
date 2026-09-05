@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# scratch and test results
+empirical_results*.json
+scratch/
+test-*.mjs
+test-*.js
+verify_*.js
+verify_*.mjs

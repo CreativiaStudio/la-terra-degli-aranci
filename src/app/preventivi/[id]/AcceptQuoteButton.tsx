@@ -23,19 +23,19 @@ export default function AcceptQuoteButton({ quoteId }: { quoteId: string }) {
       onClick={handleAccept} 
       disabled={loading}
       style={{
-        padding: "1rem 2rem",
-        background: "var(--primary-color)",
-        color: "white",
+        padding: "1.2rem 2.5rem",
+        background: "#e58c2c",
+        color: "#ffffff",
         border: "none",
-        borderRadius: "8px",
-        fontSize: "1.1rem",
+        borderRadius: "10px",
+        fontSize: "1.2rem",
         fontWeight: "bold",
         cursor: loading ? "not-allowed" : "pointer",
-        boxShadow: "0 4px 15px rgba(229, 140, 44, 0.4)",
-        transition: "transform 0.2s"
+        boxShadow: "0 6px 20px rgba(229, 140, 44, 0.4)",
+        transition: "all 0.2s ease"
       }}
     >
-      {loading ? "Elaborazione..." : "Sì, Accetto la Proposta ✓"}
+      {loading ? "Elaborazione in corso..." : "Sì, Accetto la Proposta ✓"}
     </button>
   );
 }
