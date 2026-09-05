@@ -3,7 +3,23 @@ import path from 'path';
 import crypto from 'crypto';
 import { SERVICES_CATALOG, ServiceCatalogItem } from '@/lib/servicesCatalog';
 
-const DATA_FILE = path.join(process.cwd(), 'data_store.json');
+function getDataFilePath(): string {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || (typeof process.cwd === 'function' && process.cwd().startsWith('/var/task'))) {
+    const tmpFile = path.join('/tmp', 'data_store.json');
+    if (!fs.existsSync(tmpFile)) {
+      const origFile = path.join(process.cwd(), 'data_store.json');
+      if (fs.existsSync(origFile)) {
+        try {
+          fs.copyFileSync(origFile, tmpFile);
+        } catch {
+          // ignore
+        }
+      }
+    }
+    return tmpFile;
+  }
+  return path.join(process.cwd(), 'data_store.json');
+}
 
 export interface LocalStore {
   clients: any[];
@@ -18,7 +34,8 @@ export interface LocalStore {
 }
 
 function getStore(): LocalStore {
-  if (!fs.existsSync(DATA_FILE)) {
+  const dataFile = getDataFilePath();
+  if (!fs.existsSync(dataFile)) {
     const initial: LocalStore = {
       clients: [],
       quotes: [],
@@ -30,11 +47,15 @@ function getStore(): LocalStore {
       ticket_orders: [],
       blog_posts: []
     };
-    fs.writeFileSync(DATA_FILE, JSON.stringify(initial, null, 2), 'utf8');
+    try {
+      fs.writeFileSync(dataFile, JSON.stringify(initial, null, 2), 'utf8');
+    } catch (e) {
+      console.warn("Avviso inizializzazione data_store:", e);
+    }
     return initial;
   }
   try {
-    const raw = fs.readFileSync(DATA_FILE, 'utf8');
+    const raw = fs.readFileSync(dataFile, 'utf8');
     const parsed = JSON.parse(raw);
     if (!parsed.wedding_diaries) parsed.wedding_diaries = [];
     if (!parsed.signed_contracts) parsed.signed_contracts = [];
@@ -44,7 +65,11 @@ function getStore(): LocalStore {
     if (!parsed.blog_posts) parsed.blog_posts = [];
     if (!parsed.services_catalog || !Array.isArray(parsed.services_catalog) || parsed.services_catalog.length === 0) {
       parsed.services_catalog = [...SERVICES_CATALOG];
-      fs.writeFileSync(DATA_FILE, JSON.stringify(parsed, null, 2), 'utf8');
+      try {
+        fs.writeFileSync(dataFile, JSON.stringify(parsed, null, 2), 'utf8');
+      } catch {
+        // ignore
+      }
     }
     return parsed;
   } catch (e) {
@@ -62,7 +87,12 @@ function getStore(): LocalStore {
 }
 
 function saveStore(store: LocalStore) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), 'utf8');
+  const dataFile = getDataFilePath();
+  try {
+    fs.writeFileSync(dataFile, JSON.stringify(store, null, 2), 'utf8');
+  } catch (e: any) {
+    console.warn("Avviso salvataggio localDb su fs:", e.message);
+  }
 }
 
 export function saveQuoteLocal(formData: any) {

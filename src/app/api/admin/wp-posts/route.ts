@@ -261,12 +261,18 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Salvataggio locale garantito (Resilienza R5 / Multi-Master)
-    const savedLocal = saveBlogPostLocal({
+    let savedLocal: any = {
       ...postRecord,
       wpPostId: wpResult?.id || undefined,
       wpLink: wpResult?.link || `https://www.laterradegliaranci.it/${slug}/`,
       publishMode
-    });
+    };
+
+    try {
+      savedLocal = saveBlogPostLocal(savedLocal);
+    } catch (localDbErr: any) {
+      console.warn("Avviso salvataggio locale post:", localDbErr?.message);
+    }
 
     return NextResponse.json({
       success: true,
@@ -313,30 +319,15 @@ export async function DELETE(request: NextRequest) {
 
     // Aggiorna stato locale a in_revisione
     if (id) {
-      const posts = getBlogPostsLocal();
-      const updated = posts.map((p: any) => {
-        if (p.id === id || p.wpPostId == wpPostId) {
-          return {
-            ...p,
-            stato: "in_revisione",
-            wpPostId: undefined,
-            wpLink: undefined
-          };
-        }
-        return p;
-      });
-      // Salva nel file locale
       try {
-        const path = await import("path");
-        const fs = await import("fs");
-        const dataPath = path.join(process.cwd(), "data_store.json");
-        if (fs.existsSync(dataPath)) {
-          const store = JSON.parse(fs.readFileSync(dataPath, "utf8"));
-          store.blog_posts = updated;
-          fs.writeFileSync(dataPath, JSON.stringify(store, null, 2), "utf8");
-        }
-      } catch {
-        // Fallback store
+        saveBlogPostLocal({
+          id,
+          stato: "in_revisione",
+          wpPostId: undefined,
+          wpLink: undefined
+        });
+      } catch (e: any) {
+        console.warn("Avviso aggiornamento locale DELETE:", e.message);
       }
     }
 
