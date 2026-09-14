@@ -466,7 +466,7 @@ export default function ClientDocuments({
       </div>
 
       {/* 2.5 STORICO MODIFICHE SERVIZI */}
-      {serviceChangesHistory.length > 0 && (
+      {serviceChangesHistory.length > 0 && !isHistoricalDashboard && (
         <div style={{ background: "#ffffff", borderRadius: "20px", padding: "2.5rem", boxShadow: "0 10px 30px rgba(0,0,0,0.03)", border: "1px solid #eee7de" }}>
           <div style={{ marginBottom: "1.5rem" }}>
             <span style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "2px", color: "#e58c2c", fontWeight: 700 }}>

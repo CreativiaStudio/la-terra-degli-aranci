@@ -43,14 +43,24 @@ export default function QuickActionsBar() {
           <span>🧮</span> Simulatore Fiscale
         </Link>
 
-        {/* 3. Nuovo Preventivo */}
+        {/* 3. Approvazione Blog WordPress */}
+        <Link href="/admin/articoli" style={{ ...btnStyle, background: "#f0fdf4", color: "#166534", border: "1px solid #bbf7d0" }}>
+          <span>✍️</span> Approvazione Blog WP
+        </Link>
+
+        {/* 4. Split 60/40 Banqueting */}
+        <Link href="/admin/split" style={{ ...btnStyle, background: "#fdf4ff", color: "#86198f", border: "1px solid #f5d0fe" }}>
+          <span>⚖️</span> Split 60/40 Banqueting
+        </Link>
+
+        {/* 5. Nuovo Preventivo */}
         <Link href="/admin/preventivi/nuovo" style={{ ...btnStyle, background: "#e58c2c", color: "white", boxShadow: "0 4px 12px rgba(229,140,44,0.3)" }}>
           <span>➕</span> Nuovo Preventivo
         </Link>
 
-        {/* 4. Modello Contratto Diretto */}
+        {/* 6. Modello Contratto Diretto */}
         <Link href="/admin/contratti" style={{ ...btnStyle, background: "#f0eee9", color: "#514d48", border: "1px solid #ddd" }}>
-          <span>📑</span> Modello Contratto Diretto
+          <span>📑</span> Contratti Digitali
         </Link>
       </div>
     </div>

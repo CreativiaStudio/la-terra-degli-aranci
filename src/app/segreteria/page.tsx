@@ -322,23 +322,51 @@ export default function SegreteriaPage() {
             </div>
           </div>
           {saveResult.success && (
-            <button
-              type="button"
-              onClick={handleResetForm}
-              style={{
-                minHeight: "48px",
-                padding: "0 1.5rem",
-                borderRadius: "10px",
-                border: "none",
-                background: "#1b5e20",
-                color: "#ffffff",
-                fontWeight: 700,
-                fontSize: "0.9rem",
-                cursor: "pointer",
-              }}
-            >
-              + Nuova Visita Lead
-            </button>
+            <div style={{ display: "flex", gap: "0.8rem", alignItems: "center", flexWrap: "wrap" }}>
+              {leadForm.telefono && (
+                <a
+                  href={`https://wa.me/${leadForm.telefono.replace(/[^0-9]/g, "")}?text=Gentile%20${encodeURIComponent(
+                    leadForm.nome
+                  )},%20grazie%20di%20cuore%20per%20aver%20visitato%20La%20Terra%20degli%20Aranci!%20È%20stato%20un%20piacere%20accogliervi.%20La%20nostra%20direzione%20(Roberto%20Sola%20e%20Rosaria%20Iovino)%20ha%20già%20ricevuto%20le%20vostre%20preferenze%20e%20vi%20invierà%20a%20breve%20la%20proposta.`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    minHeight: "48px",
+                    padding: "0 1.2rem",
+                    borderRadius: "10px",
+                    border: "none",
+                    background: "#25d366",
+                    color: "#ffffff",
+                    fontWeight: 700,
+                    fontSize: "0.9rem",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    textDecoration: "none",
+                  }}
+                >
+                  <span>💬</span>
+                  <span>Saluto WhatsApp</span>
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={handleResetForm}
+                style={{
+                  minHeight: "48px",
+                  padding: "0 1.5rem",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: "#1b5e20",
+                  color: "#ffffff",
+                  fontWeight: 700,
+                  fontSize: "0.9rem",
+                  cursor: "pointer",
+                }}
+              >
+                + Nuova Visita Lead
+              </button>
+            </div>
           )}
         </div>
       )}

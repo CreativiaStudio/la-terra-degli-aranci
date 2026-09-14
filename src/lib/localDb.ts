@@ -130,6 +130,59 @@ export function saveQuoteLocal(formData: any) {
   return { quoteId, client };
 }
 
+export function saveLeadQuoteLocal(data: {
+  nome: string;
+  cognome: string;
+  telefono: string;
+  email: string;
+  canaleProvenienza?: string;
+  tipoEvento: string;
+  dataEvento?: string | null;
+  numeroOspiti?: number;
+  spaziSelezionati?: string[];
+  stileMood?: string;
+  serviziInteresse?: string[];
+  note?: string;
+}) {
+  const store = getStore();
+  const clientId = crypto.randomUUID();
+  const newClient = {
+    id: clientId,
+    nome: (data.nome || "").trim(),
+    cognome: (data.cognome || "").trim(),
+    email: (data.email || "").trim(),
+    telefono: (data.telefono || "").trim(),
+    provenienza: data.canaleProvenienza || "Tour Location Tablet",
+    created_at: new Date().toISOString(),
+  };
+  store.clients.unshift(newClient);
+
+  const quoteId = crypto.randomUUID();
+  const newQuote = {
+    id: quoteId,
+    client_id: clientId,
+    tipo_evento: data.tipoEvento === "wedding" ? "wedding" : "eventi",
+    data_evento: data.dataEvento || null,
+    numero_ospiti: data.numeroOspiti || 100,
+    spazi_selezionati: data.spaziSelezionati || [],
+    stile_mood: data.stileMood || "",
+    servizi_interesse: data.serviziInteresse || [],
+    note_visita_segreteria: data.note || "",
+    status: "bozza_visita",
+    source: "tablet_segreteria",
+    items: [],
+    sconto_fisso: 0,
+    totale_calcolato: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    clients: newClient,
+  };
+  store.quotes.unshift(newQuote);
+
+  saveStore(store);
+  return { quoteId, client: newClient, quote: newQuote };
+}
+
 export function getQuoteLocal(id: string) {
   const store = getStore();
   const quote = store.quotes.find(q => q.id === id);

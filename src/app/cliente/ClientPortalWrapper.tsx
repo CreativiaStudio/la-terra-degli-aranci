@@ -178,8 +178,10 @@ export default function ClientPortalWrapper({
           <div style={{ position: "relative", zIndex: 2, maxWidth: "700px" }}>
             <span style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "3px", color: "#e58c2c", fontWeight: 700, display: "block", marginBottom: "0.6rem" }}>
               {isHistorical 
-                ? (isEng ? "WELCOME BACK TO" : "BENTORNATI A LA TERRA DEGLI ARANCI")
-                : (isEng ? "WELCOME TO YOUR JOURNEY" : "BENVENUTI A LA TERRA DEGLI ARANCI")}
+                ? (isEng ? "EXCLUSIVE VIP CLUB TDA" : "CLUB ESCLUSIVO LA TERRA DEGLI ARANCI")
+                : isPrivato
+                ? (isEng ? "PRIVATE EVENT PORTAL" : "PORTALE EVENTO PRIVATO")
+                : (isEng ? "WELCOME TO YOUR WEDDING JOURNEY" : "BENVENUTI A LA TERRA DEGLI ARANCI")}
             </span>
             <h2 style={{ fontSize: "2.5rem", fontFamily: "serif", fontWeight: 400, margin: "0 0 0.8rem 0", color: "#ffffff", lineHeight: 1.2 }}>
               {isEng ? `Hello, ${clientName}` : `Benvenuti, ${clientName}`}
@@ -187,8 +189,12 @@ export default function ClientPortalWrapper({
             <p style={{ color: "#d2ccc4", fontSize: "1.1rem", lineHeight: 1.6, margin: 0 }}>
               {isHistorical
                 ? (isEng 
-                    ? "Welcome to your historical archive. Here you can view past events and experiences."
-                    : "Benvenuti nel vostro archivio storico. Qui potete rivedere i vostri eventi passati e i contratti conclusi con noi.")
+                    ? "Welcome to the Exclusive Ecosystem Club. Access priority 48h booking and 20% discounts for seasonal galas and dinners, or revisit your historical moments."
+                    : "Benvenuti nel Club Esclusivo La Terra degli Aranci. Accedete con prelazione 48h e tariffe convenzionate (-20%) per tutti i concerti e le cene di gala in tenuta, e consultate il vostro archivio dei ricordi.")
+                : isPrivato
+                ? (isEng
+                    ? "Welcome to your personal space. Organize your private party, banquet formula, and timing with our event team."
+                    : "Benvenuti nel vostro spazio riservato. Qui potete consultare gli accordi, gestire i dettagli della festa, la formula food & beverage ed il cronoprogramma con Roberto Sola ed il nostro staff.")
                 : (isEng
                     ? "Here is your personal space where you can view your proposal, sign agreements, share your wedding diary preferences, and stay in direct contact with our team."
                     : "Questo è il vostro spazio riservato. Qui potete consultare la proposta economica, gestire la firma del contratto, compilare il vostro Wedding Diary ed organizzare ogni dettaglio con Roberto Sola ed il nostro staff.")}
@@ -196,7 +202,7 @@ export default function ClientPortalWrapper({
           </div>
 
           {/* Countdown Badge */}
-          {daysLeft !== null && daysLeft > 0 && (
+          {daysLeft !== null && daysLeft > 0 && !isHistorical && (
             <div style={{
               position: "absolute",
               right: "3rem",
@@ -214,7 +220,9 @@ export default function ClientPortalWrapper({
                 {daysLeft}
               </span>
               <span style={{ fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "1px", color: "#e5dcd0", marginTop: "0.3rem", display: "block" }}>
-                {isEng ? "Days to your Big Day" : "Giorni al Gran Giorno"}
+                {isEng
+                  ? (isPrivato ? "Days to your Event" : "Days to your Big Day")
+                  : (isPrivato ? "Giorni alla Tua Festa" : "Giorni al Gran Giorno")}
               </span>
               <small style={{ fontSize: "0.75rem", color: "#a59d93", display: "block", marginTop: "0.4rem" }}>
                 📅 {new Date(eventDateStr).toLocaleDateString(isEng ? "en-US" : "it-IT", { day: "numeric", month: "long", year: "numeric" })}
@@ -333,7 +341,7 @@ export default function ClientPortalWrapper({
                       color: activeTab === "diary" ? "#ffffff" : "#6a6764", transition: "all 0.2s"
                     }}
                   >
-                    📖 {quote?.tipo_evento === "wedding" ? (isEng ? "Wedding Diary (Preferences)" : "Wedding Diary (Le Vostre Preferenze)") : (isEng ? "Event Preferences" : "Preferenze Evento")}
+                    📖 {quote?.tipo_evento === "wedding" ? (isEng ? "Wedding Diary (Preferences)" : "Wedding Diary (Le Vostre Preferenze)") : (isEng ? "Event Dossier (Preferences)" : "Dossier Evento Privato")}
                   </button>
                 )}
 

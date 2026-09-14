@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: "Area Clienti e Contratti per La Terra degli Aranci",
 };
 
+import DemoRoleSwitcher from "@/components/DemoRoleSwitcher";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -15,6 +17,7 @@ export default function RootLayout({
     <html lang="it">
       <body style={{ margin: 0, padding: 0 }}>
         {children}
+        <DemoRoleSwitcher />
         <footer style={{ textAlign: 'center', padding: '3rem 1.5rem', color: 'var(--text-light)', fontSize: '0.9rem', background: '#ffffff', borderTop: '1px solid #eae2d6' }}>
           &copy; {new Date().getFullYear()} La Terra degli Aranci. Tutti i diritti riservati.<br/>
           P.IVA. 06039150633 - Piazzetta Santo Stefano, 7 - Napoli (Vomero)

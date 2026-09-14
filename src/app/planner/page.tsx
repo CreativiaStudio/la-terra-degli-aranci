@@ -585,7 +585,29 @@ export default function PlannerPage() {
                 </div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "0.8rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.8rem", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  style={{
+                    minHeight: "44px",
+                    padding: "0 1.1rem",
+                    borderRadius: "10px",
+                    border: "1px solid #1e3a2f",
+                    background: "#ffffff",
+                    color: "#1e3a2f",
+                    fontWeight: 700,
+                    fontSize: "0.88rem",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.45rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  <span>🖨️</span>
+                  <span>Stampa Scheda Sala & Cucina</span>
+                </button>
+
                 <a
                   href={`https://wa.me/${selectedEventForDossier.telefono.replace(/[^0-9]/g, "")}`}
                   target="_blank"

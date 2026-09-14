@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 
-const DATA_FILE = path.join(process.cwd(), "data_store.json");
+import { saveLeadQuoteLocal } from "@/lib/localDb";
 
 export interface LeadVisitData {
   nome: string;
@@ -29,70 +29,39 @@ export interface SaveLeadResponse {
 
 export async function saveLeadVisitSheet(data: LeadVisitData): Promise<SaveLeadResponse> {
   try {
-    let store: any = { clients: [], quotes: [] };
-    if (fs.existsSync(DATA_FILE)) {
-      try {
-        const raw = fs.readFileSync(DATA_FILE, "utf8");
-        store = JSON.parse(raw);
-      } catch {
-        store = { clients: [], quotes: [] };
-      }
-    }
-
-    if (!store.clients) store.clients = [];
-    if (!store.quotes) store.quotes = [];
-
-    const clientId = crypto.randomUUID();
-    const newClient = {
-      id: clientId,
-      nome: data.nome.trim(),
-      cognome: data.cognome.trim(),
-      email: data.email.trim(),
-      telefono: data.telefono.trim(),
-      provenienza: data.canaleProvenienza || "Tour Location Tablet",
-      created_at: new Date().toISOString(),
-    };
-    store.clients.push(newClient);
-
-    const quoteId = crypto.randomUUID();
-    const newQuote = {
-      id: quoteId,
-      client_id: clientId,
-      tipo_evento: data.tipoEvento === "wedding" ? "wedding" : "eventi",
-      data_evento: data.dataEvento || null,
-      numero_ospiti: data.numeroOspiti || 100,
-      spazi_selezionati: data.spaziSelezionati || [],
-      stile_mood: data.stileMood || "",
-      servizi_interesse: data.serviziInteresse || [],
-      note_visita_segreteria: data.note || "",
-      status: "bozza_visita",
-      source: "tablet_segreteria",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      clients: newClient,
-    };
-    store.quotes.unshift(newQuote);
-
-    fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2), "utf8");
+    const { quoteId, client, quote } = saveLeadQuoteLocal({
+      nome: data.nome,
+      cognome: data.cognome,
+      telefono: data.telefono,
+      email: data.email,
+      canaleProvenienza: data.canaleProvenienza,
+      tipoEvento: data.tipoEvento,
+      dataEvento: data.dataEvento,
+      numeroOspiti: data.numeroOspiti,
+      spaziSelezionati: data.spaziSelezionati,
+      stileMood: data.stileMood,
+      serviziInteresse: data.serviziInteresse,
+      note: data.note,
+    });
 
     // Prova sincronizzazione asincrona su Supabase se configurato
     try {
       const { getServiceSupabase } = await import("@/lib/supabase");
       const supabase = getServiceSupabase();
       await supabase.from("clients").insert({
-        id: clientId,
-        nome: newClient.nome,
-        cognome: newClient.cognome,
-        email: newClient.email,
-        telefono: newClient.telefono,
-        provenienza: newClient.provenienza,
+        id: client.id,
+        nome: client.nome,
+        cognome: client.cognome,
+        email: client.email,
+        telefono: client.telefono,
+        provenienza: client.provenienza,
       });
       await supabase.from("quotes").insert({
         id: quoteId,
-        client_id: clientId,
-        tipo_evento: newQuote.tipo_evento,
-        data_evento: newQuote.data_evento,
-        numero_ospiti: newQuote.numero_ospiti,
+        client_id: client.id,
+        tipo_evento: quote.tipo_evento,
+        data_evento: quote.data_evento,
+        numero_ospiti: quote.numero_ospiti,
         status: "bozza_visita",
         source: "tablet_segreteria",
       });
