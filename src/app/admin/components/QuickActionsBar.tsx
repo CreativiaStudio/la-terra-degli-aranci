@@ -48,9 +48,9 @@ export default function QuickActionsBar() {
           <span>✍️</span> Approvazione Blog WP
         </Link>
 
-        {/* 4. Split 60/40 Banqueting */}
-        <Link href="/admin/split" style={{ ...btnStyle, background: "#fdf4ff", color: "#86198f", border: "1px solid #f5d0fe" }}>
-          <span>⚖️</span> Split 60/40 Banqueting
+        {/* 4. Catalogo 129 Servizi */}
+        <Link href="/admin/catalogo" style={{ ...btnStyle, background: "#fdf4ff", color: "#86198f", border: "1px solid #f5d0fe" }}>
+          <span>✨</span> Catalogo 129 Servizi
         </Link>
 
         {/* 5. Nuovo Preventivo */}

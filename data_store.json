@@ -122,9 +122,10 @@
       "client_id": "client-demo1",
       "tipo_evento": "wedding",
       "data_evento": "2027-09-15",
-      "status": "inviato",
+      "status": "convertito",
       "totale_calcolato": 18000,
-      "created_at": "2026-07-23T07:06:08.106Z"
+      "created_at": "2026-07-23T07:06:08.106Z",
+      "updated_at": "2026-09-17T19:43:26.935Z"
     },
     {
       "id": "quote-demo3",
@@ -1405,6 +1406,12 @@
         "Giardino degli Aranci (Cocktail & Aperitivi)",
         "Sala Bianca (Pranzo/Cena Panoramica)"
       ]
+    },
+    {
+      "id": "763a01f2-fcb4-468e-9157-6ca0dbd413be",
+      "client_id": "demo-client",
+      "music_preferences": "Preferenza musicale espressa: \"A che ora deve finire la musica all aperto?\"",
+      "updated_at": "2026-09-17T19:43:15.479Z"
     }
   ],
   "quote_changes": [

@@ -347,7 +347,7 @@ export default function EnterpriseDashboardClient({ quotes, signedPdfs = [] }: E
           </p>
           <div style={{ marginTop: "0.8rem" }}>
             <Link
-              href="/admin/split"
+              href="/admin/simulatore"
               style={{ fontSize: "0.82rem", color: "#86198f", fontWeight: 700, textDecoration: "none" }}
             >
               Consulta Ripartizione Fiscale Dettagliata →
@@ -370,7 +370,7 @@ export default function EnterpriseDashboardClient({ quotes, signedPdfs = [] }: E
           </p>
           <div style={{ marginTop: "0.8rem" }}>
             <Link
-              href="/admin/servizi"
+              href="/admin/catalogo"
               style={{ fontSize: "0.82rem", color: "#e58c2c", fontWeight: 700, textDecoration: "none" }}
             >
               Gestisci Catalogo 129 Servizi & Split →
