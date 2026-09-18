@@ -1,0 +1,576 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   TDA Palette Tokens (RGB triplets for Tailwind alpha support)
+   V1 — Estate / Amalfi (default, unchanged from the original theme)
+   ============================================================ */
+:root {
+  --tda-amalfi-light: 253 251 247;
+  --tda-amalfi-base: 247 243 235;
+  --tda-amalfi-dark: 237 230 214;
+  --tda-amalfi-shadow: 228 220 189;
+  --tda-amalfi-paper: 250 247 242;
+  --tda-amalfi-card: 252 251 247;
+  --tda-amalfi-border: 232 225 211;
+
+  --tda-toile-deep: 30 58 95;
+  --tda-toile-slate: 74 107 130;
+  --tda-toile-blue: 92 130 166;
+  --tda-toile-porcelain: 126 155 178;
+  --tda-toile-light: 233 239 244;
+  --tda-toile-wash: 240 245 249;
+
+  --tda-gold-foil: 223 190 121;
+  --tda-gold-accent: 197 160 89;
+  --tda-gold-dark: 154 120 62;
+  --tda-gold-bronze: 140 107 40;
+  --tda-gold-champagne: 234 215 166;
+
+  --tda-wedding-burgundy: 91 26 40;
+  --tda-wedding-wax: 122 24 40;
+  --tda-wedding-forest: 31 59 43;
+  --tda-wedding-midnight: 27 40 56;
+  --tda-wedding-charcoal: 44 53 57;
+
+  /* CTA tokens V1 (identici ai colori originali charcoal/gold) */
+  --tda-cta-bg: 44 53 57;
+  --tda-cta-text: 253 251 247;
+  --tda-cta-hover: 197 160 89;
+  --tda-cta-hover-text: 255 255 255;
+  --tda-cta-primary-from: 154 120 62;
+  --tda-cta-primary-via: 197 160 89;
+  --tda-cta-primary-to: 223 190 121;
+  --tda-cta-primary-text: 255 255 255;
+  --tda-cta-primary-text-hover: 255 255 255;
+  --tda-cta-primary-hover-from: 154 120 62;
+  --tda-cta-primary-hover-via: 197 160 89;
+  --tda-cta-primary-hover-to: 223 190 121;
+  --tda-cta-primary-hover-brightness: 1.05;
+}
+
+/* ============================================================
+   V2 — Natale / Inverno Luxury
+   Rubino & Bordeaux, champagne caldo, verde pino, panna/neve.
+   Attivata dall'hash class `.theme-winter` (rilevamento URL in src/theme).
+   ============================================================ */
+.theme-winter {
+  /* Avorio panna caldo (superfici) — più cremoso e meno grigio del bianco neve V1 */
+  --tda-amalfi-light: 254 249 240;
+  --tda-amalfi-base: 247 238 221;
+  --tda-amalfi-dark: 237 223 196;
+  --tda-amalfi-shadow: 224 205 172;
+  --tda-amalfi-paper: 251 245 233;
+  --tda-amalfi-card: 253 247 236;
+  --tda-amalfi-border: 231 214 185;
+
+  --tda-toile-deep: 30 59 46;
+  --tda-toile-slate: 74 99 87;
+  --tda-toile-blue: 51 85 63;
+  --tda-toile-porcelain: 110 136 120;
+  --tda-toile-light: 231 238 229;
+  --tda-toile-wash: 240 244 237;
+
+  /* Oro champagne caldo — #DFBE79 / #C5A059 */
+  --tda-gold-foil: 223 190 121;
+  --tda-gold-accent: 197 160 89;
+  --tda-gold-dark: 163 128 61;
+  --tda-gold-bronze: 140 107 40;
+  --tda-gold-champagne: 241 221 178;
+
+  /* Rosso velluto bordeaux/rubino nobile — #6B1220 / #7A1828 (mai "rosso Babbo Natale") */
+  --tda-wedding-burgundy: 107 18 32;
+  --tda-wedding-wax: 122 24 40;
+  --tda-wedding-forest: 27 58 42;
+  --tda-wedding-midnight: 27 40 56;
+  --tda-wedding-charcoal: 44 53 57;
+
+  /* CTA V2 — velluto bordeaux con filo d'oro, testo champagne e hover oro caldo */
+  --tda-cta-bg: 122 24 40;
+  --tda-cta-text: 241 221 178;
+  --tda-cta-hover: 197 160 89;
+  --tda-cta-hover-text: 44 53 57;
+  --tda-cta-primary-from: 122 24 40;
+  --tda-cta-primary-via: 107 18 32;
+  --tda-cta-primary-to: 79 12 22;
+  --tda-cta-primary-text: 241 221 178;
+  --tda-cta-primary-text-hover: 44 53 57;
+  --tda-cta-primary-hover-from: 223 190 121;
+  --tda-cta-primary-hover-via: 197 160 89;
+  --tda-cta-primary-hover-to: 163 128 61;
+  --tda-cta-primary-hover-brightness: 1;
+
+  /* Warm festive ambience on top of the panna-ivory base */
+  background-image:
+    radial-gradient(ellipse at 12% 0%, rgba(107, 18, 32, 0.06) 0%, transparent 42%),
+    radial-gradient(ellipse at 88% 6%, rgba(30, 59, 46, 0.06) 0%, transparent 46%);
+}
+
+/* ============================================================
+   V3 — Royal Midnight Winter Gala
+   Blu Notte Reale vellutato (#070F1E / #0B172B), oro zecchino
+   metallico (#D4AF37 / #E6CA65), zaffiro & ghiaccio cristallino.
+   Attivata dalla classe `.theme-midnight` (rilevamento URL in src/theme).
+   ZERO impatto su V1/V2: ridefinisce solo le stesse CSS variables.
+   ============================================================ */
+.theme-midnight {
+  /* Sfondo pagina: blu notte reale profondo e vellutato */
+  --tda-amalfi-light: 13 26 48;      /* #0D1A30 */
+  --tda-amalfi-base: 7 15 30;        /* #070F1E */
+  --tda-amalfi-dark: 5 11 23;        /* #050B17 */
+  --tda-amalfi-shadow: 18 35 61;     /* #12233D */
+  /* Carta cotone panna lunare (superfici card leggibili) */
+  --tda-amalfi-paper: 248 249 250;   /* #F8F9FA */
+  --tda-amalfi-card: 248 249 250;    /* #F8F9FA */
+  --tda-amalfi-border: 226 210 160;  /* oro champagne tenue (hairline su carta) */
+
+  /* Zaffiro & riflessi di ghiaccio cristallino */
+  --tda-toile-deep: 22 44 80;        /* #162C50 zaffiro profondo */
+  --tda-toile-slate: 71 96 138;      /* #47608A */
+  --tda-toile-blue: 44 78 138;       /* #2C4E8A zaffiro */
+  --tda-toile-porcelain: 148 180 220;/* #94B4DC ghiaccio */
+  --tda-toile-light: 224 242 254;    /* #E0F2FE ghiaccio cristallino */
+  --tda-toile-wash: 238 244 251;     /* #EEF4FB */
+
+  /* Oro zecchino metallico lucido & oro champagne */
+  --tda-gold-foil: 230 202 101;      /* #E6CA65 */
+  --tda-gold-accent: 212 175 55;     /* #D4AF37 */
+  --tda-gold-dark: 168 130 32;       /* #A88220 oro brunito (testi su panna) */
+  --tda-gold-bronze: 140 104 24;     /* #8C6818 */
+  --tda-gold-champagne: 240 227 178; /* #F0E3B2 */
+
+  /* Il "velluto" della V3 è il blu zaffiro notte (riuso sicuro del token:
+     i branch bordeaux V2 non si attivano mai quando è attiva la V3) */
+  --tda-wedding-burgundy: 18 42 84;  /* #122A54 zaffiro notte */
+  --tda-wedding-wax: 21 47 92;       /* #152F5C sigillo zaffiro */
+  --tda-wedding-forest: 20 52 96;
+  --tda-wedding-midnight: 7 15 30;
+  --tda-wedding-charcoal: 16 29 46;  /* #101D2E blu inchiostro (testo su panna) */
+
+  /* CTA V3 — oro zecchino specchiato con testo blu notte */
+  --tda-cta-bg: 212 175 55;
+  --tda-cta-text: 11 23 43;
+  --tda-cta-hover: 230 202 101;
+  --tda-cta-hover-text: 7 15 30;
+  --tda-cta-primary-from: 168 130 32;
+  --tda-cta-primary-via: 212 175 55;
+  --tda-cta-primary-to: 240 227 178;
+  --tda-cta-primary-text: 11 23 43;
+  --tda-cta-primary-text-hover: 7 15 30;
+  --tda-cta-primary-hover-from: 197 160 45;
+  --tda-cta-primary-hover-via: 230 202 101;
+  --tda-cta-primary-hover-to: 250 240 205;
+  --tda-cta-primary-hover-brightness: 1.04;
+
+  /* Ambient: bagliori stellari dorati e zaffiro sulla notte */
+  background-image:
+    radial-gradient(ellipse at 14% 0%, rgba(212, 175, 55, 0.07) 0%, transparent 42%),
+    radial-gradient(ellipse at 86% 8%, rgba(44, 78, 138, 0.16) 0%, transparent 48%);
+}
+
+/* V3 — Bottoni oro zecchino specchiato con bagliore dorato */
+.theme-midnight .cta-primary {
+  border: 1px solid rgba(240, 227, 178, 0.65);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 10px 26px -10px rgba(212, 175, 55, 0.55),
+    0 0 18px -4px rgba(230, 202, 101, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.theme-midnight .cta-primary:hover:not(:disabled) {
+  border-color: rgba(250, 240, 205, 0.9);
+  box-shadow:
+    0 12px 30px -8px rgba(212, 175, 55, 0.65),
+    0 0 26px -2px rgba(230, 202, 101, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* V3 — Carta panna lunare: micro-puntini zaffiro e oro stellare */
+.theme-midnight .amalfi-paper {
+  background-image:
+    radial-gradient(rgba(44, 78, 138, 0.05) 1px, transparent 1px),
+    radial-gradient(rgba(212, 175, 55, 0.06) 1px, rgb(var(--tda-amalfi-card)) 1px);
+}
+
+/* V3 — Bordo gold leaf sottile con ombra notte profonda */
+.theme-midnight .deckled-border {
+  box-shadow:
+    0 1px 3px rgba(4, 9, 20, 0.12),
+    0 16px 38px -12px rgba(7, 15, 30, 0.4),
+    0 0 30px -8px rgba(212, 175, 55, 0.35),
+    0 0 0 1px rgba(212, 175, 55, 0.5);
+}
+
+.theme-midnight .deckled-border::before {
+  box-shadow: inset 0 0 18px rgba(212, 175, 55, 0.1);
+}
+
+.theme-midnight .toile-pattern-bg {
+  background-image: radial-gradient(circle at center, rgba(44, 78, 138, 0.07) 0%, transparent 70%);
+}
+
+/* V3 — Hairline oro zecchino sui separatori di sezione */
+.theme-midnight .midnight-hairline {
+  background-image: linear-gradient(90deg, transparent 0%, rgba(212, 175, 55, 0.75) 50%, transparent 100%);
+}
+
+/* V3 — Alone lunare dorato dietro i nomi degli sposi */
+.theme-midnight .midnight-halo {
+  background: radial-gradient(ellipse at center, rgba(212, 175, 55, 0.3) 0%, rgba(212, 175, 55, 0) 70%);
+}
+
+/* V3 — Ombra notte per i nomi in oro specchiato */
+.theme-midnight .midnight-name-shadow {
+  filter: drop-shadow(0 3px 6px rgba(2, 6, 14, 0.55));
+}
+
+/* V3 — Testo oro zecchino specchiato (nomi sposi & monogramma) */
+.gold-mirror-text {
+  background: linear-gradient(
+    100deg,
+    #8c6818 0%,
+    #d4af37 22%,
+    #f9efd2 42%,
+    #e6ca65 58%,
+    #d4af37 76%,
+    #8c6818 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* ============================================================
+   V3 — Stardust dorata: micro-polvere di stelle che fluttua
+   con twinkle morbido (non disturba la lettura dei testi).
+   ============================================================ */
+@keyframes tdaStarTwinkle {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.7);
+    opacity: 0.05;
+  }
+  45% {
+    opacity: var(--star-opacity, 0.55);
+  }
+  100% {
+    transform: translate3d(var(--star-drift-x, 12px), var(--star-drift-y, -34px), 0) scale(1.05);
+    opacity: 0.02;
+  }
+}
+
+.midnight-stardust {
+  position: absolute;
+  top: 0;
+  left: var(--star-left, 50%);
+  line-height: 1;
+  animation: tdaStarTwinkle var(--star-duration, 9s) ease-in-out infinite alternate;
+  animation-delay: var(--star-delay, 0s);
+  will-change: transform, opacity;
+}
+
+.midnight-stardust-dot {
+  display: block;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 40% 35%, #fdf6d8 0%, #e6ca65 55%, rgba(230, 202, 101, 0) 100%);
+  box-shadow: 0 0 7px rgba(230, 202, 101, 0.75);
+  filter: blur(0.3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .midnight-stardust {
+    display: none;
+  }
+}
+
+/* ============================================================
+   Call To Action primari (V1 oro, V2 velluto rosso → hover oro)
+   ============================================================ */
+.cta-primary {
+  background-image: linear-gradient(
+    90deg,
+    rgb(var(--tda-cta-primary-from)) 0%,
+    rgb(var(--tda-cta-primary-via)) 50%,
+    rgb(var(--tda-cta-primary-to)) 100%
+  );
+  color: rgb(var(--tda-cta-primary-text));
+  transition: background-image 0.3s ease, color 0.3s ease, filter 0.3s ease;
+}
+
+.cta-primary:hover:not(:disabled) {
+  background-image: linear-gradient(
+    90deg,
+    rgb(var(--tda-cta-primary-hover-from)) 0%,
+    rgb(var(--tda-cta-primary-hover-via)) 50%,
+    rgb(var(--tda-cta-primary-hover-to)) 100%
+  );
+  color: rgb(var(--tda-cta-primary-text-hover));
+  filter: brightness(var(--tda-cta-primary-hover-brightness, 1));
+}
+
+/* V2 — Bottoni vellutati con filo d'oro sottile e hover dorato caldo */
+.theme-winter .cta-primary {
+  border: 1px solid rgba(223, 190, 121, 0.55);
+  box-shadow:
+    0 10px 24px -10px rgba(107, 18, 32, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.theme-winter .cta-primary:hover:not(:disabled) {
+  border-color: rgba(163, 128, 61, 0.7);
+  box-shadow:
+    0 10px 28px -8px rgba(197, 160, 89, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  body {
+    background-color: rgb(var(--tda-amalfi-base));
+    color: rgb(var(--tda-wedding-charcoal));
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+
+  .font-display {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+
+  .font-script {
+    font-family: 'Pinyon Script', 'Great Vibes', cursive;
+  }
+}
+
+/* 3D Transform Utilities */
+.perspective-1000 {
+  perspective: 1000px;
+}
+.perspective-1200 {
+  perspective: 1200px;
+}
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+/* Amalfi Handmade Paper Texture */
+.amalfi-paper {
+  background-color: rgb(var(--tda-amalfi-card));
+  background-image: 
+    radial-gradient(rgba(92, 130, 166, 0.0314) 1px, transparent 1px),
+    radial-gradient(rgba(197, 160, 89, 0.0471) 1px, rgb(var(--tda-amalfi-card)) 1px);
+  background-size: 24px 24px, 12px 12px;
+  background-position: 0 0, 6px 6px;
+  position: relative;
+}
+
+/* Winter paper: tiny pine & ruby specks on snow ivory */
+.theme-winter .amalfi-paper {
+  background-image:
+    radial-gradient(rgba(30, 59, 46, 0.045) 1px, transparent 1px),
+    radial-gradient(rgba(140, 29, 47, 0.045) 1px, rgb(var(--tda-amalfi-card)) 1px);
+}
+
+/* Deckled Edge Effect */
+.deckled-border {
+  position: relative;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 10px 30px -5px rgba(92, 130, 166, 0.12),
+    0 0 0 1px rgba(232, 225, 211, 0.8);
+}
+
+.theme-winter .deckled-border {
+  box-shadow:
+    0 1px 3px rgba(60, 20, 24, 0.06),
+    0 14px 34px -10px rgba(107, 18, 32, 0.18),
+    0 0 30px -6px rgba(223, 190, 121, 0.22),
+    0 0 0 1px rgba(231, 214, 185, 0.85);
+}
+
+.deckled-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow: inset 0 0 16px rgba(197, 160, 89, 0.12);
+}
+
+/* Gold Text Shimmer & Gradient */
+.gold-foil-text {
+  background: linear-gradient(135deg, rgb(var(--tda-gold-bronze)) 0%, rgb(var(--tda-gold-foil)) 35%, rgb(var(--tda-gold-accent)) 70%, rgb(var(--tda-gold-dark)) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-foil-border {
+  border-image: linear-gradient(135deg, #DFBE79, #C5A059, #8C6B28) 1;
+}
+
+/* Toile de Jouy Pattern Overlay */
+.toile-pattern-bg {
+  background-image: radial-gradient(circle at center, rgba(92, 130, 166, 0.05) 0%, transparent 70%);
+}
+
+.theme-winter .toile-pattern-bg {
+  background-image: radial-gradient(circle at center, rgba(30, 59, 46, 0.06) 0%, transparent 70%);
+}
+
+/* Envelope Flap 3D Transforms */
+.envelope-flap {
+  transform-origin: top center;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.envelope-flap.open {
+  transform: rotateX(-180deg);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgb(var(--tda-amalfi-base));
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--tda-gold-accent));
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--tda-gold-dark));
+}
+
+/* Sparkle Animation */
+@keyframes spark {
+  0% { transform: scale(0) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.2) rotate(180deg); opacity: 0.9; }
+  100% { transform: scale(0) rotate(360deg); opacity: 0; }
+}
+
+.animate-spark {
+  animation: spark 1.2s ease-out forwards;
+}
+
+/* Luxury Fade-in Keyframes */
+@keyframes fadeInLuxury {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeInLuxury 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ============================================================
+   V2 — Discreet Luxury Snowfall (fiocchi cadenti raffinati)
+   ============================================================ */
+@keyframes tdaSnowFall {
+  0% {
+    transform: translate3d(0, -6vh, 0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: var(--snow-opacity, 0.55);
+  }
+  85% {
+    opacity: var(--snow-opacity, 0.55);
+  }
+  100% {
+    transform: translate3d(var(--snow-drift, 20px), 104vh, 0) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+.winter-snowflake {
+  position: absolute;
+  top: 0;
+  left: var(--snow-left, 50%);
+  line-height: 1;
+  animation: tdaSnowFall var(--snow-duration, 14s) linear infinite;
+  animation-delay: var(--snow-delay, 0s);
+  will-change: transform, opacity;
+}
+
+.winter-snow-dot {
+  display: block;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, #f4e9d4 65%, rgba(244, 233, 212, 0) 100%);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.5);
+  filter: blur(0.4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .winter-snowflake {
+    display: none;
+  }
+}
+
+/* Winter festive hairline used on section separators */
+.theme-winter .winter-hairline {
+  background-image: linear-gradient(90deg, transparent 0%, rgba(140, 29, 47, 0.35) 50%, transparent 100%);
+}
+
+/* Soft candlelight glow behind the hero names (V2 only) */
+.theme-winter .winter-halo {
+  background: radial-gradient(ellipse at center, rgba(241, 221, 178, 0.5) 0%, rgba(241, 221, 178, 0) 70%);
+}
+
+/* Warm velvet drop-shadow for the gold-foil winter names (V2 only) */
+.theme-winter .winter-name-shadow {
+  filter: drop-shadow(0 2px 4px rgba(90, 10, 22, 0.35));
+}
+
+/* ============================================================
+   V2 — Ceralacca bordeaux "cangiante": sottile velo dorato
+   rotante che simula il riflesso mutevole della cera artigianale.
+   ============================================================ */
+@keyframes tdaSealSheenRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.wax-seal-sheen {
+  position: absolute;
+  inset: 5%;
+  border-radius: 9999px;
+  pointer-events: none;
+  mix-blend-mode: color-dodge;
+  opacity: 0.32;
+  background: conic-gradient(
+    from 0deg,
+    rgba(223, 190, 121, 0) 0deg,
+    rgba(241, 221, 178, 0.55) 35deg,
+    rgba(223, 190, 121, 0) 95deg,
+    rgba(223, 190, 121, 0) 180deg,
+    rgba(197, 160, 89, 0.4) 235deg,
+    rgba(223, 190, 121, 0) 300deg,
+    rgba(223, 190, 121, 0) 360deg
+  );
+  animation: tdaSealSheenRotate 9s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wax-seal-sheen {
+    animation: none;
+  }
+}
+

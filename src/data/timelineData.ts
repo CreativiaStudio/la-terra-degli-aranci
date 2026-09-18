@@ -1,0 +1,56 @@
+import { TimelineEvent } from '../types/wedding';
+
+export const timelineEvents: TimelineEvent[] = [
+  {
+    ora: "15:00",
+    titolo: "Accoglienza Ospiti",
+    luogo: "Ingresso Masseria & Piazzale Storico",
+    descrizione: "Benvenuto con essenze agrumate e musica d'arpa e archi tra i sentieri panoramici della tenuta.",
+    iconName: "Sparkles",
+    badge: "Masseria Panoramica",
+  },
+  {
+    ora: "15:30",
+    titolo: "Rito Nuziale Emozionale",
+    luogo: "Giardino delle Promesse & Ulivi Secolari",
+    descrizione: "Celebrazione delle promesse d'amore tra Francesca e Ferdinando circondati dal verde secolare con vista su Posillipo.",
+    iconName: "HeartHandshake",
+    previewImage: "./images/giardino_promesse.jpg",
+    badge: "Giardino delle Promesse",
+  },
+  {
+    ora: "16:30",
+    titolo: "Welcome Drink & Gran Buffet",
+    luogo: "Giardino degli Agrumi & Sentieri di Zagara",
+    descrizione: "Aperitivi d'autore, isole gastronomiche a vista, finger food della tradizione partenopea e calici di benvenuto al tramonto.",
+    iconName: "Wine",
+    previewImage: "./images/agrumeto.jpg",
+    badge: "Agrumeto Storico",
+  },
+  {
+    ora: "18:00",
+    titolo: "Banchetto Nuziale di Gala",
+    luogo: "Luminosa ed elegante Sala Bianca",
+    descrizione: "Cena placé gourmet servita a tavola con menù stagionale d'eccellenza a cura della cucina interna de La Terra degli Aranci.",
+    iconName: "Utensils",
+    previewImage: "./images/sala_bianca.jpg",
+    badge: "Sala Bianca",
+  },
+  {
+    ora: "21:30",
+    titolo: "Taglio della Torta & Dessert",
+    luogo: "Giardino panoramico illuminato & Fontane di luce",
+    descrizione: "Momento scenografico del taglio torta, confettata artigianale d'autore, buffet di alta pasticceria e distillati biologici.",
+    iconName: "Cake",
+    previewImage: "./images/taglio_torta.jpg",
+    badge: "Taglio Torta sotto le Stelle",
+  },
+  {
+    ora: "22:30",
+    titolo: "After Party & DJ Set",
+    luogo: "Suggestiva Sala Tufo con volte a botte",
+    descrizione: "Open bar con signature cocktails, luci scenografiche, musica live e dj set per ballare fino a notte fonda.",
+    iconName: "Music",
+    badge: "Sala Tufo & Open Bar",
+  },
+];
