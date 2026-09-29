@@ -237,14 +237,57 @@ export function getWeddingDiaryLocal(clientId: string) {
   return diary || null;
 }
 
-export function saveWeddingDiaryLocal(data: { client_id: string; quote_id?: string; palette?: string; style?: string; preferred_spaces?: string[]; dietary_notes?: string; music_preferences?: string; notes?: string }) {
+export interface WeddingDiaryPayload {
+  client_id: string;
+  quote_id?: string;
+  /** Risposte strutturate del questionario Wedding Diary: { nome_campo: valore }. */
+  answers?: Record<string, any>;
+  /** Percentuale di completamento del Diary (0-100). */
+  completion_rate?: number;
+  /** Campi legacy (AI Concierge / vecchie schede) e chiavi extra ammesse. */
+  [key: string]: any;
+}
+
+/**
+ * Salvataggio NON distruttivo del Wedding Diary.
+ * - aggiorna solo le chiavi esplicitamente presenti nel payload;
+ * - fonde (shallow merge) l'oggetto `answers`, così un autosave parziale
+ *   non cancella mai le risposte già memorizzate;
+ * - preserva l'`id` esistente della scheda.
+ */
+export function saveWeddingDiaryLocal(data: WeddingDiaryPayload) {
   const store = getStore();
   if (!store.wedding_diaries) store.wedding_diaries = [];
-  
-  const index = store.wedding_diaries.findIndex(d => d.client_id === data.client_id || (data.quote_id && d.quote_id === data.quote_id));
+
+  const index = store.wedding_diaries.findIndex(
+    d =>
+      (data.client_id && d.client_id === data.client_id) ||
+      (data.quote_id && d.quote_id && d.quote_id === data.quote_id)
+  );
+
+  const prev = index >= 0 ? store.wedding_diaries[index] : {};
+
+  // Patch: solo le chiavi realmente fornite (le undefined non sovrascrivono nulla)
+  const patch: Record<string, any> = {};
+  Object.entries(data).forEach(([key, value]) => {
+    if (value === undefined) return;
+    patch[key] = value;
+  });
+
+  // Merge non distruttivo delle risposte strutturate
+  const prevAnswers =
+    prev && typeof prev.answers === "object" && prev.answers !== null ? prev.answers : {};
+  const nextAnswers =
+    data.answers && typeof data.answers === "object"
+      ? { ...prevAnswers, ...data.answers }
+      : prevAnswers;
+  const hasAnswers = Object.keys(nextAnswers).length > 0;
+
   const entry = {
-    id: index >= 0 ? store.wedding_diaries[index].id : crypto.randomUUID(),
-    ...data,
+    ...prev,
+    ...patch,
+    id: prev.id || data.id || crypto.randomUUID(),
+    answers: hasAnswers ? nextAnswers : prev.answers,
     updated_at: new Date().toISOString()
   };
 

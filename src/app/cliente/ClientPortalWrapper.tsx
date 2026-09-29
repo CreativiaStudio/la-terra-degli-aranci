@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import ClientDocuments from "./components/ClientDocuments";
 import WeddingDiaryForm from "./components/WeddingDiaryForm";
+import PrivateEventDossier from "./components/PrivateEventDossier";
+import { computeDiaryProgress } from "./components/weddingDiaryFields";
 import PaymentSchedule from "./components/PaymentSchedule";
 import UpcomingEvents from "./components/UpcomingEvents";
 import VenueGuide from "./components/VenueGuide";
@@ -47,6 +49,18 @@ export default function ClientPortalWrapper({
 
   const isEng = lang === "en";
   const clientName = quote?.clients?.nome ? `${quote.clients.nome} ${quote.clients.cognome || ''}` : "Sposi";
+
+  // Percentuale di completamento del Wedding Diary (inizializzata dai dati server,
+  // poi aggiornata in tempo reale dal form tramite callback).
+  const [diaryProgress, setDiaryProgress] = useState<number>(() =>
+    computeDiaryProgress(initialDiary?.answers)
+  );
+  const handleDiaryProgress = useCallback((pct: number) => {
+    setDiaryProgress((prev) => (prev === pct ? prev : pct));
+  }, []);
+
+  const isWedding = mode === "wedding" || quote?.tipo_evento === "wedding";
+  const showDiaryBanner = isWedding && !isHistorical && activeTab !== "diary" && diaryProgress < 80;
 
   // I servizi si possono modificare solo su un contratto firmato o attivo, non storico, e fino a 10gg dall'evento
   const canEditServices = (quote?.status === "firmato" || quote?.status === "inviato" || quote?.status === "accettato" || !quote?.status) && !isHistorical && isWithinEditableWindow(quote?.data_evento);
@@ -163,7 +177,87 @@ export default function ClientPortalWrapper({
 
       {/* Main Container */}
       <main style={{ maxWidth: "1100px", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
-        
+
+        {/* Reminder Banner: Wedding Diary incompleto (< 80%) */}
+        {showDiaryBanner && (
+          <div
+            style={{
+              position: "relative",
+              display: "flex",
+              alignItems: "center",
+              gap: "1.25rem",
+              flexWrap: "wrap",
+              background: "linear-gradient(135deg, #fff8ee 0%, #fdf1e0 100%)",
+              border: "1px solid #f3d9b4",
+              borderLeft: "4px solid #e58c2c",
+              borderRadius: "16px",
+              padding: "1.15rem 1.4rem",
+              marginBottom: "1.75rem",
+              boxShadow: "0 8px 24px rgba(229,140,44,0.08)",
+            }}
+          >
+            <span style={{ fontSize: "1.6rem", lineHeight: 1 }} aria-hidden="true">📖</span>
+
+            <div style={{ flex: "1 1 320px", minWidth: "260px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap", marginBottom: "0.3rem" }}>
+                <span style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "2px", color: "#b8761f", fontWeight: 700 }}>
+                  {isEng ? "WEDDING DIARY" : "WEDDING DIARY"}
+                </span>
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                    color: "#9a5a10",
+                    background: "#fdeacd",
+                    border: "1px solid #f3d9b4",
+                    borderRadius: "999px",
+                    padding: "0.1rem 0.55rem",
+                  }}
+                >
+                  {diaryProgress}%
+                </span>
+              </div>
+              <p style={{ margin: 0, color: "#5a4a35", fontSize: "0.95rem", lineHeight: 1.55 }}>
+                {isEng
+                  ? "Complete your Wedding Diary: it will help our Wedding Planner six months before the event to craft the perfect direction of your wedding."
+                  : "Completa il vostro Wedding Diary: aiuterà la nostra Wedding Planner a -6 mesi a preparare la regia perfetta del matrimonio."}
+              </p>
+
+              {/* Barra di avanzamento sobria */}
+              <div style={{ height: "5px", background: "#f0e0c8", borderRadius: "999px", overflow: "hidden", marginTop: "0.65rem", maxWidth: "420px" }}>
+                <div
+                  style={{
+                    width: `${diaryProgress}%`,
+                    height: "100%",
+                    borderRadius: "999px",
+                    background: "linear-gradient(90deg, #f0b46a, #e58c2c)",
+                    transition: "width 0.45s ease",
+                  }}
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => { setActiveCategory("organizzazione"); setActiveTab("diary"); }}
+              style={{
+                padding: "0.72rem 1.3rem",
+                borderRadius: "999px",
+                border: "none",
+                background: "linear-gradient(135deg, #e58c2c 0%, #d17a22 100%)",
+                color: "#ffffff",
+                fontWeight: 600,
+                fontSize: "0.88rem",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                boxShadow: "0 6px 16px rgba(229,140,44,0.28)",
+              }}
+            >
+              {isEng ? "Complete the Diary →" : "Completa il Diary →"}
+            </button>
+          </div>
+        )}
+
         {/* Welcome Hero Banner */}
         <div style={{
           background: "linear-gradient(135deg, #1e1b18 0%, #3a342e 100%)",
@@ -440,12 +534,24 @@ export default function ClientPortalWrapper({
           />
         )}
 
-        {activeTab === "diary" && (
-          <WeddingDiaryForm 
-            clientId={quote?.client_id || ""} 
-            initialData={initialDiary} 
-            lang={lang} 
-            isReadOnly={isHistorical} 
+        {activeTab === "diary" && isWedding && (
+          <WeddingDiaryForm
+            clientId={quote?.client_id || ""}
+            quoteId={quote?.id}
+            initialData={initialDiary}
+            lang={lang}
+            isReadOnly={isHistorical}
+            onProgressChange={handleDiaryProgress}
+          />
+        )}
+
+        {activeTab === "diary" && !isWedding && (
+          <PrivateEventDossier
+            clientId={quote?.client_id || ""}
+            quoteId={quote?.id}
+            initialData={initialDiary}
+            lang={lang}
+            isReadOnly={isHistorical}
           />
         )}
 

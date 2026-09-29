@@ -1,7 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { saveWeddingDiaryAction } from "../actions";
+import {
+  WEDDING_DIARY_SECTIONS,
+  WEDDING_DIARY_FIELD_COUNT,
+  computeDiaryProgress,
+  isDiaryFieldFilled,
+  type WeddingDiaryField,
+} from "./weddingDiaryFields";
+
+type SaveState = "idle" | "saving" | "saved" | "error" | "offline";
 
 interface WeddingDiaryProps {
   clientId: string;
@@ -9,290 +18,647 @@ interface WeddingDiaryProps {
   initialData?: any;
   lang?: "it" | "en";
   isReadOnly?: boolean;
+  /** Notifica il genitore della percentuale di completamento (0-100). */
+  onProgressChange?: (pct: number) => void;
 }
 
-export default function WeddingDiaryForm({ clientId, quoteId, initialData, lang = "it", isReadOnly = false }: WeddingDiaryProps) {
+/** Debounce per i campi testuali: l'utente non deve mai premere "Invio". */
+const TEXT_DEBOUNCE_MS = 600;
+const DRAFT_PREFIX = "tda_wedding_diary_draft_";
+
+/** Estrae un oggetto answers pulito da un eventuale record Wedding Diary. */
+function normalizeAnswers(initialData: any): Record<string, any> {
+  const base = initialData && typeof initialData === "object" ? initialData.answers : null;
+  if (!base || typeof base !== "object") return {};
+  const clean: Record<string, any> = {};
+  Object.entries(base as Record<string, any>).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") clean[key] = value;
+  });
+  return clean;
+}
+
+export default function WeddingDiaryForm({
+  clientId,
+  quoteId,
+  initialData,
+  lang = "it",
+  isReadOnly = false,
+  onProgressChange,
+}: WeddingDiaryProps) {
   const isEng = lang === "en";
+  const storageKey = `${DRAFT_PREFIX}${clientId || "anon"}`;
 
-  const [palette, setPalette] = useState(initialData?.palette || "Terracotta & Citrus (Caldi Agrumi)");
-  const [style, setStyle] = useState(initialData?.style || "Country Chic & Naturale");
-  const [preferredSpaces, setPreferredSpaces] = useState<string[]>(initialData?.preferred_spaces || ["Giardino degli Aranci", "Sala Bianca"]);
-  const [dietaryNotes, setDietaryNotes] = useState(initialData?.dietary_notes || "");
-  const [musicPreferences, setMusicPreferences] = useState(initialData?.music_preferences || "");
-  const [notes, setNotes] = useState(initialData?.notes || "");
-  
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [answers, setAnswers] = useState<Record<string, any>>(() => normalizeAnswers(initialData));
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(initialData?.updated_at || null);
+  const [draftRestored, setDraftRestored] = useState(false);
 
-  const palettes = [
-    { id: "Terracotta & Citrus (Caldi Agrumi)", title: "Terracotta & Citrus", desc: "Agrumi di Sicilia, arancio caldo, foglia d'olivo", bg: "#f97316" },
-    { id: "Avorio Classico & Oro", title: "Ivory & Gold Elegance", desc: "Toni candidi, bianco avorio e finiture dorate", bg: "#eab308" },
-    { id: "Botanic Green & Eucalyptus", title: "Botanic Green", desc: "Verde salvia, eucalipto e bosco naturale", bg: "#16a34a" },
-    { id: "Sunset Blush & Rose", title: "Sunset Rose", desc: "Rosa cipria, tramonto napoletano e toni caldi", bg: "#ec4899" }
-  ];
+  const answersRef = useRef<Record<string, any>>(answers);
+  const pendingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const textTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
-  const styles = [
-    "Country Chic & Naturale",
-    "Elegante & Formale Classic",
-    "Modern Minimalist & Sophisticated",
-    "Boho Glam & Lights Garden"
-  ];
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() =>
+    isReadOnly
+      ? Object.fromEntries(WEDDING_DIARY_SECTIONS.map((s) => [s.id, true]))
+      : Object.fromEntries(WEDDING_DIARY_SECTIONS.map((s, i) => [s.id, i === 0]))
+  );
 
-  const spacesOptions = [
-    "Giardino degli Aranci (Cocktail & Aperitivi)",
-    "Sala Bianca (Pranzo/Cena Panoramica)",
-    "Sala Tufo (After Party & Disco)",
-    "Boschetto Panoramico (Rito Simbolico)"
-  ];
+  /* ------------------------------------------------------------------ *
+   * Progresso di completamento
+   * ------------------------------------------------------------------ */
+  const progress = useMemo(() => computeDiaryProgress(answers), [answers]);
+  const filledBySection = useMemo(
+    () =>
+      Object.fromEntries(
+        WEDDING_DIARY_SECTIONS.map((section) => [
+          section.id,
+          section.fields.filter((f) => isDiaryFieldFilled(answers[f.name])).length,
+        ])
+      ) as Record<string, number>,
+    [answers]
+  );
 
-  const toggleSpace = (space: string) => {
-    if (preferredSpaces.includes(space)) {
-      setPreferredSpaces(preferredSpaces.filter(s => s !== space));
-    } else {
-      setPreferredSpaces([...preferredSpaces, space]);
+  useEffect(() => {
+    onProgressChange?.(progress);
+  }, [progress, onProgressChange]);
+
+  /* ------------------------------------------------------------------ *
+   * Persistenza: localStorage (fallback offline) + Server Action
+   * ------------------------------------------------------------------ */
+  const writeDraft = useCallback(
+    (payload: Record<string, any>, pending: boolean) => {
+      pendingRef.current = pending;
+      if (typeof window === "undefined") return;
+      try {
+        window.localStorage.setItem(
+          storageKey,
+          JSON.stringify({ answers: payload, pending, updated_at: new Date().toISOString() })
+        );
+      } catch {
+        // localStorage non disponibile (private mode): si prosegue online
+      }
+    },
+    [storageKey]
+  );
+
+  const persist = useCallback(
+    async (payload: Record<string, any>, opts?: { silent?: boolean }) => {
+      if (isReadOnly) return;
+      writeDraft(payload, true);
+      if (!opts?.silent) setSaveState("saving");
+      try {
+        const res = await saveWeddingDiaryAction({
+          client_id: clientId,
+          quote_id: quoteId,
+          answers: payload,
+          completion_rate: computeDiaryProgress(payload),
+        });
+        if (!mountedRef.current) return;
+        if (res?.success) {
+          const serverTs = (res.data && res.data.updated_at) || new Date().toISOString();
+          setLastSavedAt(serverTs);
+          // Se nel frattempo sono arrivate nuove modifiche, lascia che sia il
+          // salvataggio più recente a marcare "saved" (e a ripulire la bozza).
+          if (answersRef.current === payload) {
+            setSaveState("saved");
+            writeDraft(payload, false);
+          }
+        } else {
+          setSaveState("error");
+        }
+      } catch {
+        if (mountedRef.current) setSaveState("error");
+      }
+    },
+    [clientId, quoteId, isReadOnly, writeDraft]
+  );
+
+  /* Ripristino bozza locale + retry di sincronizzazione all'avvio */
+  useEffect(() => {
+    mountedRef.current = true;
+    if (isReadOnly || typeof window === "undefined") return;
+
+    try {
+      const raw = window.localStorage.getItem(storageKey);
+      if (raw) {
+        const draft = JSON.parse(raw);
+        const baseTs = Date.parse(initialData?.updated_at || "") || 0;
+        const draftTs = Date.parse(draft?.updated_at || "") || 0;
+        if (draft?.answers && (draft.pending || draftTs > baseTs)) {
+          const merged = { ...normalizeAnswers(initialData), ...draft.answers };
+          answersRef.current = merged;
+          setAnswers(merged);
+          setDraftRestored(true);
+          if (draft.pending) {
+            setSaveState("offline");
+            void persist(merged, { silent: true });
+          } else {
+            setSaveState("saved");
+          }
+        }
+      }
+    } catch {
+      // bozza locale illeggibile: si prosegue con i dati server
     }
+
+    return () => {
+      mountedRef.current = false;
+      Object.values(textTimers.current).forEach((timer) => clearTimeout(timer));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey, isReadOnly]);
+
+  /* Retry automatico quando la connessione torna disponibile */
+  useEffect(() => {
+    if (isReadOnly || typeof window === "undefined") return;
+    const handleOnline = () => {
+      if (pendingRef.current && answersRef.current) {
+        void persist(answersRef.current, { silent: true });
+      }
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [isReadOnly, persist]);
+
+  /* ------------------------------------------------------------------ *
+   * Aggiornamento campi (autosave immediato o debounced)
+   * ------------------------------------------------------------------ */
+  const applyValue = useCallback(
+    (field: WeddingDiaryField, value: any) => {
+      if (isReadOnly) return;
+      const next = { ...answersRef.current, [field.name]: value };
+      answersRef.current = next;
+      setAnswers(next);
+
+      if (field.type === "text") {
+        setSaveState("saving");
+        writeDraft(next, true);
+        const existing = textTimers.current[field.name];
+        if (existing) clearTimeout(existing);
+        textTimers.current[field.name] = setTimeout(() => {
+          void persist(next);
+        }, TEXT_DEBOUNCE_MS);
+      } else {
+        void persist(next);
+      }
+    },
+    [isReadOnly, persist, writeDraft]
+  );
+
+  const toggleOption = useCallback(
+    (field: WeddingDiaryField, optionValue: string) => {
+      const current = Array.isArray(answersRef.current[field.name])
+        ? (answersRef.current[field.name] as string[])
+        : [];
+      const nextValues = current.includes(optionValue)
+        ? current.filter((v) => v !== optionValue)
+        : [...current, optionValue];
+      applyValue(field, nextValues);
+    },
+    [applyValue]
+  );
+
+  const toggleSection = (sectionId: string) => {
+    setOpenSections((prev) => ({ ...prev, [sectionId]: !prev[sectionId] }));
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setMessage(null);
-
-    const res = await saveWeddingDiaryAction({
-      client_id: clientId,
-      quote_id: quoteId,
-      palette,
-      style,
-      preferred_spaces: preferredSpaces,
-      dietary_notes: dietaryNotes,
-      music_preferences: musicPreferences,
-      notes
-    });
-
-    setSaving(false);
-    if (res.success) {
-      setMessage({
-        type: "success",
-        text: isEng
-          ? "✨ Your Wedding Diary preferences have been sent to Roberto & La Terra degli Aranci team!"
-          : "✨ Le vostre preferenze sono state inviate direttamente a Roberto Sola e allo staff de La Terra degli Aranci!"
-      });
-    } else {
-      setMessage({
-        type: "error",
-        text: isEng ? "Unable to save preferences. Please try again." : "Errore durante il salvataggio. Riprova."
-      });
-    }
+  /* ------------------------------------------------------------------ *
+   * Etichette bilingue
+   * ------------------------------------------------------------------ */
+  const t = {
+    eyebrow: isReadOnly
+      ? isEng
+        ? "MEMORY CAPSULE"
+        : "CAPSULA DEL TEMPO"
+      : isEng
+      ? "YOUR WEDDING DIARY"
+      : "IL VOSTRO WEDDING DIARY",
+    title: isReadOnly
+      ? isEng
+        ? "The story of your choices"
+        : "La storia delle vostre scelte"
+      : isEng
+      ? "Tell us about your dream day"
+      : "Raccontateci il vostro giorno",
+    intro: isReadOnly
+      ? isEng
+        ? "Relive the choices and details that made your special day unique at La Terra degli Aranci."
+        : "Rivivi le scelte e i dettagli che hanno reso unico il vostro giorno speciale a La Terra degli Aranci."
+      : isEng
+      ? "Fill it in calmly, whenever you like: every choice is saved automatically. Your Wedding Planner will use this dossier to prepare the perfect direction of your wedding six months before the event."
+      : "Compilatelo con calma, quando volete: ogni scelta viene salvata automaticamente. La nostra Wedding Planner userà questo fascicolo per preparare la regia perfetta del matrimonio a -6 mesi dall'evento.",
+    noSubmit: isEng ? "No submit button needed — your answers save themselves." : "Nessun tasto invio: le vostre risposte si salvano da sole.",
+    saving: isEng ? "Saving…" : "Salvataggio…",
+    saved: isEng ? "Saved automatically" : "Salvato automaticamente",
+    error: isEng ? "Saved on this device — we'll sync shortly" : "Salvato su questo dispositivo — sincronizzeremo a breve",
+    offline: isEng ? "Local draft restored" : "Bozza locale ripristinata",
+    idle: isEng ? "Auto-save active" : "Autosave attivo",
+    progressLabel: isEng ? "Diary completion" : "Completamento del Diary",
+    fieldsFilled: isEng ? "fields completed" : "campi compilati",
+    readOnlyBadge: isEng ? "Archive — read only" : "Archivio — sola lettura",
+    liveBadge: isEng ? "Live sync with the staff" : "Sincronizzato con lo staff",
+    yourAnswer: isEng ? "Your answer" : "La vostra risposta",
+    chooseOne: isEng ? "Choose one option" : "Scegliete una sola opzione",
+    chooseMany: isEng ? "You can select more than one" : "Potete selezionare più opzioni",
+    empty: isEng ? "Not completed yet" : "Non ancora compilato",
   };
+
+  const saveIndicator = (() => {
+    if (isReadOnly) {
+      return { color: "#6a6764", bg: "#f3ede3", border: "#e2d7c7", dot: "#a39f9b", text: t.readOnlyBadge };
+    }
+    switch (saveState) {
+      case "saving":
+        return { color: "#9a5a10", bg: "#fff7ec", border: "#f5d0a6", dot: "#e58c2c", text: t.saving };
+      case "saved":
+        return { color: "#166534", bg: "#f0fdf4", border: "#bbf7d0", dot: "#22c55e", text: `✓ ${t.saved}` };
+      case "error":
+        return { color: "#92400e", bg: "#fffbeb", border: "#fde68a", dot: "#f59e0b", text: `⚠ ${t.error}` };
+      case "offline":
+        return { color: "#92400e", bg: "#fffbeb", border: "#fde68a", dot: "#f59e0b", text: t.offline };
+      default:
+        return { color: "#6a6764", bg: "#f7f4ef", border: "#eae2d6", dot: "#c9c2b8", text: t.idle };
+    }
+  })();
 
   return (
-    <div style={{ background: "#ffffff", borderRadius: "18px", padding: "2.5rem", boxShadow: "0 10px 30px rgba(0,0,0,0.03)", border: "1px solid #eee7de" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "1rem" }}>
+    <div
+      style={{
+        background: "#ffffff",
+        borderRadius: "18px",
+        padding: "2.25rem",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.03)",
+        border: "1px solid #eee7de",
+      }}
+    >
+      <style>{`
+        .tda-diary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.7rem; }
+        .tda-diary-pill { transition: all 0.18s ease; }
+        .tda-diary-pill:hover:not(:disabled) { transform: translateY(-1px); }
+        .tda-diary-input:focus { outline: none; border-color: #e58c2c !important; box-shadow: 0 0 0 3px rgba(229,140,44,0.14); }
+        .tda-diary-section-head:hover { background: #fdfbf7; }
+        @media (max-width: 620px) {
+          .tda-diary-head { flex-direction: column; align-items: flex-start !important; }
+          .tda-diary-grid { grid-template-columns: 1fr; }
+        }
+      `}</style>
+
+      {/* Header + indicatore di salvataggio */}
+      <div
+        className="tda-diary-head"
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", marginBottom: "1rem" }}
+      >
         <div>
-          <span style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "2px", color: "#e58c2c", fontWeight: 700 }}>
-            {isReadOnly 
-              ? (isEng ? "MEMORY CAPSULE" : "CAPSULA DEL TEMPO") 
-              : (isEng ? "PREFERENCES & ORGANIZATION" : "PREFERENZE & ORGANIZZAZIONE")}
+          <span style={{ fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "2.5px", color: "#e58c2c", fontWeight: 700 }}>
+            {t.eyebrow}
           </span>
-          <h2 style={{ fontSize: "1.65rem", color: "#1e1b18", marginTop: "0.2rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            📖 {isReadOnly ? (isEng ? "Your Wedding Diary Archive" : "Archivio del tuo Wedding Diary") : (isEng ? "Your Wedding Diary" : "Il tuo Wedding Diary")}
+          <h2 style={{ fontSize: "1.65rem", color: "#1e1b18", margin: "0.25rem 0 0 0", fontFamily: "serif", fontWeight: 400 }}>
+            📖 {t.title}
           </h2>
         </div>
-        {!isReadOnly && (
-          <div style={{ background: "#f0fdf4", color: "#166534", padding: "0.5rem 1rem", borderRadius: "20px", fontSize: "0.85rem", fontWeight: 600 }}>
-            {isEng ? "Live Sync with Staff" : "Sincronizzato con lo Staff"}
+
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.4rem" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              background: saveIndicator.bg,
+              border: `1px solid ${saveIndicator.border}`,
+              color: saveIndicator.color,
+              padding: "0.42rem 0.9rem",
+              borderRadius: "999px",
+              fontSize: "0.8rem",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}
+            role="status"
+            aria-live="polite"
+          >
+            <span
+              style={{
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                background: saveIndicator.dot,
+                display: "inline-block",
+                animation: saveState === "saving" ? "tdaPulse 1s ease-in-out infinite" : "none",
+              }}
+            />
+            {saveIndicator.text}
           </div>
-        )}
+          {lastSavedAt && saveState === "saved" && (
+            <small style={{ color: "#9b958d", fontSize: "0.72rem" }}>
+              {new Date(lastSavedAt).toLocaleString(isEng ? "en-GB" : "it-IT", {
+                day: "numeric",
+                month: "short",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </small>
+          )}
+          <style>{`@keyframes tdaPulse { 0%,100% { opacity: 1 } 50% { opacity: 0.25 } }`}</style>
+        </div>
       </div>
 
-      <p style={{ color: "#6a6764", fontSize: "0.95rem", marginBottom: "2rem", lineHeight: 1.6 }}>
-        {isReadOnly 
-          ? (isEng ? "Relive the choices and details that made your special day unique." : "Rivivi le scelte e i dettagli che hanno reso unico il vostro giorno speciale a La Terra degli Aranci.")
-          : (isEng
-              ? "Use this space to share your preferences on colors, styles, menu, and music. Roberto and the staff will use these notes to design your perfect event."
-              : "Usa questo spazio per annotare le tue preferenze su colori, stile, menu e musica. Roberto e lo staff useranno queste note per progettare l'evento perfetto.")}
+      <p style={{ color: "#6a6764", fontSize: "0.95rem", lineHeight: 1.65, marginBottom: "1.25rem", maxWidth: "760px" }}>
+        {t.intro}
       </p>
 
-      {message && (
-        <div style={{
-          padding: "1rem 1.2rem",
-          borderRadius: "10px",
-          marginBottom: "1.5rem",
-          background: message.type === "success" ? "#f0fdf4" : "#fef2f2",
-          color: message.type === "success" ? "#166534" : "#991b1b",
-          border: `1px solid ${message.type === "success" ? "#bbf7d0" : "#fecaca"}`,
-          fontWeight: 500,
-          fontSize: "0.95rem"
-        }}>
-          {message.text}
+      {draftRestored && (
+        <div
+          style={{
+            background: "#fffbeb",
+            border: "1px solid #fde68a",
+            color: "#92400e",
+            borderRadius: "10px",
+            padding: "0.7rem 1rem",
+            fontSize: "0.85rem",
+            marginBottom: "1.25rem",
+          }}
+        >
+          {isEng
+            ? "We restored a draft saved on this device. It will sync automatically as soon as the connection is stable."
+            : "Abbiamo ripristinato una bozza salvata su questo dispositivo. Sincronizzeremo automaticamente appena la connessione sarà stabile."}
         </div>
       )}
 
-      <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
-        
-        <div>
-          <label style={{ fontSize: "1.05rem", fontWeight: 600, color: "#1e1b18", display: "block", marginBottom: "0.8rem" }}>
-            🎨 {isEng ? "Favorite Color Palette" : "Palette Colori & Atmosfera"}
-          </label>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-            {palettes.map((p) => {
-              const isSelected = palette === p.id;
-              return (
-                <div
-                  key={p.id}
-                  onClick={() => !isReadOnly && setPalette(p.id)}
-                  style={{
-                    padding: "1.2rem",
-                    borderRadius: "12px",
-                    border: `2px solid ${isSelected ? "#e58c2c" : "#e5e0d8"}`,
-                    background: isSelected ? "#fffaf4" : "#ffffff",
-                    cursor: isReadOnly ? "default" : "pointer",
-                    transition: "all 0.2s ease"
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.5rem" }}>
-                    <div style={{ width: "16px", height: "16px", borderRadius: "50%", background: p.bg }}></div>
-                    <span style={{ fontWeight: 600, fontSize: "0.95rem", color: "#1e1b18" }}>{p.title}</span>
-                  </div>
-                  <p style={{ fontSize: "0.82rem", color: "#777", margin: 0 }}>{p.desc}</p>
-                </div>
-              );
-            })}
-          </div>
+      {/* Barra di avanzamento */}
+      <div
+        style={{
+          background: "#faf7f2",
+          border: "1px solid #f0e8dc",
+          borderRadius: "14px",
+          padding: "1rem 1.15rem",
+          marginBottom: "1.9rem",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.55rem", gap: "0.75rem", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "0.82rem", fontWeight: 700, letterSpacing: "0.5px", color: "#514d48", textTransform: "uppercase" }}>
+            {t.progressLabel}
+          </span>
+          <span style={{ fontSize: "0.82rem", color: "#8a837a" }}>
+            {WEDDING_DIARY_FIELD_COUNT} {t.fieldsFilled}
+            {!isReadOnly && <span style={{ marginLeft: "0.6rem", color: "#e58c2c", fontWeight: 700, fontSize: "0.95rem" }}>{progress}%</span>}
+          </span>
         </div>
-
-        <div>
-          <label style={{ fontSize: "1.05rem", fontWeight: 600, color: "#1e1b18", display: "block", marginBottom: "0.8rem" }}>
-            ✨ {isEng ? "Event Style & Mood" : "Stile dell'Evento & Concept"}
-          </label>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.8rem" }}>
-            {styles.map((s) => {
-              const isSelected = style === s;
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  disabled={isReadOnly}
-                  onClick={() => setStyle(s)}
-                  style={{
-                    padding: "0.8rem 1rem",
-                    borderRadius: "10px",
-                    border: `1px solid ${isSelected ? "#e58c2c" : "#ded7cd"}`,
-                    background: isSelected ? "#e58c2c" : "#faf8f5",
-                    color: isSelected ? "#ffffff" : "#333",
-                    fontWeight: isSelected ? 600 : 400,
-                    cursor: isReadOnly ? "default" : "pointer",
-                    textAlign: "center",
-                    fontSize: "0.9rem"
-                  }}
-                >
-                  {s}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <label style={{ fontSize: "1.05rem", fontWeight: 600, color: "#1e1b18", display: "block", marginBottom: "0.8rem" }}>
-            🏛️ {isEng ? "Preferred Villa Spaces" : "Ambienti della Villa Preferiti"}
-          </label>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-            {spacesOptions.map((space) => {
-              const isChecked = preferredSpaces.includes(space);
-              return (
-                <label
-                  key={space}
-                  onClick={() => toggleSpace(space)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.8rem",
-                    padding: "0.85rem 1.2rem",
-                    borderRadius: "10px",
-                    background: isChecked ? "#fcf6ed" : "#faf9f7",
-                    border: `1px solid ${isChecked ? "#f5d0a6" : "#eee8df"}`,
-                    cursor: isReadOnly ? "default" : "pointer",
-                    fontSize: "0.92rem",
-                    color: "#2c2a27"
-                  }}
-                >
-                  <input type="checkbox" disabled={isReadOnly} checked={isChecked} onChange={() => {}} style={{ accentColor: "#e58c2c", width: "18px", height: "18px" }} />
-                  <span>{space}</span>
-                </label>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <label style={{ fontSize: "1.05rem", fontWeight: 600, color: "#1e1b18", display: "block", marginBottom: "0.5rem" }}>
-            🥗 {isEng ? "Dietary Requirements & Celiac Guests" : "Intolleranze Alimentari, Celiaci & Menu Speciali"}
-          </label>
-          <textarea
-            disabled={isReadOnly}
-            rows={3}
-            value={dietaryNotes}
-            onChange={(e) => setDietaryNotes(e.target.value)}
-            placeholder={isEng ? "e.g. 2 Celiacs (table 4), 1 Vegetarian..." : "Es. 3 Celiaci (tavolo parenti), 2 Vegetariani, 1 allergia a frutta a guscio..."}
-            style={{ width: "100%", padding: "0.85rem", borderRadius: "8px", border: "1px solid #ded7cd", fontFamily: "inherit", fontSize: "0.95rem", background: isReadOnly ? "#f9f9f9" : "#fff" }}
-          />
-        </div>
-
-        <div>
-          <label style={{ fontSize: "1.05rem", fontWeight: 600, color: "#1e1b18", display: "block", marginBottom: "0.5rem" }}>
-            🎵 {isEng ? "Music & Key Moments" : "Musica, DJ Set & Canzoni dei Momenti Clou"}
-          </label>
-          <textarea
-            disabled={isReadOnly}
-            rows={3}
-            value={musicPreferences}
-            onChange={(e) => setMusicPreferences(e.target.value)}
-            placeholder={isEng ? "First dance song, cake cutting song, music genres..." : "Canzone ingresso sposi, brano taglio torta, generi preferiti per after party in Sala Tufo..."}
-            style={{ width: "100%", padding: "0.85rem", borderRadius: "8px", border: "1px solid #ded7cd", fontFamily: "inherit", fontSize: "0.95rem", background: isReadOnly ? "#f9f9f9" : "#fff" }}
-          />
-        </div>
-
-        <div>
-          <label style={{ fontSize: "1.05rem", fontWeight: 600, color: "#1e1b18", display: "block", marginBottom: "0.5rem" }}>
-            💬 {isEng ? "Special Requests for Roberto & Location Team" : "Note o Desideri Particolari per Roberto Sola & il Team"}
-          </label>
-          <textarea
-            disabled={isReadOnly}
-            rows={3}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder={isEng ? "Any extra details or custom requests..." : "Es. Desideriamo organizzare un piccolo benvenuto per ospiti che arrivano in anticipo dall'Inghilterra..."}
-            style={{ width: "100%", padding: "0.85rem", borderRadius: "8px", border: "1px solid #ded7cd", fontFamily: "inherit", fontSize: "0.95rem", background: isReadOnly ? "#f9f9f9" : "#fff" }}
-          />
-        </div>
-
-        {/* Pulsante Salva */}
-        {!isReadOnly && (
-          <button
-            type="submit"
-            disabled={saving}
+        <div style={{ height: "8px", background: "#ece4d8", borderRadius: "999px", overflow: "hidden" }}>
+          <div
             style={{
-              background: "linear-gradient(135deg, #e58c2c 0%, #d17a22 100%)",
-              color: "#ffffff",
-              padding: "1rem 2rem",
-              fontSize: "1.05rem",
-              fontWeight: 600,
-              borderRadius: "12px",
-              border: "none",
-              cursor: saving ? "not-allowed" : "pointer",
-              boxShadow: "0 6px 18px rgba(229,140,44,0.3)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.8rem"
+              width: `${progress}%`,
+              height: "100%",
+              borderRadius: "999px",
+              background: progress >= 80 ? "linear-gradient(90deg,#22c55e,#16a34a)" : "linear-gradient(90deg,#f0b46a,#e58c2c)",
+              transition: "width 0.45s ease",
             }}
-          >
-            {saving ? (isEng ? "Saving..." : "Salvataggio in corso...") : (isEng ? "💾 Save Preferences to Wedding Diary" : "💾 Salva nel Wedding Diary")}
-          </button>
+          />
+        </div>
+        {!isReadOnly && (
+          <small style={{ display: "block", marginTop: "0.5rem", color: "#9b958d", fontSize: "0.76rem" }}>✨ {t.noSubmit}</small>
         )}
+      </div>
 
-      </form>
+      {/* Sezioni */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {WEDDING_DIARY_SECTIONS.map((section, index) => {
+          const isOpen = !!openSections[section.id];
+          const filled = filledBySection[section.id] || 0;
+          const sectionComplete = filled === section.fields.length;
+
+          return (
+            <section
+              key={section.id}
+              style={{
+                border: "1px solid #eee7de",
+                borderRadius: "14px",
+                overflow: "hidden",
+                background: "#fffdfa",
+              }}
+            >
+              <button
+                type="button"
+                className="tda-diary-section-head"
+                onClick={() => toggleSection(section.id)}
+                aria-expanded={isOpen}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.9rem",
+                  padding: "1.05rem 1.25rem",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                <span style={{ fontSize: "1.35rem", lineHeight: 1 }}>{section.icon}</span>
+                <span style={{ flex: 1 }}>
+                  <span style={{ display: "block", fontWeight: 600, color: "#1e1b18", fontSize: "1.02rem", fontFamily: "serif" }}>
+                    {index + 1}. {isEng ? section.titleEn : section.titleIt}
+                  </span>
+                  {(section.subtitleIt || section.subtitleEn) && (
+                    <span style={{ display: "block", color: "#8a837a", fontSize: "0.82rem", marginTop: "2px" }}>
+                      {isEng ? section.subtitleEn : section.subtitleIt}
+                    </span>
+                  )}
+                </span>
+                <span
+                  style={{
+                    fontSize: "0.74rem",
+                    fontWeight: 700,
+                    padding: "0.2rem 0.6rem",
+                    borderRadius: "999px",
+                    background: sectionComplete ? "#f0fdf4" : "#f7f1e6",
+                    color: sectionComplete ? "#166534" : "#9a5a10",
+                    border: `1px solid ${sectionComplete ? "#bbf7d0" : "#f0dfc6"}`,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {filled}/{section.fields.length}
+                </span>
+                <span
+                  style={{
+                    color: "#b5aea4",
+                    fontSize: "0.75rem",
+                    transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                    transition: "transform 0.2s ease",
+                  }}
+                >
+                  ▼
+                </span>
+              </button>
+
+              {isOpen && (
+                <div style={{ padding: "0.25rem 1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "1.6rem" }}>
+                  {section.fields.map((field) => {
+                    const value = answers[field.name];
+                    const singleValue = typeof value === "string" ? value : "";
+                    const multiValue = Array.isArray(value) ? (value as string[]) : [];
+
+                    return (
+                      <div key={field.name}>
+                        <div style={{ marginBottom: "0.6rem" }}>
+                          <label
+                            style={{ display: "block", fontSize: "0.95rem", fontWeight: 600, color: "#2c2a27" }}
+                          >
+                            {isEng ? field.labelEn : field.labelIt}
+                          </label>
+                          <small style={{ color: "#a39f9b", fontSize: "0.76rem" }}>
+                            {field.type === "radio" ? t.chooseOne : field.type === "checkbox" ? t.chooseMany : isEng ? field.helperEn : field.helperIt}
+                          </small>
+                        </div>
+
+                        {field.type === "text" && (
+                          <input
+                            className="tda-diary-input"
+                            type="text"
+                            value={singleValue}
+                            disabled={isReadOnly}
+                            placeholder={isEng ? field.placeholderEn : field.placeholderIt}
+                            onChange={(e) => applyValue(field, e.target.value)}
+                            style={{
+                              width: "100%",
+                              maxWidth: "620px",
+                              padding: "0.75rem 1rem",
+                              borderRadius: "10px",
+                              border: "1px solid #ded7cd",
+                              fontFamily: "inherit",
+                              fontSize: "0.94rem",
+                              color: "#2c2a27",
+                              background: isReadOnly ? "#f9f9f9" : "#fff",
+                              transition: "border-color 0.18s ease, box-shadow 0.18s ease",
+                            }}
+                          />
+                        )}
+
+                        {field.type === "date" && (
+                          <input
+                            className="tda-diary-input"
+                            type="date"
+                            value={singleValue}
+                            disabled={isReadOnly}
+                            onChange={(e) => applyValue(field, e.target.value)}
+                            style={{
+                              padding: "0.72rem 1rem",
+                              borderRadius: "10px",
+                              border: "1px solid #ded7cd",
+                              fontFamily: "inherit",
+                              fontSize: "0.94rem",
+                              color: "#2c2a27",
+                              background: isReadOnly ? "#f9f9f9" : "#fff",
+                            }}
+                          />
+                        )}
+
+                        {field.type === "radio" && (
+                          <div className="tda-diary-grid" role="radiogroup" aria-label={isEng ? field.labelEn : field.labelIt}>
+                            {(field.options || []).map((option) => {
+                              const selected = singleValue === option.value;
+                              return (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  className="tda-diary-pill"
+                                  role="radio"
+                                  aria-checked={selected}
+                                  disabled={isReadOnly}
+                                  onClick={() => applyValue(field, option.value)}
+                                  style={{
+                                    padding: "0.68rem 1rem",
+                                    borderRadius: "999px",
+                                    border: `1px solid ${selected ? "#e58c2c" : "#e3dace"}`,
+                                    background: selected ? "#e58c2c" : "#faf8f5",
+                                    color: selected ? "#ffffff" : "#4a4642",
+                                    fontWeight: selected ? 600 : 500,
+                                    fontSize: "0.88rem",
+                                    cursor: isReadOnly ? "default" : "pointer",
+                                    textAlign: "left",
+                                    lineHeight: 1.35,
+                                  }}
+                                >
+                                  {isEng ? option.en || option.value : option.value}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {field.type === "checkbox" && (
+                          <div className="tda-diary-grid">
+                            {(field.options || []).map((option) => {
+                              const checked = multiValue.includes(option.value);
+                              return (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  className="tda-diary-pill"
+                                  role="checkbox"
+                                  aria-checked={checked}
+                                  disabled={isReadOnly}
+                                  onClick={() => toggleOption(field, option.value)}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "flex-start",
+                                    gap: "0.6rem",
+                                    padding: "0.7rem 0.95rem",
+                                    borderRadius: "12px",
+                                    border: `1px solid ${checked ? "#f0b46a" : "#e3dace"}`,
+                                    background: checked ? "#fff7ec" : "#faf8f5",
+                                    color: "#3f3b37",
+                                    fontWeight: checked ? 600 : 400,
+                                    fontSize: "0.87rem",
+                                    cursor: isReadOnly ? "default" : "pointer",
+                                    textAlign: "left",
+                                    lineHeight: 1.35,
+                                  }}
+                                >
+                                  <span
+                                    aria-hidden="true"
+                                    style={{
+                                      flexShrink: 0,
+                                      width: "17px",
+                                      height: "17px",
+                                      marginTop: "1px",
+                                      borderRadius: "5px",
+                                      border: `1.5px solid ${checked ? "#e58c2c" : "#ccc3b6"}`,
+                                      background: checked ? "#e58c2c" : "#fff",
+                                      color: "#fff",
+                                      fontSize: "0.7rem",
+                                      lineHeight: "14px",
+                                      textAlign: "center",
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    {checked ? "✓" : ""}
+                                  </span>
+                                  <span>{isEng ? option.en || option.value : option.value}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          );
+        })}
+      </div>
+
+      {isReadOnly && (
+        <div style={{ marginTop: "1.5rem", display: "flex", alignItems: "center", gap: "0.6rem", color: "#8a837a", fontSize: "0.85rem" }}>
+          <span>🕰️</span>
+          <span>
+            {isEng
+              ? "This dossier is part of your memory archive: you can browse it, but no changes can be made."
+              : "Questo fascicolo fa parte del vostro archivio dei ricordi: potete consultarlo, ma non è più modificabile."}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
