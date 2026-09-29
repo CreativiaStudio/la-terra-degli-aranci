@@ -178,6 +178,73 @@ export default function ClientPortalWrapper({
       {/* Main Container */}
       <main style={{ maxWidth: "1100px", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
 
+        {/* Welcome Hero Banner */}
+        <div style={{
+          background: "linear-gradient(135deg, #1e1b18 0%, #3a342e 100%)",
+          color: "#ffffff",
+          borderRadius: "22px",
+          padding: "3rem 3rem",
+          marginBottom: "2.5rem",
+          boxShadow: "0 15px 35px rgba(0,0,0,0.12)",
+          position: "relative",
+          overflow: "hidden"
+        }}>
+          <div style={{ position: "relative", zIndex: 2, maxWidth: "700px" }}>
+            <span style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "3px", color: "#e58c2c", fontWeight: 700, display: "block", marginBottom: "0.6rem" }}>
+              {isHistorical 
+                ? (isEng ? "EXCLUSIVE VIP CLUB TDA" : "CLUB ESCLUSIVO LA TERRA DEGLI ARANCI")
+                : isPrivato
+                ? (isEng ? "PRIVATE EVENT PORTAL" : "PORTALE EVENTO PRIVATO")
+                : (isEng ? "WELCOME TO YOUR WEDDING JOURNEY" : "BENVENUTI A LA TERRA DEGLI ARANCI")}
+            </span>
+            <h2 style={{ fontSize: "2.5rem", fontFamily: "serif", fontWeight: 400, margin: "0 0 0.8rem 0", color: "#ffffff", lineHeight: 1.2 }}>
+              {isEng ? `Hello, ${clientName}` : `Benvenuti, ${clientName}`}
+            </h2>
+            <p style={{ color: "#d2ccc4", fontSize: "1.1rem", lineHeight: 1.6, margin: 0 }}>
+              {isHistorical
+                ? (isEng 
+                    ? "Welcome to the Exclusive Ecosystem Club. Access priority 48h booking and 20% discounts for seasonal galas and dinners, or revisit your historical moments."
+                    : "Benvenuti nel Club Esclusivo La Terra degli Aranci. Accedete con prelazione 48h e tariffe convenzionate (-20%) per tutti i concerti e le cene di gala in tenuta, e consultate il vostro archivio dei ricordi.")
+                : isPrivato
+                ? (isEng
+                    ? "Welcome to your personal space. Organize your private party, banquet formula, and timing with our event team."
+                    : "Benvenuti nel vostro spazio riservato. Qui potete consultare gli accordi, gestire i dettagli della festa, la formula food & beverage ed il cronoprogramma con Roberto Sola ed il nostro staff.")
+                : (isEng
+                    ? "Here is your personal space where you can view your proposal, sign agreements, share your wedding diary preferences, and stay in direct contact with our team."
+                    : "Questo è il vostro spazio riservato. Qui potete consultare la proposta economica, gestire la firma del contratto, compilare il vostro Wedding Diary ed organizzare ogni dettaglio con Roberto Sola ed il nostro staff.")}
+            </p>
+          </div>
+
+          {/* Countdown Badge */}
+          {daysLeft !== null && daysLeft > 0 && !isHistorical && (
+            <div style={{
+              position: "absolute",
+              right: "3rem",
+              top: "50%",
+              transform: "translateY(-50%)",
+              background: "rgba(229, 140, 44, 0.15)",
+              border: "1px solid rgba(229, 140, 44, 0.4)",
+              backdropFilter: "blur(10px)",
+              borderRadius: "18px",
+              padding: "1.5rem 2rem",
+              textAlign: "center",
+              minWidth: "180px"
+            }}>
+              <span style={{ fontSize: "2.8rem", fontWeight: 700, color: "#e58c2c", lineHeight: 1, display: "block" }}>
+                {daysLeft}
+              </span>
+              <span style={{ fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "1px", color: "#e5dcd0", marginTop: "0.3rem", display: "block" }}>
+                {isEng
+                  ? (isPrivato ? "Days to your Event" : "Days to your Big Day")
+                  : (isPrivato ? "Giorni alla Tua Festa" : "Giorni al Gran Giorno")}
+              </span>
+              <small style={{ fontSize: "0.75rem", color: "#a59d93", display: "block", marginTop: "0.4rem" }}>
+                📅 {new Date(eventDateStr).toLocaleDateString(isEng ? "en-US" : "it-IT", { day: "numeric", month: "long", year: "numeric" })}
+              </small>
+            </div>
+          )}
+        </div>
+
         {/* Reminder Banner: Wedding Diary incompleto (< 80%) */}
         {showDiaryBanner && (
           <div
@@ -257,73 +324,6 @@ export default function ClientPortalWrapper({
             </button>
           </div>
         )}
-
-        {/* Welcome Hero Banner */}
-        <div style={{
-          background: "linear-gradient(135deg, #1e1b18 0%, #3a342e 100%)",
-          color: "#ffffff",
-          borderRadius: "22px",
-          padding: "3rem 3rem",
-          marginBottom: "2.5rem",
-          boxShadow: "0 15px 35px rgba(0,0,0,0.12)",
-          position: "relative",
-          overflow: "hidden"
-        }}>
-          <div style={{ position: "relative", zIndex: 2, maxWidth: "700px" }}>
-            <span style={{ fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "3px", color: "#e58c2c", fontWeight: 700, display: "block", marginBottom: "0.6rem" }}>
-              {isHistorical 
-                ? (isEng ? "EXCLUSIVE VIP CLUB TDA" : "CLUB ESCLUSIVO LA TERRA DEGLI ARANCI")
-                : isPrivato
-                ? (isEng ? "PRIVATE EVENT PORTAL" : "PORTALE EVENTO PRIVATO")
-                : (isEng ? "WELCOME TO YOUR WEDDING JOURNEY" : "BENVENUTI A LA TERRA DEGLI ARANCI")}
-            </span>
-            <h2 style={{ fontSize: "2.5rem", fontFamily: "serif", fontWeight: 400, margin: "0 0 0.8rem 0", color: "#ffffff", lineHeight: 1.2 }}>
-              {isEng ? `Hello, ${clientName}` : `Benvenuti, ${clientName}`}
-            </h2>
-            <p style={{ color: "#d2ccc4", fontSize: "1.1rem", lineHeight: 1.6, margin: 0 }}>
-              {isHistorical
-                ? (isEng 
-                    ? "Welcome to the Exclusive Ecosystem Club. Access priority 48h booking and 20% discounts for seasonal galas and dinners, or revisit your historical moments."
-                    : "Benvenuti nel Club Esclusivo La Terra degli Aranci. Accedete con prelazione 48h e tariffe convenzionate (-20%) per tutti i concerti e le cene di gala in tenuta, e consultate il vostro archivio dei ricordi.")
-                : isPrivato
-                ? (isEng
-                    ? "Welcome to your personal space. Organize your private party, banquet formula, and timing with our event team."
-                    : "Benvenuti nel vostro spazio riservato. Qui potete consultare gli accordi, gestire i dettagli della festa, la formula food & beverage ed il cronoprogramma con Roberto Sola ed il nostro staff.")
-                : (isEng
-                    ? "Here is your personal space where you can view your proposal, sign agreements, share your wedding diary preferences, and stay in direct contact with our team."
-                    : "Questo è il vostro spazio riservato. Qui potete consultare la proposta economica, gestire la firma del contratto, compilare il vostro Wedding Diary ed organizzare ogni dettaglio con Roberto Sola ed il nostro staff.")}
-            </p>
-          </div>
-
-          {/* Countdown Badge */}
-          {daysLeft !== null && daysLeft > 0 && !isHistorical && (
-            <div style={{
-              position: "absolute",
-              right: "3rem",
-              top: "50%",
-              transform: "translateY(-50%)",
-              background: "rgba(229, 140, 44, 0.15)",
-              border: "1px solid rgba(229, 140, 44, 0.4)",
-              backdropFilter: "blur(10px)",
-              borderRadius: "18px",
-              padding: "1.5rem 2rem",
-              textAlign: "center",
-              minWidth: "180px"
-            }}>
-              <span style={{ fontSize: "2.8rem", fontWeight: 700, color: "#e58c2c", lineHeight: 1, display: "block" }}>
-                {daysLeft}
-              </span>
-              <span style={{ fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "1px", color: "#e5dcd0", marginTop: "0.3rem", display: "block" }}>
-                {isEng
-                  ? (isPrivato ? "Days to your Event" : "Days to your Big Day")
-                  : (isPrivato ? "Giorni alla Tua Festa" : "Giorni al Gran Giorno")}
-              </span>
-              <small style={{ fontSize: "0.75rem", color: "#a59d93", display: "block", marginTop: "0.4rem" }}>
-                📅 {new Date(eventDateStr).toLocaleDateString(isEng ? "en-US" : "it-IT", { day: "numeric", month: "long", year: "numeric" })}
-              </small>
-            </div>
-          )}
-        </div>
 
         {/* Navigazione */}
         {(() => {
@@ -425,17 +425,27 @@ export default function ClientPortalWrapper({
                 )}
 
 
-                {/* --- ORGANIZZAZIONE EVENTO --- */}
-                {(!showTwoLevelMenu || activeCategory === "organizzazione") && quote?.status === "firmato" && !isHistorical && (
+                {/* --- ORGANIZZAZIONE EVENTO / WEDDING DIARY --- */}
+                {(!showTwoLevelMenu || activeCategory === "organizzazione") && !isHistorical && (isWedding || quote?.status === "firmato") && (
                   <button
                     onClick={() => setActiveTab("diary")}
                     style={{
-                      padding: "0.8rem 1.4rem", borderRadius: "12px", border: "none", fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
+                      padding: "0.8rem 1.4rem", borderRadius: "12px",
+                      border: activeTab === "diary" ? "none" : (isWedding && diaryProgress < 80 ? "1px solid #e58c2c" : "none"),
+                      fontSize: "0.95rem", fontWeight: 600, cursor: "pointer",
                       background: activeTab === "diary" ? "#e58c2c" : (showTwoLevelMenu ? "#fdfbf7" : "transparent"),
-                      color: activeTab === "diary" ? "#ffffff" : "#6a6764", transition: "all 0.2s"
+                      color: activeTab === "diary" ? "#ffffff" : (isWedding && diaryProgress < 80 ? "#b8761f" : "#6a6764"),
+                      transition: "all 0.2s",
+                      display: "flex", alignItems: "center", gap: "0.45rem"
                     }}
                   >
-                    📖 {quote?.tipo_evento === "wedding" ? (isEng ? "Wedding Diary (Preferences)" : "Wedding Diary (Le Vostre Preferenze)") : (isEng ? "Event Dossier (Preferences)" : "Dossier Evento Privato")}
+                    <span>📖</span>
+                    <span>{isWedding ? (isEng ? "Wedding Diary" : "Wedding Diary (Preferenze)") : (isEng ? "Event Dossier" : "Dossier Evento Privato")}</span>
+                    {isWedding && diaryProgress < 80 && (
+                      <span style={{ fontSize: "0.7rem", padding: "0.1rem 0.5rem", borderRadius: "999px", background: activeTab === "diary" ? "rgba(255,255,255,0.25)" : "#fdeacd", color: activeTab === "diary" ? "#ffffff" : "#9a5a10", fontWeight: 700 }}>
+                        {diaryProgress}%
+                      </span>
+                    )}
                   </button>
                 )}
 
