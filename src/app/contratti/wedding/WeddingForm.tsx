@@ -56,74 +56,73 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo, initialD
   const nazione = watch("nazione");
   const formValues = watch();
 
-  // Recupera bozza salvata al caricamento con priorità ai dati concordati da preventivo/admin
+  // Pulisce vecchie bozze globali non indicizzate
   useEffect(() => {
-    const savedDraft = localStorage.getItem("draft_wedding_form");
-    if (savedDraft) {
-      try {
-        const parsed = JSON.parse(savedDraft);
-        const merged = {
-          ...parsed.form,
-          ...(initialData?.tipo_cliente === "azienda" ? { tipo_cliente: "azienda", ragione_sociale: initialData.ragione_sociale || "", partita_iva: initialData.partita_iva || "", sdi: initialData.sdi || "", pec: initialData.pec || "" } : {}),
-          ...(initialData?.nome ? { nome: initialData.nome } : {}),
-          ...(initialData?.cognome ? { cognome: initialData.cognome } : {}),
-          ...(initialData?.email ? { email: initialData.email } : {}),
-          ...(initialData?.telefono ? { telefono: initialData.telefono } : {}),
-          ...(initialData?.sposera_nome ? { sposera_nome: initialData.sposera_nome } : {}),
-          ...(initialData?.sposera_cognome ? { sposera_cognome: initialData.sposera_cognome } : {}),
-          ...(initialData?.data_evento ? { data_evento: initialData.data_evento } : {}),
-          ...(initialData?.data_anticipo ? { data_anticipo: initialData.data_anticipo } : {}),
-          ...(initialData?.data_saldo ? { data_saldo: initialData.data_saldo } : {}),
-          mezzo_anticipo: "Bonifico Bancario",
-          mezzo_saldo: "Bonifico Bancario"
-        };
-        reset(merged);
-        if (parsed.firmaContratto) setFirmaContratto(parsed.firmaContratto);
-        if (parsed.firmaClausole) setFirmaClausole(parsed.firmaClausole);
-      } catch(e) {
-        console.error("Errore nel recupero bozza", e);
-      }
-    } else if (initialData) {
-      reset({
-        tipo_cliente: initialData.tipo_cliente === "azienda" ? "azienda" : "privato",
-        nazione: "Italia",
-        nome: initialData.nome || "",
-        cognome: initialData.cognome || "",
-        ragione_sociale: initialData.ragione_sociale || "",
-        luogo_di_nascita: "",
-        data_di_nascita: "",
-        citta_di_residenza: "",
-        indirizzo: "",
-        numero_civico: "",
-        cap: "",
-        codice_fiscale: initialData.codice_fiscale || "",
-        partita_iva: initialData.partita_iva || "",
-        sdi: initialData.sdi || "",
-        telefono: initialData.telefono || "",
-        email: initialData.email || "",
-        pec: initialData.pec || "",
-        sposera_nome: initialData.sposera_nome || "",
-        sposera_cognome: initialData.sposera_cognome || "",
-        data_evento: initialData.data_evento || "",
-        accetto: false,
-        comunicazione_terzi: false,
-        marketing: "NO",
-        mezzo_anticipo: initialData.mezzo_anticipo || "Bonifico Bancario",
-        data_anticipo: initialData.data_anticipo || "",
-        mezzo_saldo: initialData.mezzo_saldo || "Bonifico Bancario",
-        data_saldo: initialData.data_saldo || ""
-      });
-    }
-  }, [initialData, reset]);
+    try {
+      localStorage.removeItem("draft_wedding_form");
+    } catch {}
+  }, []);
 
-  // Salva bozza ad ogni modifica
+  // Recupera bozza salvata al caricamento con priorità ASSOLUTA ai dati concordati da Roberto (initialData)
   useEffect(() => {
+    const draftKey = `draft_wedding_form_${initialPreventivo}`;
+    let draftFields: any = {};
+    try {
+      const savedDraft = localStorage.getItem(draftKey);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        draftFields = parsed.form || {};
+      }
+    } catch (e) {
+      console.error("Errore nel recupero bozza", e);
+    }
+
+    // Unisce: la bozza del cliente compila SOLO i campi mancanti (residenza, nascita, etc.)
+    // mentre i campi inseriti da Roberto (initialData) hanno sempre la priorità e appaiono già compilati.
+    reset({
+      tipo_cliente: initialData?.tipo_cliente === "azienda" ? "azienda" : (draftFields.tipo_cliente || "privato"),
+      nazione: draftFields.nazione || "Italia",
+      nome: initialData?.nome || draftFields.nome || "",
+      cognome: initialData?.cognome || draftFields.cognome || "",
+      ragione_sociale: initialData?.ragione_sociale || draftFields.ragione_sociale || "",
+      luogo_di_nascita: draftFields.luogo_di_nascita || "",
+      data_di_nascita: draftFields.data_di_nascita || "",
+      citta_di_residenza: draftFields.citta_di_residenza || "",
+      indirizzo: draftFields.indirizzo || "",
+      numero_civico: draftFields.numero_civico || "",
+      cap: draftFields.cap || "",
+      codice_fiscale: initialData?.codice_fiscale || draftFields.codice_fiscale || "",
+      partita_iva: initialData?.partita_iva || draftFields.partita_iva || "",
+      sdi: initialData?.sdi || draftFields.sdi || "",
+      pec: initialData?.pec || draftFields.pec || "",
+      telefono: initialData?.telefono || draftFields.telefono || "",
+      email: initialData?.email || draftFields.email || "",
+      sposera_nome: initialData?.sposera_nome || draftFields.sposera_nome || "",
+      sposera_cognome: initialData?.sposera_cognome || draftFields.sposera_cognome || "",
+      data_evento: initialData?.data_evento || draftFields.data_evento || "",
+      accetto: draftFields.accetto || false,
+      comunicazione_terzi: draftFields.comunicazione_terzi || false,
+      marketing: draftFields.marketing || "NO",
+      mezzo_anticipo: initialData?.mezzo_anticipo || "Bonifico Bancario",
+      data_anticipo: initialData?.data_anticipo || "",
+      mezzo_saldo: initialData?.mezzo_saldo || "Bonifico Bancario",
+      data_saldo: initialData?.data_saldo || ""
+    });
+    // NOTA LEGALE: Il box firma NON viene mai ripristinato da bozze pregresse.
+    // Gli sposi devono sempre tracciare la propria firma fresca e consapevole prima dell'invio.
+  }, [initialData, initialPreventivo, reset]);
+
+  // Salva bozza ad ogni modifica dei campi di testo (scopata al singolo preventivo, senza memorizzare la firma)
+  useEffect(() => {
+    const draftKey = `draft_wedding_form_${initialPreventivo}`;
     const timeoutId = setTimeout(() => {
-      const draft = { form: formValues, firmaContratto, firmaClausole };
-      localStorage.setItem("draft_wedding_form", JSON.stringify(draft));
-    }, 1000); // Debounce di 1 secondo per non intasare il localStorage ad ogni tasto
+      const draft = { form: formValues };
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(draft));
+      } catch {}
+    }, 1000);
     return () => clearTimeout(timeoutId);
-  }, [formValues, firmaContratto, firmaClausole]);
+  }, [formValues, initialPreventivo]);
 
   const dict = {
     it: {
@@ -372,6 +371,7 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo, initialD
       // 3. Se tutto va bene, rimuoviamo il backup locale, la bozza, e mostriamo successo
       localStorage.removeItem(uniqueId);
       localStorage.removeItem("draft_wedding_form");
+      localStorage.removeItem(`draft_wedding_form_${initialPreventivo}`);
       setIsSuccess(true);
     } catch (e) {
       console.error(e);

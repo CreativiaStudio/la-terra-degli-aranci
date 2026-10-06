@@ -52,64 +52,67 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
   const nazione = watch("nazione");
   const formValues = watch();
 
-  // Recupera bozza salvata al caricamento con priorità ai dati concordati da preventivo/admin
+  // Pulisce vecchie bozze globali non indicizzate
   useEffect(() => {
-    const savedDraft = localStorage.getItem("draft_eventi_form");
-    if (savedDraft) {
-      try {
-        const parsed = JSON.parse(savedDraft);
-        const merged = {
-          ...parsed.form,
-          ...(initialData?.tipo_cliente === "azienda" ? { tipo_cliente: "azienda", ragione_sociale: initialData.ragione_sociale || "", partita_iva: initialData.partita_iva || "", sdi: initialData.sdi || "", pec: initialData.pec || "" } : {}),
-          ...(initialData?.nome ? { nome: initialData.nome } : {}),
-          ...(initialData?.cognome ? { cognome: initialData.cognome } : {}),
-          ...(initialData?.email ? { email: initialData.email } : {}),
-          ...(initialData?.telefono ? { telefono: initialData.telefono } : {}),
-          ...(initialData?.data_evento ? { data_evento: initialData.data_evento } : {}),
-          ...(initialData?.tipo_evento ? { tipo_evento: initialData.tipo_evento } : {})
-        };
-        reset(merged);
-        if (parsed.firmaContratto) setFirmaContratto(parsed.firmaContratto);
-        if (parsed.firmaClausole) setFirmaClausole(parsed.firmaClausole);
-      } catch(e) {
-        console.error("Errore nel recupero bozza", e);
-      }
-    } else if (initialData) {
-      reset({
-        tipo_cliente: initialData.tipo_cliente === "azienda" ? "azienda" : "privato",
-        nazione: "Italia",
-        nome: initialData.nome || "",
-        cognome: initialData.cognome || "",
-        ragione_sociale: initialData.ragione_sociale || "",
-        luogo_di_nascita: "",
-        data_di_nascita: "",
-        citta_di_residenza: "",
-        indirizzo: "",
-        numero_civico: "",
-        cap: "",
-        codice_fiscale: initialData.codice_fiscale || "",
-        partita_iva: initialData.partita_iva || "",
-        sdi: initialData.sdi || "",
-        telefono: initialData.telefono || "",
-        email: initialData.email || "",
-        pec: initialData.pec || "",
-        tipo_evento: initialData.tipo_evento || "Festa Privata",
-        data_evento: initialData.data_evento || "",
-        accetto: false,
-        comunicazione_terzi: false,
-        marketing: "NO"
-      });
-    }
-  }, [initialData, reset]);
+    try {
+      localStorage.removeItem("draft_eventi_form");
+    } catch {}
+  }, []);
 
-  // Salva bozza ad ogni modifica
+  // Recupera bozza salvata al caricamento con priorità ASSOLUTA ai dati concordati da Roberto (initialData)
   useEffect(() => {
+    const draftKey = `draft_eventi_form_${initialPreventivo}`;
+    let draftFields: any = {};
+    try {
+      const savedDraft = localStorage.getItem(draftKey);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        draftFields = parsed.form || {};
+      }
+    } catch (e) {
+      console.error("Errore nel recupero bozza", e);
+    }
+
+    // Unisce: la bozza del cliente compila SOLO i campi mancanti (residenza, nascita, etc.)
+    // mentre i campi inseriti da Roberto (initialData) hanno sempre la priorità e appaiono già compilati.
+    reset({
+      tipo_cliente: initialData?.tipo_cliente === "azienda" ? "azienda" : (draftFields.tipo_cliente || "privato"),
+      nazione: draftFields.nazione || "Italia",
+      nome: initialData?.nome || draftFields.nome || "",
+      cognome: initialData?.cognome || draftFields.cognome || "",
+      ragione_sociale: initialData?.ragione_sociale || draftFields.ragione_sociale || "",
+      luogo_di_nascita: draftFields.luogo_di_nascita || "",
+      data_di_nascita: draftFields.data_di_nascita || "",
+      citta_di_residenza: draftFields.citta_di_residenza || "",
+      indirizzo: draftFields.indirizzo || "",
+      numero_civico: draftFields.numero_civico || "",
+      cap: draftFields.cap || "",
+      codice_fiscale: initialData?.codice_fiscale || draftFields.codice_fiscale || "",
+      partita_iva: initialData?.partita_iva || draftFields.partita_iva || "",
+      sdi: initialData?.sdi || draftFields.sdi || "",
+      telefono: initialData?.telefono || draftFields.telefono || "",
+      email: initialData?.email || draftFields.email || "",
+      pec: initialData?.pec || draftFields.pec || "",
+      tipo_evento: initialData?.tipo_evento || draftFields.tipo_evento || "Festa Privata",
+      data_evento: initialData?.data_evento || draftFields.data_evento || "",
+      accetto: draftFields.accetto || false,
+      comunicazione_terzi: draftFields.comunicazione_terzi || false,
+      marketing: draftFields.marketing || "NO"
+    });
+    // NOTA LEGALE: Il box firma NON viene mai ripristinato da bozze pregresse.
+  }, [initialData, initialPreventivo, reset]);
+
+  // Salva bozza ad ogni modifica dei campi di testo (scopata al singolo preventivo, senza memorizzare la firma)
+  useEffect(() => {
+    const draftKey = `draft_eventi_form_${initialPreventivo}`;
     const timeoutId = setTimeout(() => {
-      const draft = { form: formValues, firmaContratto, firmaClausole };
-      localStorage.setItem("draft_eventi_form", JSON.stringify(draft));
-    }, 1000); // Debounce di 1 secondo
+      const draft = { form: formValues };
+      try {
+        localStorage.setItem(draftKey, JSON.stringify(draft));
+      } catch {}
+    }, 1000);
     return () => clearTimeout(timeoutId);
-  }, [formValues, firmaContratto, firmaClausole]);
+  }, [formValues, initialPreventivo]);
 
   const dict = {
     it: {
@@ -319,6 +322,7 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       // 3. Se tutto va bene, rimuoviamo il backup locale, la bozza e mostriamo successo
       localStorage.removeItem(uniqueId);
       localStorage.removeItem("draft_eventi_form");
+      localStorage.removeItem(`draft_eventi_form_${initialPreventivo}`);
       setIsSuccess(true);
     } catch (e) {
       console.error(e);
