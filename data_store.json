@@ -1,6 +1,17 @@
 {
   "clients": [
     {
+      "id": "0a462b53-e984-4902-9562-e9d0dd776af8",
+      "nome": "Mario",
+      "cognome": "Pepe",
+      "email": "mariopepe9@hotmail.it",
+      "telefono": "366353837",
+      "sposera_nome": "Elena",
+      "sposera_cognome": "Dumea",
+      "provenienza": "Admin Rapido",
+      "created_at": "2026-10-02T12:24:12.776Z"
+    },
+    {
       "id": "32846d51-23a5-4807-9f6b-bc5ab3cde172",
       "nome": "<script>alert('XSS')</script>",
       "cognome": "O'Connor'; DROP TABLE quotes; --",
@@ -29,6 +40,94 @@
     }
   ],
   "quotes": [
+    {
+      "id": "5d6665f5-7d8e-4383-9329-7582d55365aa",
+      "client_id": "0a462b53-e984-4902-9562-e9d0dd776af8",
+      "tipo_evento": "wedding",
+      "data_evento": "2026-10-22",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "spazi_riservati": [],
+      "canale_contratto": "accordo_diretto",
+      "source": "admin_rapido",
+      "fase_contratto": "accordo_diretto",
+      "opzione": {
+        "attiva": true,
+        "tipo": "esclusiva",
+        "data_inizio": "2026-10-02T15:26:10.237Z",
+        "scadenza": "2026-10-09T15:26:10.237Z",
+        "turno": "pranzo",
+        "spazi": [],
+        "canale": "accordo_diretto"
+      },
+      "numero_ospiti": 0,
+      "items": [
+        {
+          "id": 1790954770238,
+          "descrizione": "Canone Fitto Struttura",
+          "quantita": 1,
+          "prezzo_unitario": 7000,
+          "splitKey": "ss100",
+          "totale": 7000
+        }
+      ],
+      "sconto_fisso": 0,
+      "prezzo": 7000,
+      "totale": 7000,
+      "totale_calcolato": 7000,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 0,
+      "note_visita_segreteria": "",
+      "status": "inviato",
+      "created_at": "2026-10-02T15:26:10.244Z",
+      "updated_at": "2026-10-02T15:26:10.244Z"
+    },
+    {
+      "id": "d55e42f2-6fd7-43e7-bfbf-af29e69399d1",
+      "client_id": "0a462b53-e984-4902-9562-e9d0dd776af8",
+      "tipo_evento": "wedding",
+      "data_evento": "2026-12-20",
+      "turno": "cena",
+      "tipo_esclusiva": "semi_esclusiva",
+      "spazi_riservati": [
+        "Sala Tufo"
+      ],
+      "canale_contratto": "accordo_diretto",
+      "source": "admin_rapido",
+      "fase_contratto": "accordo_diretto",
+      "opzione": {
+        "attiva": true,
+        "tipo": "semi_esclusiva",
+        "data_inizio": "2026-10-02T12:24:12.775Z",
+        "scadenza": "2026-10-09T12:24:12.775Z",
+        "turno": "cena",
+        "spazi": [
+          "Sala Tufo"
+        ],
+        "canale": "accordo_diretto"
+      },
+      "numero_ospiti": 0,
+      "items": [
+        {
+          "id": 1790943852775,
+          "descrizione": "Canone Fitto Struttura",
+          "quantita": 1,
+          "prezzo_unitario": 3000,
+          "splitKey": "ss100",
+          "totale": 3000
+        }
+      ],
+      "sconto_fisso": 0,
+      "prezzo": 3000,
+      "totale": 3000,
+      "totale_calcolato": 3000,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 0,
+      "note_visita_segreteria": "",
+      "status": "inviato",
+      "created_at": "2026-10-02T12:24:12.776Z",
+      "updated_at": "2026-10-02T12:24:12.776Z"
+    },
     {
       "id": "114e18c3-3e44-4c04-ba75-20b96177cf06",
       "client_id": "4977ac69-9867-40fd-b36b-60af16eefbf4",

@@ -1,11 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useSearchParams } from "next/navigation";
+import { useForm, Controller } from "react-hook-form";
 import SignaturePad from "@/components/SignaturePad";
+import DateTextInput from "@/components/DateTextInput";
+import FormulaBadge, { parseSpazi } from "@/components/FormulaBadge";
 
-export default function EventiForm({ initialPrezzo, initialPreventivo }: { initialPrezzo: string, initialPreventivo: string, initialData?: any }) {
+export default function EventiForm({ initialPrezzo, initialPreventivo, initialData, initialSig }: { initialPrezzo: string, initialPreventivo: string, initialData?: any, initialSig?: string }) {
   const [lang, setLang] = useState<"it" | "en">("it");
+  const searchParams = useSearchParams();
+  const sig = searchParams.get("sig") || initialSig || "";
+  const tipoEsclusiva = searchParams.get("tipo_esclusiva") || initialData?.tipo_esclusiva || "";
+  const spaziRiservati = parseSpazi(searchParams.getAll("spazi_riservati"), initialData?.spazi_riservati);
 
   const [firmaContratto, setFirmaContratto] = useState("");
   const [firmaClausole, setFirmaClausole] = useState("");
@@ -14,27 +21,27 @@ export default function EventiForm({ initialPrezzo, initialPreventivo }: { initi
   const [isSuccess, setIsSuccess] = useState(false);
   const [customError, setCustomError] = useState("");
 
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, reset, control, formState: { errors } } = useForm({
     defaultValues: {
-      tipo_cliente: "privato",
+      tipo_cliente: initialData?.tipo_cliente === "azienda" ? "azienda" : "privato",
       nazione: "Italia",
-      nome: "",
-      cognome: "",
-      ragione_sociale: "",
+      nome: initialData?.nome || "",
+      cognome: initialData?.cognome || "",
+      ragione_sociale: initialData?.ragione_sociale || "",
       luogo_di_nascita: "",
       data_di_nascita: "",
       citta_di_residenza: "",
       indirizzo: "",
       numero_civico: "",
       cap: "",
-      codice_fiscale: "",
-      partita_iva: "",
-      sdi: "",
-      telefono: "",
-      email: "",
-      pec: "",
-      tipo_evento: "",
-      data_evento: "",
+      codice_fiscale: initialData?.codice_fiscale || "",
+      partita_iva: initialData?.partita_iva || "",
+      sdi: initialData?.sdi || "",
+      telefono: initialData?.telefono || "",
+      email: initialData?.email || "",
+      pec: initialData?.pec || "",
+      tipo_evento: initialData?.tipo_evento || "Festa Privata",
+      data_evento: initialData?.data_evento || "",
       accetto: false,
       comunicazione_terzi: false,
       marketing: "NO"
@@ -45,20 +52,55 @@ export default function EventiForm({ initialPrezzo, initialPreventivo }: { initi
   const nazione = watch("nazione");
   const formValues = watch();
 
-  // Recupera bozza salvata al caricamento
+  // Recupera bozza salvata al caricamento con priorità ai dati concordati da preventivo/admin
   useEffect(() => {
     const savedDraft = localStorage.getItem("draft_eventi_form");
     if (savedDraft) {
       try {
         const parsed = JSON.parse(savedDraft);
-        reset(parsed.form);
+        const merged = {
+          ...parsed.form,
+          ...(initialData?.tipo_cliente === "azienda" ? { tipo_cliente: "azienda", ragione_sociale: initialData.ragione_sociale || "", partita_iva: initialData.partita_iva || "", sdi: initialData.sdi || "", pec: initialData.pec || "" } : {}),
+          ...(initialData?.nome ? { nome: initialData.nome } : {}),
+          ...(initialData?.cognome ? { cognome: initialData.cognome } : {}),
+          ...(initialData?.email ? { email: initialData.email } : {}),
+          ...(initialData?.telefono ? { telefono: initialData.telefono } : {}),
+          ...(initialData?.data_evento ? { data_evento: initialData.data_evento } : {}),
+          ...(initialData?.tipo_evento ? { tipo_evento: initialData.tipo_evento } : {})
+        };
+        reset(merged);
         if (parsed.firmaContratto) setFirmaContratto(parsed.firmaContratto);
         if (parsed.firmaClausole) setFirmaClausole(parsed.firmaClausole);
       } catch(e) {
         console.error("Errore nel recupero bozza", e);
       }
+    } else if (initialData) {
+      reset({
+        tipo_cliente: initialData.tipo_cliente === "azienda" ? "azienda" : "privato",
+        nazione: "Italia",
+        nome: initialData.nome || "",
+        cognome: initialData.cognome || "",
+        ragione_sociale: initialData.ragione_sociale || "",
+        luogo_di_nascita: "",
+        data_di_nascita: "",
+        citta_di_residenza: "",
+        indirizzo: "",
+        numero_civico: "",
+        cap: "",
+        codice_fiscale: initialData.codice_fiscale || "",
+        partita_iva: initialData.partita_iva || "",
+        sdi: initialData.sdi || "",
+        telefono: initialData.telefono || "",
+        email: initialData.email || "",
+        pec: initialData.pec || "",
+        tipo_evento: initialData.tipo_evento || "Festa Privata",
+        data_evento: initialData.data_evento || "",
+        accetto: false,
+        comunicazione_terzi: false,
+        marketing: "NO"
+      });
     }
-  }, [reset]);
+  }, [initialData, reset]);
 
   // Salva bozza ad ogni modifica
   useEffect(() => {
@@ -249,6 +291,7 @@ export default function EventiForm({ initialPrezzo, initialPreventivo }: { initi
       lingua: lang,
       preventivo: initialPreventivo,
       prezzo: initialPrezzo,
+      sig,
       datiCliente: {
         ...data,
         giorno_ed_ora_evento: data.data_evento,
@@ -342,7 +385,9 @@ export default function EventiForm({ initialPrezzo, initialPreventivo }: { initi
       </div>
 
       <h1>{t.title}</h1>
-      <p style={{ textAlign: "center", marginBottom: "2rem" }}>{t.sub}</p>
+      <p style={{ textAlign: "center", marginBottom: "1.5rem" }}>{t.sub}</p>
+
+      <FormulaBadge tipoEsclusiva={tipoEsclusiva} spaziRiservati={spaziRiservati} lang={lang} />
 
       <div style={{ background: "#f9f9f9", padding: "1.5rem", borderRadius: "8px", marginBottom: "2rem", border: "1px solid var(--border-color)" }}>
         <h2 style={{ marginTop: 0 }}>{t.riepilogo}</h2>
@@ -419,10 +464,19 @@ export default function EventiForm({ initialPrezzo, initialPreventivo }: { initi
             <label>{t.f_luogo_nascita}</label>
             <input type="text" {...register("luogo_di_nascita", { required: true })} />
           </div>
-          <div className="form-group">
-            <label>{t.f_data_nascita}</label>
-            <input type="date" {...register("data_di_nascita", { required: true })} />
-          </div>
+          <Controller
+            name="data_di_nascita"
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <DateTextInput
+                label={t.f_data_nascita}
+                value={field.value}
+                onChange={field.onChange}
+                required
+              />
+            )}
+          />
 
           <div className="form-group">
             <label>{t.f_nazione}</label>
@@ -475,16 +529,22 @@ export default function EventiForm({ initialPrezzo, initialPreventivo }: { initi
 
           <div className="form-group full">
             <label>{t.f_tipo}</label>
-            <select {...register("tipo_evento", { required: true })}>
-              <option value="Battesimo">{t.f_battesimo}</option>
-              <option value="Comunione">{t.f_comunione}</option>
-              <option value="Laurea">{t.f_laurea}</option>
-              <option value="Festa Privata">{t.f_festa}</option>
-            </select>
+            <input 
+              type="text" 
+              {...register("tipo_evento", { required: true })} 
+              readOnly 
+              style={{ background: "#f8f9fa", border: "1.5px solid #d1d5db", cursor: "not-allowed", color: "#374151", fontWeight: 600 }} 
+            />
           </div>
           <div className="form-group full">
             <label>{t.f_data}</label>
-            <input type="datetime-local" {...register("data_evento", { required: true })} />
+            <input 
+              type="datetime-local" 
+              {...register("data_evento", { required: true })} 
+              readOnly 
+              style={{ background: "#f8f9fa", border: "1.5px solid #d1d5db", cursor: "not-allowed", color: "#374151", fontWeight: 600 }} 
+            />
+            <small style={{ color: "#6b7280", marginTop: "0.25rem", display: "block" }}>🔒 Data evento concordata con la direzione (non modificabile)</small>
           </div>
         </div>
 

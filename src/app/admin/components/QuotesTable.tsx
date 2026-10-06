@@ -15,9 +15,33 @@ export default function QuotesTable({ quotes, signedPdfs = [] }: QuotesTableProp
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Trova il PDF firmato (Cloudflare R2) associato al cliente
+  const getSignedPdfMatch = (quote: any) => {
+    const nomeRaw = (quote.clients?.nome || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cognomeRaw = (quote.clients?.cognome || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    return signedPdfs.find(pdf => {
+      const keyLower = pdf.key.toLowerCase().replace(/[^a-z0-9]/g, '');
+      return (nomeRaw && keyLower.includes(nomeRaw)) || (cognomeRaw && keyLower.includes(cognomeRaw));
+    });
+  };
+
+  // Contratto/accordo in attesa di firma (non ancora firmato)
+  const isPendingContrattoQuote = (quote: any) => {
+    const isFirmato = quote.status === 'firmato' || Boolean(getSignedPdfMatch(quote));
+    return !isFirmato && (
+      quote.status === 'convertito' ||
+      quote.canale_contratto === 'accordo_diretto' ||
+      quote.fase_contratto === 'accordo_diretto' ||
+      quote.source === 'admin_rapido' ||
+      (quote.status === 'inviato' && quote.opzione?.attiva)
+    );
+  };
+
   const filteredQuotes = quotes.filter(q => {
     if (filterStatus === "bozza_visita") {
       if (q.status !== "bozza_visita" && q.source !== "tablet_segreteria") return false;
+    } else if (filterStatus === "contratti_in_attesa") {
+      if (!isPendingContrattoQuote(q)) return false;
     } else if (filterStatus !== "tutti" && q.status !== filterStatus) {
       return false;
     }
@@ -92,6 +116,9 @@ export default function QuotesTable({ quotes, signedPdfs = [] }: QuotesTableProp
         <button type="button" onClick={() => setFilterStatus("convertito")} style={filterTabStyle("convertito")}>
           ⚡ Preventivi trasformati in contratti ({quotes.filter(q => q.status === 'convertito' || q.status === 'firmato').length})
         </button>
+        <button type="button" onClick={() => setFilterStatus("contratti_in_attesa")} style={filterTabStyle("contratti_in_attesa")}>
+          ⏳ Contratti in attesa firma ({quotes.filter(q => isPendingContrattoQuote(q)).length})
+        </button>
       </div>
 
       {/* Tabella Dati */}
@@ -113,20 +140,21 @@ export default function QuotesTable({ quotes, signedPdfs = [] }: QuotesTableProp
             </thead>
             <tbody>
               {filteredQuotes.map((quote) => {
-                const nomeRaw = (quote.clients?.nome || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                const cognomeRaw = (quote.clients?.cognome || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-
                 // Cerca se esiste un PDF del contratto firmato in Cloudflare R2 per questo cliente
-                const signedPdfMatch = signedPdfs.find(pdf => {
-                  const keyLower = pdf.key.toLowerCase().replace(/[^a-z0-9]/g, '');
-                  return (nomeRaw && keyLower.includes(nomeRaw)) || (cognomeRaw && keyLower.includes(cognomeRaw));
-                });
+                const signedPdfMatch = getSignedPdfMatch(quote);
 
                 const isBozzaVisita = (quote.status === 'bozza_visita' || quote.source === 'tablet_segreteria') && !(quote.status === 'firmato' || Boolean(signedPdfMatch));
                 const isFirmato = quote.status === 'firmato' || Boolean(signedPdfMatch);
                 const isAccettato = quote.status === 'accettato' && !isFirmato;
                 const isConvertito = quote.status === 'convertito' && !isFirmato;
                 const isInviato = (quote.status === 'inviato' || quote.status === 'bozza') && !isFirmato && !isBozzaVisita;
+                const isPendingContratto = !isFirmato && (
+                  quote.status === 'convertito' ||
+                  quote.canale_contratto === 'accordo_diretto' ||
+                  quote.fase_contratto === 'accordo_diretto' ||
+                  quote.source === 'admin_rapido' ||
+                  (quote.status === 'inviato' && quote.opzione?.attiva)
+                );
 
                 return (
                   <tr key={quote.id} style={{ borderBottom: "1px solid #f0eee9" }}>
@@ -174,10 +202,11 @@ export default function QuotesTable({ quotes, signedPdfs = [] }: QuotesTableProp
                         fontWeight: "bold",
                         whiteSpace: "nowrap",
                         display: "inline-block",
-                        background: isBozzaVisita ? '#ffedd5' : isFirmato ? '#d4edda' : isAccettato ? '#d4edda' : isConvertito ? '#cce5ff' : '#fff3cd',
-                        color: isBozzaVisita ? '#c2410c' : isFirmato ? '#155724' : isAccettato ? '#155724' : isConvertito ? '#004085' : '#856404'
+                        border: isPendingContratto ? '1px solid #fcd34d' : 'none',
+                        background: isBozzaVisita ? '#ffedd5' : isFirmato ? '#d4edda' : isAccettato ? '#d4edda' : isPendingContratto ? '#fef3c7' : isConvertito ? '#cce5ff' : '#fff3cd',
+                        color: isBozzaVisita ? '#c2410c' : isFirmato ? '#155724' : isAccettato ? '#155724' : isPendingContratto ? '#92400e' : isConvertito ? '#004085' : '#856404'
                       }}>
-                        {isBozzaVisita ? '📱 BOZZA TOUR SEGRETERIA' : isFirmato ? 'CONTRATTO FIRMATO' : isAccettato ? 'PREVENTIVO ACCETTATO' : isConvertito ? 'LINK CONTRATTO INVIATO' : 'INVIATO'}
+                        {isBozzaVisita ? '📱 BOZZA TOUR SEGRETERIA' : isFirmato ? 'CONTRATTO FIRMATO' : isAccettato ? 'PREVENTIVO ACCETTATO' : isPendingContratto ? '🟡 IN ATTESA DI FIRMA (CONTRATTO)' : isConvertito ? 'LINK CONTRATTO INVIATO' : 'INVIATO'}
                       </span>
                     </td>
 
@@ -185,6 +214,25 @@ export default function QuotesTable({ quotes, signedPdfs = [] }: QuotesTableProp
                     <td style={{ padding: "1.2rem 1rem", textAlign: "right" }}>
                       <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", flexWrap: "wrap" }}>
                         
+                        {/* TASTO PRINCIPALE: Contratto/accordo in attesa di firma */}
+                        {isPendingContratto && (
+                          <Link
+                            href="/admin/contratti"
+                            style={{
+                              padding: "0.6rem 1.1rem",
+                              background: "#e58c2c",
+                              color: "white",
+                              textDecoration: "none",
+                              borderRadius: "8px",
+                              fontSize: "0.85rem",
+                              fontWeight: "bold",
+                              boxShadow: "0 3px 10px rgba(229,140,44,0.3)"
+                            }}
+                          >
+                            📝 Gestisci / Firma Contratto →
+                          </Link>
+                        )}
+
                         {/* TASTO BOZZA: Se è bozza visita da segreteria */}
                         {isBozzaVisita && (
                           <Link

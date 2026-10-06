@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { SERVICES_CATALOG, ServiceCatalogItem } from '@/lib/servicesCatalog';
+import { generateSignature } from '@/lib/crypto';
+import { SEMI_ESCLUSIVA_FORMULE } from '@/lib/contractMeta';
 
 function getDataFilePath(): string {
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || (typeof process.cwd === 'function' && process.cwd().startsWith('/var/task'))) {
@@ -31,9 +33,16 @@ export interface LocalStore {
   services_catalog?: ServiceCatalogItem[];
   ticket_orders?: any[];
   blog_posts?: any[];
+  /**
+   * Contratti finali / accordi diretti generati dall'admin rapido.
+   * Volutamente SEPARATI da `signed_contracts` (evita la regressione S1):
+   * un accordo diretto non è un contratto firmato e non deve attivare
+   * il flusso di firma/congelamento acconti della pipeline esistente.
+   */
+  final_contracts?: any[];
 }
 
-function getStore(): LocalStore {
+export function getStore(): LocalStore {
   const dataFile = getDataFilePath();
   if (!fs.existsSync(dataFile)) {
     const initial: LocalStore = {
@@ -591,6 +600,667 @@ export function saveBlogPostLocal(post: any) {
 export function getBlogPostsLocal(): any[] {
   const store = getStore();
   return store.blog_posts || [];
+}
+
+/* ------------------------------------------------------------------ */
+/* Modulo Contratti — helper aggiuntivi (solo funzioni NUOVE)          */
+/* Nessuna funzione esistente viene modificata per garantire la        */
+/* compatibilità al 100% con la pipeline preventivi/contratti.        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Espone lo store locale in sola lettura per i moduli di supporto
+ * (es. slotAvailability) che devono attraversare preventivi e contratti.
+ */
+export function getLocalStore(): LocalStore {
+  return getStore();
+}
+
+export interface QuoteContractMetaUpdate {
+  fase_contratto?: string;
+  tipo_esclusiva?: string;
+  spazi_riservati?: string[];
+  canale_contratto?: string;
+  opzione?: any;
+}
+
+/**
+ * Aggiorna i metadati contrattuali di un preventivo (match per id esatto,
+ * con fallback sul prefisso come nel resto del localDb).
+ */
+export function updateQuoteContractMetaLocal(quoteId: string, meta: QuoteContractMetaUpdate) {
+  const store = getStore();
+  const search = String(quoteId || "").toLowerCase();
+  const quote =
+    store.quotes.find(q => String(q.id).toLowerCase() === search) ||
+    store.quotes.find(q => String(q.id).toLowerCase().startsWith(search));
+
+  if (!quote) return null;
+
+  if (meta.fase_contratto !== undefined) quote.fase_contratto = meta.fase_contratto;
+  if (meta.tipo_esclusiva !== undefined) quote.tipo_esclusiva = meta.tipo_esclusiva;
+  if (meta.spazi_riservati !== undefined) quote.spazi_riservati = meta.spazi_riservati;
+  if (meta.canale_contratto !== undefined) quote.canale_contratto = meta.canale_contratto;
+  if (meta.opzione !== undefined) quote.opzione = meta.opzione;
+
+  quote.updated_at = new Date().toISOString();
+  saveStore(store);
+  return quote;
+}
+
+/**
+ * Salva un contratto finale nella lista dedicata `final_contracts`.
+ * IMPORTANTE: non tocca `signed_contracts` (evita la regressione S1).
+ */
+export function saveFinalContractLocal(payload: any) {
+  const store = getStore();
+  if (!store.final_contracts) store.final_contracts = [];
+
+  const quoteId = payload?.preventivo || payload?.quote_id || payload?.quoteId || "";
+  const search = String(quoteId).toLowerCase();
+  const index = search
+    ? store.final_contracts.findIndex(
+        fc => fc.quote_id && String(fc.quote_id).toLowerCase().startsWith(search)
+      )
+    : -1;
+
+  const entry = {
+    ...payload,
+    id: index >= 0 ? store.final_contracts[index].id : crypto.randomUUID(),
+    quote_id: quoteId,
+    finalized_at: payload?.finalized_at || new Date().toISOString(),
+  };
+
+  if (index >= 0) {
+    store.final_contracts[index] = entry;
+  } else {
+    store.final_contracts.unshift(entry);
+  }
+
+  saveStore(store);
+  return entry;
+}
+
+/**
+ * Restituisce il contratto finale collegato a un preventivo (match per prefisso).
+ */
+export function getFinalContractByQuoteLocal(quoteId: string) {
+  const store = getStore();
+  if (!store.final_contracts) return null;
+  const search = String(quoteId || "").toLowerCase();
+  return (
+    store.final_contracts.find(
+      fc =>
+        (fc.quote_id && String(fc.quote_id).toLowerCase().startsWith(search)) ||
+        (fc.id && String(fc.id).toLowerCase() === search)
+    ) || null
+  );
+}
+
+/** Elenco completo dei contratti finali (più recenti per primi se timestamp presente). */
+export function getFinalContractsLocal(): any[] {
+  const store = getStore();
+  return store.final_contracts || [];
+}
+
+export interface AdminQuickQuotePayload {
+  cliente: {
+    nome: string;
+    cognome: string;
+    email?: string;
+    telefono?: string;
+    partnerNome?: string;
+    partnerCognome?: string;
+    codice_fiscale?: string;
+  };
+  tipo_cliente?: 'privato' | 'azienda';
+  ragione_sociale?: string;
+  partita_iva?: string;
+  sdi?: string;
+  pec?: string;
+  tipo_evento: string;
+  data_evento: string;
+  turno?: string;
+  tipo_esclusiva?: string;
+  spazi_riservati?: string[];
+  canale_contratto?: string;
+  source?: string;
+  fase_contratto?: string;
+  prezzo: number;
+  items?: any[];
+  note?: string;
+  opzione?: any;
+  importo_caparra?: number;
+  importo_secondo_acconto?: number;
+}
+
+/**
+ * Crea (o riutilizza) il cliente e genera un preventivo formale per l'admin rapido.
+ * Il cliente viene riutilizzato se email o telefono coincidono (case-insensitive).
+ */
+export function saveAdminQuickQuoteLocal(payload: AdminQuickQuotePayload) {
+  const store = getStore();
+
+  const email = String(payload.cliente.email || "").trim().toLowerCase();
+  const telefono = String(payload.cliente.telefono || "").trim();
+
+  const tipoCliente: 'privato' | 'azienda' = payload.tipo_cliente === 'azienda' ? 'azienda' : 'privato';
+  const ragioneSociale = tipoCliente === 'azienda' ? String(payload.ragione_sociale || "").trim() : "";
+  const partitaIva = tipoCliente === 'azienda' ? String(payload.partita_iva || "").trim() : "";
+  const sdi = tipoCliente === 'azienda' ? String(payload.sdi || "").trim() : "";
+  const pec = tipoCliente === 'azienda' ? String(payload.pec || "").trim() : "";
+  const codiceFiscale = String(payload.cliente.codice_fiscale || "").trim();
+
+  let client = store.clients.find(
+    c =>
+      (email && String(c.email || "").trim().toLowerCase() === email) ||
+      (telefono && String(c.telefono || "").trim() === telefono)
+  );
+
+  if (!client) {
+    client = {
+      id: crypto.randomUUID(),
+      nome: String(payload.cliente.nome || "").trim(),
+      cognome: String(payload.cliente.cognome || "").trim(),
+      email: String(payload.cliente.email || "").trim(),
+      telefono: telefono,
+      codice_fiscale: codiceFiscale,
+      tipo_cliente: tipoCliente,
+      ragione_sociale: ragioneSociale,
+      partita_iva: partitaIva,
+      sdi: sdi,
+      pec: pec,
+      sposera_nome: payload.cliente.partnerNome || "",
+      sposera_cognome: payload.cliente.partnerCognome || "",
+      provenienza: "Admin Rapido",
+      created_at: new Date().toISOString(),
+    };
+    store.clients.unshift(client);
+  } else {
+    // I dati fiscali aziendali dell'emissione corrente prevalgono su quelli precedenti.
+    if (tipoCliente === 'azienda') {
+      client.tipo_cliente = 'azienda';
+      if (ragioneSociale) client.ragione_sociale = ragioneSociale;
+      if (partitaIva) client.partita_iva = partitaIva;
+      if (sdi) client.sdi = sdi;
+      if (pec) client.pec = pec;
+    } else if (!client.tipo_cliente) {
+      client.tipo_cliente = 'privato';
+    }
+    if (!client.codice_fiscale && codiceFiscale) client.codice_fiscale = codiceFiscale;
+    // Arricchimento non distruttivo: compila solo i campi mancanti.
+    if (!client.nome && payload.cliente.nome) client.nome = String(payload.cliente.nome).trim();
+    if (!client.cognome && payload.cliente.cognome) client.cognome = String(payload.cliente.cognome).trim();
+    if (!client.email && payload.cliente.email) client.email = String(payload.cliente.email).trim();
+    if (!client.telefono && telefono) client.telefono = telefono;
+    if (!client.sposera_nome && payload.cliente.partnerNome) client.sposera_nome = payload.cliente.partnerNome;
+    if (!client.sposera_cognome && payload.cliente.partnerCognome) client.sposera_cognome = payload.cliente.partnerCognome;
+  }
+
+  const prezzo = Number(payload.prezzo) || 0;
+  const caparra = payload.importo_caparra ?? Math.min(1500, prezzo);
+  const secondoAcconto =
+    payload.importo_secondo_acconto ?? Math.min(3000, Math.max(0, prezzo - caparra));
+
+  const quoteId = crypto.randomUUID();
+  const nowIso = new Date().toISOString();
+
+  const quote = {
+    id: quoteId,
+    client_id: client.id,
+    tipo_evento: payload.tipo_evento === "wedding" ? "wedding" : "eventi",
+    tipo_cliente: tipoCliente,
+    ragione_sociale: ragioneSociale,
+    partita_iva: partitaIva,
+    sdi: sdi,
+    pec: pec,
+    data_evento: payload.data_evento,
+    turno: payload.turno || null,
+    tipo_esclusiva: payload.tipo_esclusiva || "semi_esclusiva",
+    spazi_riservati: payload.spazi_riservati || [],
+    canale_contratto: payload.canale_contratto || "accordo_diretto",
+    source: payload.source || "admin_rapido",
+    fase_contratto: payload.fase_contratto || "accordo_diretto",
+    opzione: payload.opzione ?? null,
+    numero_ospiti: 0,
+    items: payload.items || [],
+    sconto_fisso: 0,
+    prezzo: prezzo,
+    totale: prezzo,
+    totale_calcolato: prezzo,
+    importo_caparra: caparra,
+    importo_secondo_acconto: secondoAcconto,
+    note_visita_segreteria: payload.note || "",
+    status: "inviato",
+    created_at: nowIso,
+    updated_at: nowIso,
+  };
+
+  store.quotes.unshift(quote);
+  saveStore(store);
+
+  return { quoteId, client, quote };
+}
+
+/* ------------------------------------------------------------------ */
+/* Opzione Veloce 7gg da Calendario (senza prezzi né preventivi)       */
+/* ------------------------------------------------------------------ */
+
+const OPTION_QUICK_DAYS = 7;
+const OPTION_QUICK_PRELAZIONE_ORE = 24;
+
+/**
+ * Registra un'opzione rapida da calendario: solo contatto, data, turno e spazio.
+ * Il cliente viene creato o riassociato (email/telefono); la quote nasce con
+ * status 'opzione' e fase 'opzione_rapida', con scadenza automatica a 7 giorni.
+ * Il controllo di disponibilità è a carico del chiamante (slotAvailability).
+ */
+export function saveQuickCalendarOptionLocal(data: {
+  nome: string;
+  telefono: string;
+  email?: string;
+  dataEvento: string;
+  turno: string;
+  formula: string;
+  note?: string;
+  tipoEvento?: 'wedding' | 'eventi';
+}) {
+  const store = getStore();
+
+  const email = String(data.email || "").trim().toLowerCase();
+  const telefono = String(data.telefono || "").trim();
+  const nome = String(data.nome || "").trim();
+  const nowIso = new Date().toISOString();
+
+  let client = store.clients.find(
+    c =>
+      (email && String(c.email || "").trim().toLowerCase() === email) ||
+      (telefono && String(c.telefono || "").trim() === telefono)
+  );
+
+  if (!client) {
+    client = {
+      id: crypto.randomUUID(),
+      nome,
+      cognome: "",
+      email: String(data.email || "").trim(),
+      telefono,
+      provenienza: "Opzione Calendario",
+      created_at: nowIso,
+    };
+    store.clients.unshift(client);
+  } else {
+    if (!client.nome && nome) client.nome = nome;
+    if (!client.email && data.email) client.email = String(data.email).trim();
+    if (!client.telefono && telefono) client.telefono = telefono;
+  }
+
+  const formula = String(data.formula || "esclusiva");
+  const isEsclusiva = formula === "esclusiva";
+  const semi = formula === "sala_tufo" ? "sala_tufo" : "sala_bianca";
+  const tipoEsclusiva = isEsclusiva ? "esclusiva" : "semi_esclusiva";
+  const spazi = isEsclusiva ? [] : [...SEMI_ESCLUSIVA_FORMULE[semi].spazi];
+  const turno = data.turno === "cena" ? "cena" : "pranzo";
+
+  const now = new Date();
+  const scadenza = new Date(now.getTime() + OPTION_QUICK_DAYS * 24 * 60 * 60 * 1000);
+
+  const opzione = {
+    attiva: true,
+    tipo: tipoEsclusiva,
+    data_inizio: now.toISOString(),
+    scadenza: scadenza.toISOString(),
+    turno,
+    spazi,
+    canale: "opzione_calendario",
+    prelazione_ore: OPTION_QUICK_PRELAZIONE_ORE,
+  };
+
+  const quoteId = crypto.randomUUID();
+  const quote = {
+    id: quoteId,
+    client_id: client.id,
+    tipo_evento: data.tipoEvento === "eventi" ? "eventi" : "wedding",
+    data_evento: data.dataEvento,
+    turno,
+    tipo_esclusiva: tipoEsclusiva,
+    spazi_riservati: spazi,
+    formula_opzione: isEsclusiva ? "esclusiva" : semi,
+    canale_contratto: "opzione_calendario",
+    source: "calendario_opzione_rapida",
+    fase_contratto: "opzione_rapida",
+    opzione,
+    numero_ospiti: 0,
+    items: [],
+    sconto_fisso: 0,
+    prezzo: 0,
+    totale: 0,
+    totale_calcolato: 0,
+    note_visita_segreteria: data.note || "",
+    status: "opzione",
+    created_at: nowIso,
+    updated_at: nowIso,
+  };
+
+  store.quotes.unshift(quote);
+  saveStore(store);
+
+  return { quoteId, client, quote };
+}
+
+export interface QuickCalendarOptionLocal {
+  quoteId: string;
+  nome: string;
+  telefono: string;
+  email: string;
+  data_evento: string;
+  turno: string;
+  tipo_esclusiva: 'esclusiva' | 'semi_esclusiva';
+  spazi: string[];
+  formula: string;
+  note: string;
+  scadenza: string;
+  giorniRimanenti: number;
+  scaduta: boolean;
+  created_at: string;
+}
+
+/** Opzioni rapide da calendario ancora aperte (non convertite né rilasciate). */
+export function getQuickCalendarOptionsLocal(): QuickCalendarOptionLocal[] {
+  const store = getStore();
+  const nowMs = Date.now();
+
+  const results: QuickCalendarOptionLocal[] = [];
+  (store.quotes || []).forEach((q) => {
+    if (!q || !q.id) return;
+    if (q.fase_contratto !== 'opzione_rapida' || q.status !== 'opzione') return;
+    if (!q.data_evento) return;
+
+    const client = (store.clients || []).find((c) => c && c.id === q.client_id) || {};
+    const rawScadenza = q.opzione?.scadenza;
+    const parsedMs = rawScadenza ? new Date(rawScadenza).getTime() : NaN;
+    const createdMs = new Date(q.created_at || nowMs).getTime();
+    const scadenzaMs = Number.isFinite(parsedMs)
+      ? parsedMs
+      : (Number.isFinite(createdMs) ? createdMs : nowMs) + OPTION_QUICK_DAYS * 24 * 60 * 60 * 1000;
+    const giorniRimanenti = Math.ceil((scadenzaMs - nowMs) / (1000 * 60 * 60 * 24));
+
+    results.push({
+      quoteId: q.id,
+      nome: [client.nome, client.cognome].filter(Boolean).join(' ').trim() || 'Cliente',
+      telefono: String(client.telefono || ''),
+      email: String(client.email || ''),
+      data_evento: String(q.data_evento).slice(0, 10),
+      turno: q.turno === 'cena' ? 'cena' : 'pranzo',
+      tipo_esclusiva: q.tipo_esclusiva === 'esclusiva' ? 'esclusiva' : 'semi_esclusiva',
+      spazi: Array.isArray(q.spazi_riservati) ? q.spazi_riservati : [],
+      formula: String(q.formula_opzione || (q.tipo_esclusiva === 'esclusiva' ? 'esclusiva' : 'sala_bianca')),
+      note: String(q.note_visita_segreteria || ''),
+      scadenza: new Date(scadenzaMs).toISOString(),
+      giorniRimanenti,
+      scaduta: giorniRimanenti < 0,
+      created_at: q.created_at || '',
+    });
+  });
+
+  return results;
+}
+
+/**
+ * Chiude un'opzione rapida convertita in contratto: libera lo slot (il nuovo
+ * contratto lo occupa già) e conserva il collegamento per tracciabilità.
+ */
+export function markQuickOptionConvertedLocal(optionQuoteId: string, newQuoteId: string): boolean {
+  const store = getStore();
+  const search = String(optionQuoteId || '').trim().toLowerCase();
+  if (!search) return false;
+  const quote = store.quotes.find(
+    (q) => q && String(q.id).toLowerCase() === search && q.fase_contratto === 'opzione_rapida'
+  );
+  if (!quote) return false;
+
+  quote.status = 'opzione_convertita';
+  quote.opzione = {
+    ...(quote.opzione || {}),
+    attiva: false,
+    convertita: true,
+    convertita_in: newQuoteId,
+    convertita_il: new Date().toISOString(),
+  };
+  quote.updated_at = new Date().toISOString();
+  saveStore(store);
+  return true;
+}
+
+/* ------------------------------------------------------------------ */
+/* Contratti in attesa di firma (pending)                             */
+/* Solo funzioni NUOVE: non modificano la pipeline esistente.         */
+/* ------------------------------------------------------------------ */
+
+export interface PendingContractLocal {
+  /** id completo del preventivo/quote */
+  quoteId: string;
+  /** numero preventivo (prefisso di 8 caratteri dell'id) */
+  preventivo: string;
+  client_id: string | null;
+  /** cliente associato da `store.clients` (null se non trovato) */
+  cliente: any;
+  cliente_nome: string;
+  intestatari: string;
+  tipo_evento: string;
+  tipoEvento: 'wedding' | 'eventi';
+  data_evento: string | null;
+  status: string;
+  prezzo: number;
+  caparra: number;
+  saldo: number;
+  sig: string;
+  url: string;
+  absoluteUrl: string;
+  whatsappText: string;
+  opzione: any | null;
+  opzione_attiva: boolean;
+  scadenza: string;
+  giorniRimanenti: number;
+  scaduta: boolean;
+  created_at: string;
+  updated_at: string | null;
+  /** record quote completo, per eventuali usi avanzati a valle */
+  quote: any;
+}
+
+function formatEuroPending(value: number): string {
+  return new Intl.NumberFormat('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+    .format(Math.max(0, Math.round(value)));
+}
+
+/**
+ * Raccoglie le chiavi identificative dei contratti già firmati/finalizzati,
+ * confrontando `quote_id`, `preventivo` e il relativo prefisso a 8 caratteri.
+ */
+function collectContractKeys(records: any[] | undefined, keys: Set<string>) {
+  (records || []).forEach((record) => {
+    if (!record) return;
+    [record.quote_id, record.preventivo, record.quoteId].forEach((value) => {
+      if (!value) return;
+      const key = String(value).toLowerCase();
+      keys.add(key);
+      keys.add(key.slice(0, 8));
+    });
+  });
+}
+
+function buildPendingWhatsAppText(params: {
+  nome: string;
+  dataEvento: string;
+  prezzo: number;
+  caparra: number;
+  secondoAcconto: number;
+  saldo: number;
+  absoluteUrl: string;
+  giorniRimanenti: number;
+  scaduta: boolean;
+  scadenza: string;
+  tipoEvento: 'wedding' | 'eventi';
+}): string {
+  const righe = [
+    `Ciao ${params.nome}, ecco il riepilogo del contratto presso La Terra degli Aranci:`,
+    '',
+    `🎉 Tipo evento: ${params.tipoEvento === 'wedding' ? 'Matrimonio' : 'Evento privato'}`,
+    `📅 Data evento: ${params.dataEvento}`,
+    `💶 Canone fitto location: € ${formatEuroPending(params.prezzo)}`,
+    `🔒 Caparra confirmatoria (alla firma): € ${formatEuroPending(params.caparra)}`,
+  ];
+
+  if (params.secondoAcconto > 0) {
+    righe.push(`📆 2° acconto (a -6 mesi dall'evento): € ${formatEuroPending(params.secondoAcconto)}`);
+  }
+
+  righe.push(`💳 Saldo (all'evento): € ${formatEuroPending(params.saldo)}`);
+
+  if (params.scaduta) {
+    righe.push("⚠️ L'opzione sulla data è scaduta: ti consigliamo di ricontattarci per confermarla.");
+  } else if (params.scadenza) {
+    righe.push(
+      `⏳ Opzione riservata ancora per ${params.giorniRimanenti} giorn${params.giorniRimanenti === 1 ? 'o' : 'i'} (fino al ${params.scadenza}).`
+    );
+  }
+
+  righe.push('', 'Firma il contratto digitale qui:', params.absoluteUrl);
+  return righe.join('\n');
+}
+
+/**
+ * Elenca tutti i preventivi/contratti in attesa di firma:
+ * accordi diretti, admin rapido, convertiti o inviati con opzione attiva,
+ * escludendo quelli già firmati (`signed_contracts` / `final_contracts`).
+ */
+export function getPendingContractsLocal(): PendingContractLocal[] {
+  const store = getStore();
+
+  const signedKeys = new Set<string>();
+  collectContractKeys(store.signed_contracts, signedKeys);
+  collectContractKeys(store.final_contracts, signedKeys);
+
+  const nowMs = Date.now();
+  const baseUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    'https://ecosistema.laterradegliaranci.it'
+  ).replace(/\/+$/, '');
+
+  const isSigned = (q: any): boolean => {
+    if (q.status === 'firmato') return true;
+    const candidates = [q.id, q.preventivo, q.id ? String(q.id).slice(0, 8) : ''];
+    return candidates.some((value) => value && signedKeys.has(String(value).toLowerCase()));
+  };
+
+  const isPending = (q: any): boolean =>
+    q.fase_contratto === 'accordo_diretto' ||
+    q.canale_contratto === 'accordo_diretto' ||
+    q.source === 'admin_rapido' ||
+    q.status === 'convertito' ||
+    (q.status === 'inviato' && !!q.opzione?.attiva);
+
+  const results: PendingContractLocal[] = [];
+
+  (store.quotes || []).forEach((q) => {
+    if (!q || !q.id) return;
+    if (!isPending(q)) return;
+    if (isSigned(q)) return;
+
+    const client = (store.clients || []).find((c) => c && c.id === q.client_id) || null;
+    const intestatari = client
+      ? [client.nome, client.cognome].filter(Boolean).join(' ').trim() || 'Cliente'
+      : 'Cliente';
+
+    const preventivo = String(q.id).slice(0, 8);
+    const prezzo = Number(q.prezzo ?? q.totale ?? q.totale_calcolato ?? 0);
+    const caparra = Number(q.importo_caparra ?? Math.min(1500, prezzo));
+    const secondoAcconto = Number(q.importo_secondo_acconto ?? 0) || 0;
+    const saldo = Math.max(0, prezzo - caparra - secondoAcconto);
+    const sig = generateSignature(String(prezzo), preventivo);
+    const tipoEvento: 'wedding' | 'eventi' = q.tipo_evento === 'wedding' ? 'wedding' : 'eventi';
+    const url = `/contratti/${tipoEvento}?prezzo=${prezzo}&preventivo=${preventivo}&sig=${sig}`;
+    const absoluteUrl = `${baseUrl}${url}`;
+
+    // Opzione: scadenza esplicita oppure 7 giorni dalla creazione.
+    const createdMs = new Date(q.created_at || q.updated_at || nowMs).getTime();
+    const fallbackScadenzaMs =
+      (Number.isFinite(createdMs) ? createdMs : nowMs) + 7 * 24 * 60 * 60 * 1000;
+    const rawScadenza = q.opzione?.scadenza;
+    const parsedScadenzaMs = rawScadenza ? new Date(rawScadenza).getTime() : NaN;
+    const scadenzaMs = Number.isFinite(parsedScadenzaMs) ? parsedScadenzaMs : fallbackScadenzaMs;
+    const giorniRimanenti = Math.ceil((scadenzaMs - nowMs) / (1000 * 60 * 60 * 24));
+    const scaduta = giorniRimanenti < 0;
+    const scadenza = new Date(scadenzaMs).toISOString();
+
+    const whatsappText = buildPendingWhatsAppText({
+      nome: intestatari,
+      dataEvento: String(q.data_evento || 'da definire'),
+      prezzo,
+      caparra,
+      secondoAcconto,
+      saldo,
+      absoluteUrl,
+      giorniRimanenti,
+      scaduta,
+      scadenza,
+      tipoEvento,
+    });
+
+    results.push({
+      quoteId: q.id,
+      preventivo,
+      client_id: q.client_id ?? null,
+      cliente: client,
+      cliente_nome: intestatari,
+      intestatari,
+      tipo_evento: q.tipo_evento || tipoEvento,
+      tipoEvento,
+      data_evento: q.data_evento || null,
+      status: q.status || '',
+      prezzo,
+      caparra,
+      saldo,
+      sig,
+      url,
+      absoluteUrl,
+      whatsappText,
+      opzione: q.opzione ?? null,
+      opzione_attiva: !!q.opzione?.attiva,
+      scadenza,
+      giorniRimanenti,
+      scaduta,
+      created_at: q.created_at || '',
+      updated_at: q.updated_at || null,
+      quote: q,
+    });
+  });
+
+  return results.sort(
+    (a, b) => (new Date(b.created_at).getTime() || 0) - (new Date(a.created_at).getTime() || 0)
+  );
+}
+
+/**
+ * Elimina un contratto in attesa di firma (match per id esatto o prefisso).
+ * Restituisce `true` se la quote è stata trovata ed eliminata.
+ */
+export function deletePendingContractLocal(quoteId: string): boolean {
+  const store = getStore();
+  const search = String(quoteId || '').trim().toLowerCase();
+  if (!search) return false;
+
+  let index = store.quotes.findIndex((q) => q && String(q.id).toLowerCase() === search);
+  if (index === -1) {
+    index = store.quotes.findIndex((q) => q && String(q.id).toLowerCase().startsWith(search));
+  }
+  if (index === -1) return false;
+
+  store.quotes.splice(index, 1);
+  saveStore(store);
+  return true;
 }
 
 

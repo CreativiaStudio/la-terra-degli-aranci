@@ -4,7 +4,8 @@ import { renderToStream } from "@react-pdf/renderer";
 import { ContractPdfTemplate } from "@/lib/pdf/ContractPdfTemplate";
 import { uploadPdfToR2, uploadJsonToR2 } from "@/lib/r2";
 import { getServiceSupabase } from "@/lib/supabase";
-import { updateQuoteStatusLocalByPrefix, saveSignedContractLocal, freezeInstallmentsLocalByPrefix } from "@/lib/localDb";
+import { updateQuoteStatusLocalByPrefix, saveSignedContractLocal, freezeInstallmentsLocalByPrefix, getFinalContractByQuoteLocal, getAllQuotesLocal } from "@/lib/localDb";
+import { generateSignature } from "@/lib/crypto";
 import path from "path";
 import fs from "fs";
 
@@ -31,7 +32,77 @@ const getBase64Image = (filePath: string) => {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    
+
+    // ------------------------------------------------------------------
+    // SICUREZZA ENDPOINT (S1 + S2) — PRIMA di qualsiasi effetto collaterale
+    // ------------------------------------------------------------------
+    const preventivo = String(body.preventivo || "");
+    const allQuotes = getAllQuotesLocal();
+    const matchingQuote = preventivo
+      ? allQuotes.find(q => String(q.id || "").toLowerCase().startsWith(preventivo.toLowerCase()))
+      : undefined;
+
+    // S1: un contratto definitivo (Fase 2) è già stato formalizzato per questo
+    // preventivo. Rigenerare il PDF Fase 1 lo sovrascriverebbe: blocchiamo.
+    if (preventivo && getFinalContractByQuoteLocal(preventivo)) {
+      return NextResponse.json(
+        { success: false, error: "Contratto definitivo già formalizzato per questo evento" },
+        { status: 409 }
+      );
+    }
+
+    // S2: firma HMAC del link. Con transizione morbida per le bozze preesistenti
+    // già aperte nel browser (prive di `sig`), ammesse solo se il prezzo coincide
+    // con quello del preventivo salvato in localDb.
+    const expectedSig = generateSignature(String(body.prezzo ?? ""), preventivo);
+    const providedSig = typeof body.sig === "string" ? body.sig : "";
+
+    if (providedSig) {
+      if (providedSig !== expectedSig) {
+        return NextResponse.json(
+          { success: false, error: "Firma di sicurezza non valida o manomessa" },
+          { status: 403 }
+        );
+      }
+    } else {
+      const bodyPrice = Number(body.prezzo);
+      const quotePrice = matchingQuote
+        ? Number(matchingQuote.prezzo ?? matchingQuote.totale ?? matchingQuote.totale_calcolato)
+        : NaN;
+      const priceMatches =
+        matchingQuote != null &&
+        Number.isFinite(bodyPrice) &&
+        Number.isFinite(quotePrice) &&
+        Math.abs(quotePrice - bodyPrice) < 0.005;
+
+      if (!priceMatches) {
+        return NextResponse.json(
+          { success: false, error: "Firma di sicurezza non valida o manomessa" },
+          { status: 403 }
+        );
+      }
+      console.warn(
+        "[generate-pdf] Firma `sig` assente: completamento consentito per bozza preesistente con prezzo coincidente.",
+        { preventivo, prezzo: bodyPrice }
+      );
+    }
+
+    // Art. 2-bis: recupera dal preventivo locale i metadati di concessione
+    // (tipo_esclusiva, spazi_riservati, turno) se non già presenti nel body.
+    if (!body.datiCliente) body.datiCliente = {};
+    if (matchingQuote) {
+      if (body.datiCliente.tipo_esclusiva == null) {
+        body.datiCliente.tipo_esclusiva = matchingQuote.tipo_esclusiva;
+      }
+      if (body.datiCliente.spazi_riservati == null) {
+        body.datiCliente.spazi_riservati =
+          matchingQuote.spazi_riservati ?? matchingQuote.spazi_selezionati;
+      }
+      if (body.datiCliente.turno == null) {
+        body.datiCliente.turno = matchingQuote.turno ?? matchingQuote.turno_evento;
+      }
+    }
+
     // BACKUP IMMEDIATO IN BACKGROUND: Salviamo il payload grezzo su R2 senza bloccare la generazione PDF
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const safeName = `${body.datiCliente?.nome || 'Anon'}-${body.datiCliente?.cognome || 'Anon'}`.replace(/\s+/g, '-');

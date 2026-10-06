@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 
 interface StatsProps {
   preventiviInviati: number;
@@ -62,7 +63,7 @@ export default function StatsOverview({ preventiviInviati, preventiviInAttesa, c
       </div>
 
       {/* 3. Contratti Inviati */}
-      <div style={cardStyle}>
+      <Link href="/admin/contratti" style={{ ...cardStyle, textDecoration: "none", cursor: "pointer", transition: "transform 0.15s ease", border: "1px solid #bfdbfe" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={labelStyle}>Contratti Inviati</span>
           <span style={{ fontSize: "1.4rem" }}>📄</span>
@@ -70,11 +71,11 @@ export default function StatsOverview({ preventiviInviati, preventiviInAttesa, c
         <div style={{ ...numberStyle, color: "#1c4f82" }}>
           {contrattiInviati}
         </div>
-        <small style={{ color: "#777", fontSize: "0.8rem" }}>Link contratti generati</small>
-      </div>
+        <small style={{ color: "#2563eb", fontSize: "0.8rem", fontWeight: 600 }}>Gestisci contratti →</small>
+      </Link>
 
       {/* 4. Contratti in Attesa */}
-      <div style={cardStyle}>
+      <Link href="/admin/contratti" style={{ ...cardStyle, textDecoration: "none", cursor: "pointer", transition: "transform 0.15s ease", border: "1px solid #fed7aa" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={labelStyle}>Contratti in Attesa</span>
           <span style={{ fontSize: "1.4rem" }}>⏳</span>
@@ -82,8 +83,8 @@ export default function StatsOverview({ preventiviInviati, preventiviInAttesa, c
         <div style={{ ...numberStyle, color: "#e58c2c" }}>
           {contrattiInAttesa}
         </div>
-        <small style={{ color: "#777", fontSize: "0.8rem" }}>In attesa di firma sposi</small>
-      </div>
+        <small style={{ color: "#ea580c", fontSize: "0.8rem", fontWeight: 600 }}>In attesa firma sposi →</small>
+      </Link>
 
     </div>
   );

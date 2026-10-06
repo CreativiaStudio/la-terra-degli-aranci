@@ -10,6 +10,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { href: "/admin", label: "Pannello Direzionale", icon: "📊" },
+    { href: "/admin/contratti", label: "Contratti Digitali (Rapidi)", icon: "✍️" },
     { href: "/admin/eventi-cassa", label: "Controllo Cassa & Eventi", icon: "💰" },
     { href: "/admin/simulatore", label: "Simulatore Fiscale & Eventi", icon: "🧮" },
     { href: "/admin/crm", label: "CRM", icon: "👥" },

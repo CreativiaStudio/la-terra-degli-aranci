@@ -47,3 +47,4 @@ test-*.mjs
 test-*.js
 verify_*.js
 verify_*.mjs
+*.backup*.json

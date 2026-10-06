@@ -1,5 +1,49 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/renderer';
+import { isoToItalian } from '@/lib/dateInput';
+import { formatFormulaConcessione } from '@/lib/contractMeta';
+import { SERVICES_CATALOG } from '@/lib/servicesCatalog';
+
+const decodeEntities = (value: string) =>
+  String(value || '').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+
+const formatEuroShort = (value: number) =>
+  `€ ${String(Math.round(value)).replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
+
+interface TariffarioGroup {
+  categoria: string;
+  voci: string[];
+}
+
+/** Riepilogo del Tariffario ufficiale: per ogni categoria, le voci con il prezzo di partenza. */
+const buildTariffarioGroups = (): TariffarioGroup[] => {
+  const byCategory = new Map<string, Map<string, { min: number; unit: string }>>();
+  SERVICES_CATALOG.forEach((item) => {
+    if (!item || item.categoria === 'Servizi ulteriori') return;
+    const categoria = decodeEntities(item.categoria);
+    const base = decodeEntities(item.titoloBase || item.nome.replace(/\s*\(.*\)\s*$/, ''));
+    if (!byCategory.has(categoria)) byCategory.set(categoria, new Map());
+    const voci = byCategory.get(categoria)!;
+    const price = Number(item.prezzo_unitario) || 0;
+    const current = voci.get(base);
+    if (!current) {
+      voci.set(base, { min: price, unit: item.unitaLabel || '' });
+    } else if (price > 0 && (current.min === 0 || price < current.min)) {
+      voci.set(base, { min: price, unit: item.unitaLabel || '' });
+    }
+  });
+
+  return Array.from(byCategory.entries()).map(([categoria, voci]) => ({
+    categoria,
+    voci: Array.from(voci.entries()).map(([nome, info]) =>
+      info.min > 0
+        ? `${nome} (da ${formatEuroShort(info.min)}${info.unit ? ` ${info.unit}` : ''})`
+        : `${nome} (su preventivo)`
+    ),
+  }));
+};
+
+const TARIFFARIO_GROUPS = buildTariffarioGroups();
 
 // Stili base
 const styles = StyleSheet.create({
@@ -18,6 +62,11 @@ const styles = StyleSheet.create({
   footer: { position: 'absolute', bottom: 30, left: 40, right: 40, borderTop: '2px solid #e27d3b', paddingTop: 10, flexDirection: 'row', justifyContent: 'space-between', fontSize: 8 },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   checkbox: { width: 10, height: 10, border: '1px solid #000', marginRight: 5, textAlign: 'center', fontSize: 8, lineHeight: 1 },
+  annexBanner: { borderTop: '2px solid #e58c2c', borderBottom: '1px solid #e58c2c', backgroundColor: '#faf8f5', paddingVertical: 10, paddingHorizontal: 12, marginBottom: 14 },
+  annexTitle: { fontSize: 12, fontFamily: 'Times-Bold', textAlign: 'center', color: '#1e1b18' },
+  annexSubtitle: { fontSize: 10, fontFamily: 'Times-Italic', textAlign: 'center', color: '#807261', marginTop: 4 },
+  annexGroup: { marginBottom: 8, paddingLeft: 8, borderLeft: '2px solid #e58c2c' },
+  annexCategory: { fontSize: 10, fontFamily: 'Times-Bold', color: '#1e1b18', marginBottom: 2 },
 });
 
 export const ContractPdfTemplate = ({ 
@@ -52,11 +101,81 @@ export const ContractPdfTemplate = ({
     } catch(e) {}
   }
   const isEn = lang === 'en';
+
+  // Anagrafica aziendale: attiva se il cliente è un'azienda o se è indicata una ragione sociale.
+  const isCompany = data.tipo_cliente === 'azienda' || Boolean(String(data.ragione_sociale || '').trim());
+  const companyDetails: string[] = [
+    `${isEn ? 'Company Name' : 'Ragione Sociale'}: ${String(data.ragione_sociale || '').trim() || '______________'}`,
+    ...(data.partita_iva ? [`${isEn ? 'VAT No.' : 'P.IVA'}: ${data.partita_iva}`] : []),
+    ...(data.codice_fiscale ? [`${isEn ? 'Tax Code' : 'C.F.'}: ${data.codice_fiscale}`] : []),
+    ...(data.sdi ? [`${isEn ? 'SDI Recipient Code' : 'Codice Destinatario SDI'}: ${data.sdi}`] : []),
+    ...(data.pec ? [`PEC: ${data.pec}`] : []),
+  ];
+  const residenzaCitta = data.citta_di_residenza || data.residenza || '';
+
+  // Art. 4-bis (Wedding): Tariffario (Allegato A) e Scheda di Conferma dei Servizi (Allegato B).
+  const servizi4bis: string[] = isEn
+    ? [
+        "The Client declares to have received and reviewed the document entitled “La Terra degli Aranci – Price list of wedding reception services”, attached to this agreement as an integral part thereof.",
+        "Signing the Price List does not entail the automatic booking of the additional services listed therein, which the Client may select at a later time, after signing this agreement.",
+        "The selected additional services shall be identified by means of a dedicated Service Confirmation Form, which shall list the requested services, their prices and any update to the total amount of the reception.",
+        "Once signed by the Client, by Santo Stefano S.r.l. and by Iovino Banqueting S.r.l., the Service Confirmation Form shall become an integral and substantial part of this agreement and a supplement thereto, without the need to enter into a new contract.",
+        "Only the services expressly selected and signed by the Client shall be due, in addition to those already provided for in this agreement.",
+      ]
+    : [
+        "Il Cliente dichiara di aver ricevuto e preso visione del documento denominato “La Terra degli Aranci – Tariffario dei servizi del ricevimento di matrimonio”, allegato al presente contratto quale parte integrante dello stesso.",
+        "La sottoscrizione del Tariffario non comporta l'automatica prenotazione dei servizi accessori ivi indicati, la cui eventuale scelta potrà essere effettuata dal Cliente successivamente alla sottoscrizione del presente contratto.",
+        "I servizi accessori prescelti saranno individuati mediante apposita Scheda di Conferma dei Servizi, nella quale saranno riportati i servizi richiesti, i relativi prezzi e l'eventuale aggiornamento dell'importo complessivo del ricevimento.",
+        "La Scheda di Conferma dei Servizi, una volta sottoscritta dal Cliente, da Santo Stefano S.r.l. e da Iovino Banqueting S.r.l., costituirà parte integrante e sostanziale del presente contratto e integrazione dello stesso, senza necessità di stipulare un nuovo contratto.",
+        "Saranno dovuti esclusivamente i servizi espressamente selezionati e sottoscritti dal Cliente, oltre a quelli già previsti nel presente contratto.",
+      ];
+
+  // Stessa disciplina per il contratto Eventi (Conduttore, Tariffario generale dei servizi).
+  const servizi4bisEventi: string[] = isEn
+    ? [
+        "The Lessee declares to have received and reviewed the document entitled “La Terra degli Aranci – Price list of services”, attached to this agreement as an integral part thereof.",
+        "Signing the Price List does not entail the automatic booking of the additional services listed therein, which the Lessee may select at a later time, after signing this agreement.",
+        "The selected additional services shall be identified by means of a dedicated Service Confirmation Form, which shall list the requested services, their prices and any update to the total amount of the event.",
+        "Once signed by the Lessee, by Santo Stefano S.r.l. and by Iovino Banqueting S.r.l., the Service Confirmation Form shall become an integral and substantial part of this agreement and a supplement thereto, without the need to enter into a new contract.",
+        "Only the services expressly selected and signed by the Lessee shall be due, in addition to those already provided for in this agreement.",
+      ]
+    : [
+        "Il Conduttore dichiara di aver ricevuto e preso visione del documento denominato “La Terra degli Aranci – Tariffario dei servizi”, allegato al presente contratto quale parte integrante dello stesso.",
+        "La sottoscrizione del Tariffario non comporta l'automatica prenotazione dei servizi accessori ivi indicati, la cui eventuale scelta potrà essere effettuata dal Conduttore successivamente alla sottoscrizione del presente contratto.",
+        "I servizi accessori prescelti saranno individuati mediante apposita Scheda di Conferma dei Servizi, nella quale saranno riportati i servizi richiesti, i relativi prezzi e l'eventuale aggiornamento dell'importo complessivo dell'evento.",
+        "La Scheda di Conferma dei Servizi, una volta sottoscritta dal Conduttore, da Santo Stefano S.r.l. e da Iovino Banqueting S.r.l., costituirà parte integrante e sostanziale del presente contratto e integrazione dello stesso, senza necessità di stipulare un nuovo contratto.",
+        "Saranno dovuti esclusivamente i servizi espressamente selezionati e sottoscritti dal Conduttore, oltre a quelli già previsti nel presente contratto.",
+      ];
   
   const dataMatrimonio = data.data_evento ? new Date(data.data_evento).toLocaleDateString('it-IT') : '';
-  const dataNascita = data.data_di_nascita ? new Date(data.data_di_nascita).toLocaleDateString('it-IT') : '';
+  // Doppia difesa anti-timezone-shift: parsing deterministico a stringa.
+  // Il campo può arrivare in ISO (yyyy-mm-dd) oppure già in formato italiano (gg/mm/aaaa).
+  const dataNascitaRaw = String(data.data_di_nascita || '').trim();
+  const dataNascita = /^\d{2}\/\d{2}\/\d{4}$/.test(dataNascitaRaw)
+    ? dataNascitaRaw
+    : isoToItalian(dataNascitaRaw);
   const orarioInizio = data.data_evento ? new Date(data.data_evento).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '';
   const todayDate = new Date().toLocaleDateString('it-IT');
+
+  // S4: prezzo reale concordato, formattato in euro.
+  const prezzoNum = Number(prezzo) || 0;
+  const prezzoFormattato = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(prezzoNum);
+
+  // Art. 2-bis: formula di concessione. La data è composta per via testuale,
+  // senza mai invocare new Date(), per garantire immunità dal timezone shift.
+  const dataEventoRaw = String(data.data_evento || '').trim();
+  const dataEventoFormula = dataEventoRaw
+    ? (/^\d{4}-\d{2}-\d{2}/.test(dataEventoRaw) ? isoToItalian(dataEventoRaw.slice(0, 10)) : dataEventoRaw)
+    : undefined;
+  const formulaConcessione = formatFormulaConcessione(
+    data.tipo_esclusiva || 'esclusiva',
+    {
+      data: dataEventoFormula,
+      turno: data.turno || 'pranzo',
+      spazi: data.spazi_riservati,
+    },
+    isEn ? 'en' : 'it'
+  );
 
   const Footer = () => (
     <View style={styles.footer} fixed>
@@ -103,21 +222,40 @@ export const ContractPdfTemplate = ({
         </Text>
         <Text style={[styles.paragraph, styles.bold, { textAlign: 'center' }]}>{isEn ? "AND" : "E"}</Text>
         
-        <View style={styles.paragraph}>
-          <Text style={styles.bold}>{isEn ? "And Mr./Ms. (or Company Name)" : "Ed il Sig. (opp. ragione sociale)"}</Text>
-          <Text>{data.nome} {data.cognome}</Text>
-          {data.ragione_sociale ? <Text>{isEn ? "Company Name:" : "Ragione sociale:"} {data.ragione_sociale}</Text> : null}
-          <Text>{isEn ? "born in" : "nato a"} {data.luogo_di_nascita}, {isEn ? "on" : "il"} {dataNascita}, {isEn ? "resident in" : "residente a"} {data.residenza}</Text>
-          <Text>{isEn ? "at street/square" : "in via/piazza"} {data.indirizzo}, n. {data.numero_civico}, {isEn ? "ZIP" : "CAP"} {data.cap}, {data.nazione}</Text>
-          <Text>{isEn ? "Tax Code" : "C.F."} {data.codice_fiscale}{data.partita_iva ? `, (${isEn ? "VAT" : "P.IVA"}) ${data.partita_iva}` : ''}</Text>
-          <Text>tel {data.telefono} mail {data.email}</Text>
-          <Text>{data.sdi ? `(SDI) ${data.sdi} ` : ''}{data.pec ? `(PEC) ${data.pec} ` : ''}{data.sdi || data.pec ? ', ' : ''}{isEn ? `hereinafter referred to as "${isWedding ? "Client" : "Lessee" }".` : `d'ora innanzi denominato "${isWedding ? "Cliente" : "Conduttore"}".`}</Text>
-          {isWedding ? (
-            <Text style={{ marginTop: 5, fontFamily: 'Times-Bold' }}>
-              {isEn ? "Who will marry" : "Che sposerà"} {data.sposera_nome} {data.sposera_cognome}
+        {isCompany ? (
+          <View style={styles.paragraph}>
+            <Text style={styles.bold}>{isEn ? "the company (Client)" : "la società (Cliente)"}</Text>
+            <Text style={{ marginTop: 3 }}>
+              {companyDetails.join(', ')}, {isEn ? "represented by its pro tempore legal representative" : "rappresentata dal legale rappresentante pro tempore"}{' '}
+              <Text style={styles.bold}>{data.nome} {data.cognome}</Text>
+              {isEn ? ", born in" : ", nato a"} {data.luogo_di_nascita}, {isEn ? "on" : "il"} {dataNascita}, {isEn ? "resident in" : "residente a"} {residenzaCitta}
+              {isEn ? ", at street/square" : ", in via/piazza"} {data.indirizzo}, n. {data.numero_civico}, {isEn ? "ZIP" : "CAP"} {data.cap}, {data.nazione}
+              .
             </Text>
-          ) : null}
-        </View>
+            <Text>tel {data.telefono} mail {data.email}</Text>
+            <Text>{isEn ? `hereinafter referred to as "${isWedding ? "Client" : "Lessee"}".` : `d'ora innanzi denominata "${isWedding ? "Cliente" : "Conduttore"}".`}</Text>
+            {isWedding && (data.sposera_nome || data.sposera_cognome) ? (
+              <Text style={{ marginTop: 5, fontFamily: 'Times-Bold' }}>
+                {isEn ? "Who will marry" : "Che sposerà"} {data.sposera_nome} {data.sposera_cognome}
+              </Text>
+            ) : null}
+          </View>
+        ) : (
+          <View style={styles.paragraph}>
+            <Text style={styles.bold}>{isEn ? "And Mr./Ms. (or Company Name)" : "Ed il Sig. (opp. ragione sociale)"}</Text>
+            <Text>{data.nome} {data.cognome}</Text>
+            <Text>{isEn ? "born in" : "nato a"} {data.luogo_di_nascita}, {isEn ? "on" : "il"} {dataNascita}, {isEn ? "resident in" : "residente a"} {residenzaCitta}</Text>
+            <Text>{isEn ? "at street/square" : "in via/piazza"} {data.indirizzo}, n. {data.numero_civico}, {isEn ? "ZIP" : "CAP"} {data.cap}, {data.nazione}</Text>
+            <Text>{isEn ? "Tax Code" : "C.F."} {data.codice_fiscale}{data.partita_iva ? `, (${isEn ? "VAT" : "P.IVA"}) ${data.partita_iva}` : ''}</Text>
+            <Text>tel {data.telefono} mail {data.email}</Text>
+            <Text>{isEn ? `hereinafter referred to as "${isWedding ? "Client" : "Lessee" }".` : `d'ora innanzi denominato "${isWedding ? "Cliente" : "Conduttore"}".`}</Text>
+            {isWedding ? (
+              <Text style={{ marginTop: 5, fontFamily: 'Times-Bold' }}>
+                {isEn ? "Who will marry" : "Che sposerà"} {data.sposera_nome} {data.sposera_cognome}
+              </Text>
+            ) : null}
+          </View>
+        )}
 
         {isWedding ? (
           <View>
@@ -140,6 +278,13 @@ export const ContractPdfTemplate = ({
               {isEn ? "The Client takes use of the complex named “La Terra degli Aranci”, owned by “Santo Stefano S.r.l.”, for the WEDDING RECEPTION, entrusting “Iovino Banqueting S.r.l. soc. unipersonale”, which accepts, the service contract for the preparation and supply of food and beverages and the care of set-ups." : "Il Cliente prende in uso il complesso denominato \"La Terra degli Aranci\", di proprietà della società \"Santo Stefano S.r.l.\", per il RICEVIMENTO DI MATRIMONIO, affidando alla società \"Iovino Banqueting S.r.l. soc. unipersonale\", che accetta, l'appalto di servizio di preparazione e somministrazione di alimenti e bevande e di cura degli allestimenti."}
             </Text>
 
+            <View wrap={false}>
+              <Text style={[styles.bold, {textAlign: 'center', marginBottom: 5, marginTop: 10}]}>{isEn ? "Art. 2-bis - Formula and granted spaces" : "Art. 2-bis — Formula e Spazi Concessi"}</Text>
+              <Text style={styles.paragraph}>
+                {formulaConcessione}
+              </Text>
+            </View>
+
             <Text style={[styles.bold, {textAlign: 'center', marginBottom: 5, marginTop: 10}]}>{isEn ? "Art. 3 - Duration" : "Art. 3 — Durata"}</Text>
             <Text style={styles.paragraph}>
               {isEn ? "The Client acknowledges and accepts that, on the booked day, the use of the facility and related reception services must not extend beyond 8:00 PM for an event starting by 2:00 PM and beyond midnight for an evening event. A maximum tolerance of one hour from the agreed time is allowed for the conclusion of the reception. The venue closes a maximum of two hours after the agreed time. Should the reception conclude beyond the tolerance period, a surcharge of €1,000.00 will be applied.\nIf the agreed menu includes an appetizer buffet, the Client acknowledges and accepts that it will open no later than two hours after the arrival of the first guests, even in the absence of the spouses. Any after-dinner party, to be held in Sala Tufo, is considered an additional service with a maximum closing time of 2:00 AM." : "Il Cliente prende atto e accetta che, nel giorno prenotato, l'orario di utilizzo della struttura e dei relativi servizi per il ricevimento non dovrà prolungarsi oltre le ore 20,00 per un evento iniziato entro le ore 14,00 ed oltre le ore 24,00 per un evento serale. Per la conclusione del ricevimento è prevista una tolleranza massima di un'ora dall'orario convenuto. La chiusura della location è prevista al massimo due ore dopo l'orario convenuto. Nel caso il ricevimento si concluda oltre l'orario di tolleranza sarà applicato un supplemento di €1.000,00.\nNel caso il menu concordato preveda il buffet di antipasti il Cliente prende atto e accetta che lo stesso si aprirà al più due ore dopo l'arrivo dei primi ospiti, quindi anche in assenza degli sposi. Un eventuale after dinner, da svolgersi in Sala Tufo, è considerato un servizio supplementare il cui orario massimo di chiusura è alle ore 2,00."}
@@ -149,6 +294,13 @@ export const ContractPdfTemplate = ({
             <Text style={styles.paragraph}>
               {isEn ? "The indicated deposits are paid as an earnest money deposit and will be deducted from the total agreed amount to be paid on the day of the reception. Either party may withdraw from this contract by notifying the other via registered letter with return receipt with at least 30 days' notice from the reception date. In case of withdrawal by the Client, “Santo Stefano S.r.l.” and “Iovino Banqueting S.r.l. soc. unipersonale” are not required to refund any amount; otherwise, they shall be jointly required to return double the deposit received. The final number of guests must be communicated and delivered to the office within 10 days of the event date. This contract may be registered in case of use." : "Gli acconti indicati vengono versati a titolo di caparra confirmatoria e saranno imputati in conto prezzo all’atto del saldo complessivo dell’importo convenuto che sarà versato il giorno del ricevimento. Ciascuna parte potrà recedere dal presente contratto dandone comunicazione all’altra con lettera raccomandata a/r con preavviso di almeno 30 giorni dalla data del ricevimento. In caso di recesso dal presente impegno da parte del Cliente, le società “Santo Stefano S.r.l.” e “Iovino Banqueting S.r.l. soc. unipersonale” non saranno tenute a rendere alcun importo; nel caso contrario, le società “Santo Stefano S.r.l.” e “Iovino Banqueting S.r.l. soc. unipersonale” saranno tenute, solidalmente, alla restituzione del doppio della caparra ricevuta. Il numero definitivo degli ospiti dovrà essere comunicato e consegnato in sede entro 10 gg dalla data dell’evento. Il presente contratto potrà essere registrato in caso di uso."}
             </Text>
+
+            <View>
+              <Text style={[styles.bold, {textAlign: 'center', marginBottom: 5, marginTop: 10}]} minPresenceAhead={60}>{isEn ? "Art. 4-bis - Additional services and subsequent supplements" : "Art. 4-bis — Servizi accessori e successive integrazioni"}</Text>
+              {servizi4bis.map((paragrafo, index) => (
+                <Text key={index} style={styles.paragraph}>{paragrafo}</Text>
+              ))}
+            </View>
 
             <View wrap={false}>
               <Text style={[styles.bold, {textAlign: 'center', marginBottom: 5, marginTop: 10}]}>{isEn ? "Art. 5 - Obligations of the parties" : "Art. 5 – Obblighi delle parti"}</Text>
@@ -232,11 +384,18 @@ export const ContractPdfTemplate = ({
               <Text style={styles.bold}>10.</Text> {isEn ? "In the event of catastrophic events such as epidemics, earthquakes, eruptions, or other natural events requiring the forced suspension of activity, the deposit paid for this contract remains valid for a new booking to be made within 12 months of reopening." : "In caso di eventi catastrofici quali epidemie, terremoti, eruzioni o altri eventi naturali, che implichino la sospensione forzata dell’attività, la caparra versata per la stipula del presente contratto si intende valida per una nuova prenotazione da effettuarsi entro i 12 mesi dalla riapertura dell’attività."}
             </Text>
 
+            <View>
+              <Text style={[styles.bold, { marginBottom: 4 }]} minPresenceAhead={60}>
+                11. {isEn ? "Additional services and subsequent supplements (Art. 4-bis)" : "Servizi accessori e successive integrazioni (Art. 4-bis)"}
+              </Text>
+              {servizi4bisEventi.map((paragrafo, index) => (
+                <Text key={index} style={styles.paragraph}>{paragrafo}</Text>
+              ))}
+            </View>
+
             <Text style={styles.paragraph}>
-              {isEn ? "Price agreed:" : "Prezzo: concordato:"}{'\n'}
-              - Sala Bianca e Giardino Mediterraneo: € + iva{'\n'}
-              - Sala Tufo e Giardino delle Promesse: € + iva{'\n'}{'\n'}
-              {isEn ? "First Deposit: €1.000,00 (One thousand/00) by bank transfer to Santo Stefano srl (Iban IT10D0303203410010000000169)." : "Primo Acconto: €1.000,00 (Mille/00) a mezzo bonifico alla Santo Stefano srl (Iban IT10D0303203410010000000169)."}
+              {isEn ? "Price agreed:" : "Prezzo concordato:"} {prezzoFormattato} + IVA{'\n'}{'\n'}
+              {isEn ? "First Deposit: €1.500,00 (One thousand five hundred/00) by bank transfer to Santo Stefano srl (Iban IT10D0303203410010000000169)." : "Primo Acconto (caparra confirmatoria): €1.500,00 (Millecinquecento/00) a mezzo bonifico alla Santo Stefano srl (Iban IT10D0303203410010000000169)."}
             </Text>
           </View>
         ) : <View />}
@@ -262,6 +421,49 @@ export const ContractPdfTemplate = ({
 
       </Page>
       
+      {/* ALLEGATO A — TARIFFARIO DEI SERVIZI (sola presa visione) */}
+      <Page size="A4" style={styles.page}>
+        <Header />
+        <Footer />
+        <View style={styles.annexBanner}>
+          <Text style={styles.annexTitle}>
+            {isEn
+              ? `ANNEX A – PRICE LIST OF SERVICES (Reviewed by the ${isWedding ? 'Client' : 'Lessee'})`
+              : `ALLEGATO A – TARIFFARIO DEI SERVIZI (Preso in visione dal ${isWedding ? 'Cliente' : 'Conduttore'})`}
+          </Text>
+          <Text style={styles.annexSubtitle}>
+            {isEn
+              ? `La Terra degli Aranci – Price list of ${isWedding ? 'wedding reception ' : ''}services`
+              : `La Terra degli Aranci – Tariffario dei servizi${isWedding ? ' del ricevimento di matrimonio' : ''}`}
+          </Text>
+        </View>
+
+        <Text style={[styles.paragraph, { fontSize: 10 }]}>
+          {isEn
+            ? "Summary of the official services available in addition to those already included in the agreement. Prices are official list prices, VAT excluded, and “from” indicates the starting price of each service. The signature of this Annex is for acknowledgement only and does not entail the booking of any service: the services chosen will be listed exclusively in the Service Confirmation Form (Art. 4-bis)."
+            : "Elenco riassuntivo dei servizi ufficiali disponibili in aggiunta a quanto già previsto dal contratto. I prezzi sono quelli del listino ufficiale, IVA esclusa, e “da” indica il prezzo di partenza di ciascun servizio. La sottoscrizione del presente Allegato avviene per sola presa visione e non comporta la prenotazione di alcun servizio: i servizi scelti saranno riportati esclusivamente nella Scheda di Conferma dei Servizi (Art. 4-bis)."}
+        </Text>
+
+        {TARIFFARIO_GROUPS.map((group) => (
+          <View key={group.categoria} style={styles.annexGroup} wrap={false}>
+            <Text style={styles.annexCategory}>{group.categoria}</Text>
+            <Text style={{ fontSize: 9, textAlign: 'justify' }}>{group.voci.join(' • ')}</Text>
+          </View>
+        ))}
+
+        <View wrap={false}>
+          <Text style={{ marginTop: 14, fontSize: 10 }}>{isEn ? "Date and place, Naples," : "Data e luogo, Napoli,"} {todayDate}</Text>
+          <View style={[styles.signatureSection, { justifyContent: 'flex-end' }]}>
+            <View style={styles.signatureBlock}>
+              <Text style={[styles.bold, { fontSize: 10 }]}>
+                {isEn ? `For acknowledgement – ${isWedding ? 'Client' : 'Lessee'}` : `Per presa visione – ${isWedding ? 'Cliente' : 'Conduttore'}`}
+              </Text>
+              {firmaContratto ? <Image src={firmaContratto} style={styles.signatureImage} /> : null}
+            </View>
+          </View>
+        </View>
+      </Page>
+
       {/* PAGINA PRIVACY E CONSENSI */}
       <Page size="A4" style={styles.page}>
         <Header />

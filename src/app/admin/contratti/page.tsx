@@ -1,7 +1,10 @@
 import { listPdfsInR2 } from "@/lib/r2";
-import LinkGenerator from "./LinkGenerator";
+import { getPendingContractsLocal } from "@/lib/localDb";
+import QuickContractPanel from "./QuickContractPanel";
+import PendingContractsList from "./PendingContractsList";
 import ContrattiClientList from "./ContrattiClientList";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export const revalidate = 0;
 
@@ -9,6 +12,8 @@ export default async function ContrattiDashboard() {
   let weddingPdfs: any[] = [];
   let eventiPdfs: any[] = [];
   let error = null;
+
+  const pendingContracts = getPendingContractsLocal();
 
   try {
     const [wedding, eventi] = await Promise.all([
@@ -29,8 +34,12 @@ export default async function ContrattiDashboard() {
         </Link>
       </div>
 
-      <LinkGenerator />
-      
+      <Suspense fallback={null}>
+        <QuickContractPanel />
+      </Suspense>
+
+      <PendingContractsList initialContracts={pendingContracts} />
+
       <div className="premium-card">
         <header style={{ marginBottom: "2rem", borderBottom: "1px solid var(--border-color)", paddingBottom: "1rem" }}>
           <h1 style={{ margin: 0, textAlign: "left" }}>Archivio Contratti Firmati</h1>

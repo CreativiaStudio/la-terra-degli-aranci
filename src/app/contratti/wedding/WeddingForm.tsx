@@ -1,11 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useSearchParams } from "next/navigation";
+import { useForm, Controller } from "react-hook-form";
 import SignaturePad from "@/components/SignaturePad";
+import DateTextInput from "@/components/DateTextInput";
+import FormulaBadge, { parseSpazi } from "@/components/FormulaBadge";
 
-export default function WeddingForm({ initialPrezzo, initialPreventivo }: { initialPrezzo: string, initialPreventivo: string, initialData?: any }) {
+export default function WeddingForm({ initialPrezzo, initialPreventivo, initialData, initialSig }: { initialPrezzo: string, initialPreventivo: string, initialData?: any, initialSig?: string }) {
   const [lang, setLang] = useState<"it" | "en">("it");
+  const searchParams = useSearchParams();
+  const sig = searchParams.get("sig") || initialSig || "";
+  const tipoEsclusiva = searchParams.get("tipo_esclusiva") || initialData?.tipo_esclusiva || "";
+  const spaziRiservati = parseSpazi(searchParams.getAll("spazi_riservati"), initialData?.spazi_riservati);
   const [firmaContratto, setFirmaContratto] = useState("");
   const [firmaClausole, setFirmaClausole] = useState("");
   
@@ -13,35 +20,35 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo }: { init
   const [isSuccess, setIsSuccess] = useState(false);
   const [customError, setCustomError] = useState("");
 
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, reset, control, formState: { errors } } = useForm({
     defaultValues: {
-      tipo_cliente: "privato",
+      tipo_cliente: initialData?.tipo_cliente === "azienda" ? "azienda" : "privato",
       nazione: "Italia",
-      nome: "",
-      cognome: "",
-      ragione_sociale: "",
+      nome: initialData?.nome || "",
+      cognome: initialData?.cognome || "",
+      ragione_sociale: initialData?.ragione_sociale || "",
       luogo_di_nascita: "",
       data_di_nascita: "",
       citta_di_residenza: "",
       indirizzo: "",
       numero_civico: "",
       cap: "",
-      codice_fiscale: "",
-      partita_iva: "",
-      sdi: "",
-      telefono: "",
-      email: "",
-      pec: "",
-      sposera_nome: "",
-      sposera_cognome: "",
-      data_evento: "",
+      codice_fiscale: initialData?.codice_fiscale || "",
+      partita_iva: initialData?.partita_iva || "",
+      sdi: initialData?.sdi || "",
+      telefono: initialData?.telefono || "",
+      email: initialData?.email || "",
+      pec: initialData?.pec || "",
+      sposera_nome: initialData?.sposera_nome || "",
+      sposera_cognome: initialData?.sposera_cognome || "",
+      data_evento: initialData?.data_evento || "",
       accetto: false,
       comunicazione_terzi: false,
       marketing: "NO",
-      mezzo_anticipo: "Bonifico Bancario",
-      data_anticipo: "",
-      mezzo_saldo: "Bonifico Bancario",
-      data_saldo: ""
+      mezzo_anticipo: initialData?.mezzo_anticipo || "Bonifico Bancario",
+      data_anticipo: initialData?.data_anticipo || "",
+      mezzo_saldo: initialData?.mezzo_saldo || "Bonifico Bancario",
+      data_saldo: initialData?.data_saldo || ""
     }
   });
 
@@ -49,20 +56,65 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo }: { init
   const nazione = watch("nazione");
   const formValues = watch();
 
-  // Recupera bozza salvata al caricamento
+  // Recupera bozza salvata al caricamento con priorità ai dati concordati da preventivo/admin
   useEffect(() => {
     const savedDraft = localStorage.getItem("draft_wedding_form");
     if (savedDraft) {
       try {
         const parsed = JSON.parse(savedDraft);
-        reset(parsed.form);
+        const merged = {
+          ...parsed.form,
+          ...(initialData?.tipo_cliente === "azienda" ? { tipo_cliente: "azienda", ragione_sociale: initialData.ragione_sociale || "", partita_iva: initialData.partita_iva || "", sdi: initialData.sdi || "", pec: initialData.pec || "" } : {}),
+          ...(initialData?.nome ? { nome: initialData.nome } : {}),
+          ...(initialData?.cognome ? { cognome: initialData.cognome } : {}),
+          ...(initialData?.email ? { email: initialData.email } : {}),
+          ...(initialData?.telefono ? { telefono: initialData.telefono } : {}),
+          ...(initialData?.sposera_nome ? { sposera_nome: initialData.sposera_nome } : {}),
+          ...(initialData?.sposera_cognome ? { sposera_cognome: initialData.sposera_cognome } : {}),
+          ...(initialData?.data_evento ? { data_evento: initialData.data_evento } : {}),
+          ...(initialData?.data_anticipo ? { data_anticipo: initialData.data_anticipo } : {}),
+          ...(initialData?.data_saldo ? { data_saldo: initialData.data_saldo } : {}),
+          mezzo_anticipo: "Bonifico Bancario",
+          mezzo_saldo: "Bonifico Bancario"
+        };
+        reset(merged);
         if (parsed.firmaContratto) setFirmaContratto(parsed.firmaContratto);
         if (parsed.firmaClausole) setFirmaClausole(parsed.firmaClausole);
       } catch(e) {
         console.error("Errore nel recupero bozza", e);
       }
+    } else if (initialData) {
+      reset({
+        tipo_cliente: initialData.tipo_cliente === "azienda" ? "azienda" : "privato",
+        nazione: "Italia",
+        nome: initialData.nome || "",
+        cognome: initialData.cognome || "",
+        ragione_sociale: initialData.ragione_sociale || "",
+        luogo_di_nascita: "",
+        data_di_nascita: "",
+        citta_di_residenza: "",
+        indirizzo: "",
+        numero_civico: "",
+        cap: "",
+        codice_fiscale: initialData.codice_fiscale || "",
+        partita_iva: initialData.partita_iva || "",
+        sdi: initialData.sdi || "",
+        telefono: initialData.telefono || "",
+        email: initialData.email || "",
+        pec: initialData.pec || "",
+        sposera_nome: initialData.sposera_nome || "",
+        sposera_cognome: initialData.sposera_cognome || "",
+        data_evento: initialData.data_evento || "",
+        accetto: false,
+        comunicazione_terzi: false,
+        marketing: "NO",
+        mezzo_anticipo: initialData.mezzo_anticipo || "Bonifico Bancario",
+        data_anticipo: initialData.data_anticipo || "",
+        mezzo_saldo: initialData.mezzo_saldo || "Bonifico Bancario",
+        data_saldo: initialData.data_saldo || ""
+      });
     }
-  }, [reset]);
+  }, [initialData, reset]);
 
   // Salva bozza ad ogni modifica
   useEffect(() => {
@@ -292,6 +344,7 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo }: { init
       lingua: lang,
       preventivo: initialPreventivo,
       prezzo: initialPrezzo,
+      sig,
       datiCliente: {
         ...data,
         giorno_ed_ora_evento: data.data_evento,
@@ -385,7 +438,9 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo }: { init
       </div>
 
       <h1>{t.title}</h1>
-      <p style={{ textAlign: "center", marginBottom: "2rem" }}>{t.sub}</p>
+      <p style={{ textAlign: "center", marginBottom: "1.5rem" }}>{t.sub}</p>
+
+      <FormulaBadge tipoEsclusiva={tipoEsclusiva} spaziRiservati={spaziRiservati} lang={lang} />
 
       <div style={{ background: "#f9f9f9", padding: "1.5rem", borderRadius: "8px", marginBottom: "2rem", border: "1px solid var(--border-color)" }}>
         <h2 style={{ marginTop: 0 }}>{t.riepilogo}</h2>
@@ -461,10 +516,19 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo }: { init
             <label>{t.f_luogo_nascita}</label>
             <input type="text" {...register("luogo_di_nascita", { required: true })} />
           </div>
-          <div className="form-group">
-            <label>{t.f_data_nascita}</label>
-            <input type="date" {...register("data_di_nascita", { required: true })} />
-          </div>
+          <Controller
+            name="data_di_nascita"
+            control={control}
+            rules={{ required: true }}
+            render={({ field }) => (
+              <DateTextInput
+                label={t.f_data_nascita}
+                value={field.value}
+                onChange={field.onChange}
+                required
+              />
+            )}
+          />
 
           <div className="form-group">
             <label>{t.f_nazione}</label>
@@ -530,29 +594,58 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo }: { init
 
           <div className="form-group full" style={{ marginTop: "1rem", borderTop: "1px solid var(--border-color)", paddingTop: "1rem" }}>
             <label>{t.f_data}</label>
-            <input type="datetime-local" {...register("data_evento", { required: true })} />
+            <input 
+              type="datetime-local" 
+              {...register("data_evento", { required: true })} 
+              readOnly 
+              style={{ background: "#f8f9fa", border: "1.5px solid #d1d5db", cursor: "not-allowed", color: "#374151", fontWeight: 600 }} 
+            />
+            <small style={{ color: "#6b7280", marginTop: "0.25rem", display: "block" }}>🔒 Data e orario evento concordati con la direzione (non modificabili)</small>
           </div>
 
           <div className="form-group full" style={{ marginTop: "1rem", borderTop: "1px solid var(--border-color)", paddingTop: "1rem" }}>
             <h3>{t.f_pagamenti_tit}</h3>
+            <small style={{ color: "#8a6a2f", fontWeight: 600 }}>Patti economici e scadenze concordate con la direzione de La Terra degli Aranci</small>
           </div>
           
           <div className="form-group">
             <label>{t.f_mezzo_anticipo}</label>
-            <input type="text" {...register("mezzo_anticipo", { required: true })} />
+            <input 
+              type="text" 
+              {...register("mezzo_anticipo", { required: true })} 
+              readOnly 
+              style={{ background: "#f8f9fa", border: "1.5px solid #d1d5db", cursor: "not-allowed", color: "#374151" }} 
+            />
           </div>
           <div className="form-group">
             <label>{t.f_data_anticipo}</label>
-            <input type="date" {...register("data_anticipo", { required: true })} />
+            <input 
+              type="date" 
+              {...register("data_anticipo", { required: true })} 
+              readOnly 
+              style={{ background: "#f8f9fa", border: "1.5px solid #d1d5db", cursor: "not-allowed", color: "#374151", fontWeight: 600 }} 
+            />
+            <small style={{ color: "#6b7280", marginTop: "0.25rem", display: "block" }}>🔒 Alla firma del contratto (caparra confirmatoria)</small>
           </div>
 
           <div className="form-group">
             <label>{t.f_mezzo_saldo}</label>
-            <input type="text" {...register("mezzo_saldo", { required: true })} />
+            <input 
+              type="text" 
+              {...register("mezzo_saldo", { required: true })} 
+              readOnly 
+              style={{ background: "#f8f9fa", border: "1.5px solid #d1d5db", cursor: "not-allowed", color: "#374151" }} 
+            />
           </div>
           <div className="form-group">
             <label>{t.f_data_saldo}</label>
-            <input type="date" {...register("data_saldo", { required: true })} />
+            <input 
+              type="date" 
+              {...register("data_saldo", { required: true })} 
+              readOnly 
+              style={{ background: "#f8f9fa", border: "1.5px solid #d1d5db", cursor: "not-allowed", color: "#374151", fontWeight: 600 }} 
+            />
+            <small style={{ color: "#6b7280", marginTop: "0.25rem", display: "block" }}>🔒 All'evento (saldo canone location)</small>
           </div>
         </div>
 

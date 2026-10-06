@@ -18,14 +18,25 @@ export default function EnterpriseDashboardClient({ quotes, signedPdfs = [] }: E
   
   // Contratti in Attesa: contratti per cui è stato generato/inviato il link ma non sono ancora stati firmati dagli sposi
   const contrattiInAttesa = quotes.filter(q => {
-    if (q.status !== 'convertito' && q.status !== 'accettato') return false;
+    if (q.status === 'firmato') return false;
+
+    // Verifica se esiste già un PDF firmato in Cloudflare R2 per questo cliente
     const nomeRaw = (q.clients?.nome || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const cognomeRaw = (q.clients?.cognome || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const isSigned = signedPdfs.some(pdf => {
       const keyLower = pdf.key.toLowerCase().replace(/[^a-z0-9]/g, '');
       return (nomeRaw && keyLower.includes(nomeRaw)) || (cognomeRaw && keyLower.includes(cognomeRaw));
     });
-    return !isSigned && q.status !== 'firmato';
+    if (isSigned) return false;
+
+    // È in attesa di firma se è un contratto/accordo diretto non ancora firmato
+    return (
+      q.status === 'convertito' ||
+      q.canale_contratto === 'accordo_diretto' ||
+      q.fase_contratto === 'accordo_diretto' ||
+      q.source === 'admin_rapido' ||
+      (q.status === 'inviato' && q.opzione?.attiva)
+    );
   }).length;
 
   // Schede Visita compilate dal tablet segreteria durante il tour location
@@ -59,21 +70,62 @@ export default function EnterpriseDashboardClient({ quotes, signedPdfs = [] }: E
           <div style={{ background: "#ffffff", padding: "0.6rem 1.2rem", borderRadius: "20px", border: "1px solid #e0ddd9", fontSize: "0.85rem", fontWeight: "600", color: "#514d48" }}>
             🟢 Sistema Online & Sincronizzato con Cloudflare R2
           </div>
-          <Link
-            href="/admin/articoli"
-            style={{
-              fontSize: "0.8rem",
-              color: "#166534",
-              textDecoration: "none",
-              background: "#f0fdf4",
-              border: "1px solid #bbf7d0",
-              padding: "0.3rem 0.8rem",
-              borderRadius: "14px",
-              fontWeight: 600,
-            }}
-          >
-            ✍️ Approvazione Blog WP (1-Click) →
-          </Link>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <Link
+              href="/admin/calendario"
+              style={{
+                fontSize: "0.85rem",
+                color: "#1e1b18",
+                textDecoration: "none",
+                background: "#faf7f2",
+                border: "1.5px solid #c9a24b",
+                boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+                padding: "0.45rem 1rem",
+                borderRadius: "14px",
+                fontWeight: 700,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.4rem"
+              }}
+            >
+              <span>📅</span> Calendario & Opzioni 7gg →
+            </Link>
+            <Link
+              href="/admin/contratti"
+              style={{
+                fontSize: "0.85rem",
+                color: "#ffffff",
+                textDecoration: "none",
+                background: "linear-gradient(135deg, #e58c2c 0%, #c9791f 100%)",
+                boxShadow: "0 4px 12px rgba(229,140,44,0.3)",
+                padding: "0.45rem 1rem",
+                borderRadius: "14px",
+                fontWeight: 700,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.4rem"
+              }}
+            >
+              <span>⚡</span> Genera Contratto Rapido (2-Click) →
+            </Link>
+            <Link
+              href="/admin/articoli"
+              style={{
+                fontSize: "0.8rem",
+                color: "#166534",
+                textDecoration: "none",
+                background: "#f0fdf4",
+                border: "1px solid #bbf7d0",
+                padding: "0.45rem 0.8rem",
+                borderRadius: "14px",
+                fontWeight: 600,
+                display: "inline-flex",
+                alignItems: "center"
+              }}
+            >
+              ✍️ Approvazione Blog WP (1-Click) →
+            </Link>
+          </div>
         </div>
       </div>
 
