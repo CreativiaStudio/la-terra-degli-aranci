@@ -1,89 +1,188 @@
 {
   "clients": [
     {
+      "id": "client-demo1",
+      "nome": "Valerio",
+      "cognome": "De Simone",
+      "sposera_nome": "Laura",
+      "sposera_cognome": "Conti",
+      "email": "valerio.desimone@gmail.com",
+      "telefono": "+39 347 1122334",
+      "codice_fiscale": "DSMVLR90A01F839K",
+      "provenienza": "Napoli (Posillipo)",
+      "created_at": "2026-07-23T07:06:08.106Z"
+    },
+    {
+      "id": "client-demo3",
+      "nome": "Studio Notarile Avv. Vincenzo",
+      "cognome": "Ferrara",
+      "email": "studio.ferrara@notariato.it",
+      "telefono": "+39 081 7654321",
+      "codice_fiscale": "FRRVNC75B12F839Z",
+      "provenienza": "Napoli Centro",
+      "tipo_cliente": "azienda",
+      "ragione_sociale": "Studio Notarile Avv. Vincenzo Ferrara",
+      "created_at": "2026-07-23T07:06:08.106Z"
+    },
+    {
+      "id": "client-demo4",
+      "nome": "Dott. Gianluigi",
+      "cognome": "Coppola",
+      "sposera_nome": "Marika",
+      "sposera_cognome": "Russo",
+      "email": "gianluigi.coppola@sanita.it",
+      "telefono": "+39 335 8899001",
+      "codice_fiscale": "CPPGNL88C15F839T",
+      "provenienza": "Napoli (Vomero)",
+      "note": "Cliente storico VIP Club TDA con 2 eventi firmati (2023 e 2025).",
+      "created_at": "2022-10-10T00:00:00.000Z"
+    },
+    {
       "id": "0a462b53-e984-4902-9562-e9d0dd776af8",
       "nome": "Mario",
       "cognome": "Pepe",
-      "email": "mariopepe9@hotmail.it",
-      "telefono": "366353837",
       "sposera_nome": "Elena",
       "sposera_cognome": "Dumea",
+      "email": "mariopepe9@hotmail.it",
+      "telefono": "366353837",
+      "codice_fiscale": "PPEMRA89T15F839X",
       "provenienza": "Admin Rapido",
       "created_at": "2026-10-02T12:24:12.776Z"
     },
     {
-      "id": "32846d51-23a5-4807-9f6b-bc5ab3cde172",
-      "nome": "<script>alert('XSS')</script>",
-      "cognome": "O'Connor'; DROP TABLE quotes; --",
-      "email": "safe_user+test@domain.co.uk",
-      "telefono": "+39 081/714.22.33 #ext 12",
-      "provenienza": "Unicode: 🍊🍋🍾💎",
-      "created_at": "2026-09-05T09:39:33.688Z"
+      "id": "b82a0f22-dd90-4c73-ac66-ddf212f17a7c",
+      "nome": "Marco",
+      "cognome": "Esposito",
+      "sposera_nome": "Sofia",
+      "sposera_cognome": "De Luca",
+      "email": "marco.esposito@gmail.com",
+      "telefono": "+39 347 8891234",
+      "codice_fiscale": "CFF340737D-B2D6-",
+      "provenienza": "Napoli",
+      "created_at": "2026-09-01T10:00:00.000Z"
     },
     {
-      "id": "c4e33a75-4315-476b-972c-c56095538f4b",
-      "nome": "<script>alert('XSS')</script>",
-      "cognome": "O'Connor'; DROP TABLE quotes; --",
-      "email": "safe_user+test@domain.co.uk",
-      "telefono": "+39 081/714.22.33 #ext 12",
-      "provenienza": "Unicode: 🍊🍋🍾💎",
-      "created_at": "2026-09-05T09:39:53.046Z"
+      "id": "6db3038f-140d-40a4-b7de-e1dd06590dd2",
+      "nome": "Lorenzo",
+      "cognome": "Romano",
+      "sposera_nome": "Camilla",
+      "sposera_cognome": "Ferrara",
+      "email": "lorenzo.romano@libero.it",
+      "telefono": "+39 338 7654321",
+      "codice_fiscale": "CFAA29E8A7-B79B-",
+      "provenienza": "Napoli",
+      "created_at": "2026-09-01T10:00:00.000Z"
     },
     {
-      "id": "ed5ac05a-30a9-45f5-b49b-b64c8b424b63",
-      "nome": "<script>alert('XSS')</script>",
-      "cognome": "O'Connor'; DROP TABLE quotes; --",
-      "email": "safe_user+test@domain.co.uk",
-      "telefono": "+39 081/714.22.33 #ext 12",
-      "provenienza": "Unicode: 🍊🍋🍾💎",
-      "created_at": "2026-09-05T09:40:06.649Z"
+      "id": "63f10172-4163-42c4-97b4-71c7f3ad27bf",
+      "nome": "Antonio",
+      "cognome": "De Rosa",
+      "sposera_nome": "Chiara",
+      "sposera_cognome": "Russo",
+      "email": "antonio.derosa@outlook.it",
+      "telefono": "+39 335 4433221",
+      "codice_fiscale": "CF21E47337-6AE8-",
+      "provenienza": "Napoli",
+      "created_at": "2026-09-01T10:00:00.000Z"
+    },
+    {
+      "id": "41d73a9f-8f47-4e41-9c77-20b1e7fc2588",
+      "nome": "Dott.ssa Giulia",
+      "cognome": "De Angelis",
+      "sposera_nome": "",
+      "sposera_cognome": "",
+      "email": "giulia.deangelis@gmail.com",
+      "telefono": "+39 349 9871122",
+      "codice_fiscale": "CFACE47C98-6156-",
+      "provenienza": "Napoli",
+      "created_at": "2026-09-01T10:00:00.000Z"
+    },
+    {
+      "id": "2ded73a5-1324-4717-a737-757a148b1a08",
+      "nome": "Davide",
+      "cognome": "Rinaldi",
+      "sposera_nome": "Elena",
+      "sposera_cognome": "Sorrentino",
+      "email": "davide.rinaldi@gmail.com",
+      "telefono": "+39 333 1122334",
+      "codice_fiscale": "CF8C03AC08-F8A3-",
+      "provenienza": "Napoli",
+      "created_at": "2026-09-01T10:00:00.000Z"
+    },
+    {
+      "id": "598f7982-f962-4f06-b695-9bbd061d4841",
+      "nome": "Gennaro",
+      "cognome": "Marino",
+      "sposera_nome": "Federica",
+      "sposera_cognome": "Vitale",
+      "email": "gennaro.marino@alice.it",
+      "telefono": "+39 340 5566778",
+      "codice_fiscale": "CF397A5DF1-B3DE-",
+      "provenienza": "Napoli",
+      "created_at": "2026-09-01T10:00:00.000Z"
+    },
+    {
+      "id": "b9bd8689-66fe-4a60-b631-d5c0f555b8c7",
+      "nome": "Roberto",
+      "cognome": "D'Amico",
+      "sposera_nome": "Beatrice",
+      "sposera_cognome": "Mancini",
+      "email": "roberto.damico@yahoo.it",
+      "telefono": "+39 348 2233445",
+      "codice_fiscale": "CFCE0D5C01-F480-",
+      "provenienza": "Napoli",
+      "created_at": "2026-09-01T10:00:00.000Z"
+    },
+    {
+      "id": "898f4b99-c39a-493b-96a6-4a833e674609",
+      "nome": "Fabio",
+      "cognome": "Caruso",
+      "sposera_nome": "Noemi",
+      "sposera_cognome": "Barone",
+      "email": "fabio.caruso@gmail.com",
+      "telefono": "+39 331 9988776",
+      "codice_fiscale": "CF6E5A940C-1752-",
+      "provenienza": "Napoli",
+      "created_at": "2026-09-01T10:00:00.000Z"
+    },
+    {
+      "id": "1f04f52a-41e3-413f-ac18-f16bed9ecd5e",
+      "nome": "Claudio",
+      "cognome": "Ferri",
+      "sposera_nome": "Simona",
+      "sposera_cognome": "Marchetti",
+      "email": "claudio.ferri@virgilio.it",
+      "telefono": "+39 345 6677889",
+      "codice_fiscale": "CFCF3AFB9B-C76B-",
+      "provenienza": "Napoli",
+      "created_at": "2026-09-01T10:00:00.000Z"
+    },
+    {
+      "id": "82dba888-c9cb-4979-9532-e26b0363ef8a",
+      "nome": "Edoardo",
+      "cognome": "Gallo",
+      "sposera_nome": "Giorgia",
+      "sposera_cognome": "Castaldi",
+      "email": "edoardo.gallo@gmail.com",
+      "telefono": "+39 339 3344556",
+      "codice_fiscale": "CFE2EDCF4E-A73D-",
+      "provenienza": "Napoli",
+      "created_at": "2026-09-01T10:00:00.000Z"
+    },
+    {
+      "id": "2351289a-1901-4556-9dea-f6afa03dc829",
+      "nome": "Federico",
+      "cognome": "Testa",
+      "sposera_nome": "Ludovica",
+      "sposera_cognome": "Leone",
+      "email": "federico.testa@hotmail.it",
+      "telefono": "+39 346 7788990",
+      "codice_fiscale": "CFAE3706F6-5FFA-",
+      "provenienza": "Napoli",
+      "created_at": "2026-09-01T10:00:00.000Z"
     }
   ],
   "quotes": [
-    {
-      "id": "a24bd21b-e442-49c0-b660-188b60b7accc",
-      "client_id": "a94c8673-8d9d-41e1-b21e-856bfdb2a802",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-01-22",
-      "numero_ospiti": 70,
-      "items": [
-        {
-          "id": 1784755532624,
-          "descrizione": "Affitto Villa in Esclusiva & Menu Wedding Base",
-          "quantita": 1,
-          "prezzo_unitario": 14000
-        },
-        {
-          "id": 1784755576565,
-          "descrizione": "After Party con DJ Set & Service Audio/Luci in Sala Tufo",
-          "quantita": 1,
-          "prezzo_unitario": 750
-        },
-        {
-          "id": 1784755581073,
-          "descrizione": "Cocktail Bar Dopocena con Barmen Qualificati",
-          "quantita": 1,
-          "prezzo_unitario": 840
-        },
-        {
-          "id": "1785255631334-0.785849819071623",
-          "descrizione": "Uso Riservato Sala del Camino per Preparazione Sposa",
-          "quantita": 1,
-          "prezzo_unitario": 350
-        },
-        {
-          "id": "1785255641692-0.5498328129604655",
-          "descrizione": "Cocktail Bar Dopocena con Barmen Qualificati",
-          "quantita": 1,
-          "prezzo_unitario": 840
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 16780,
-      "status": "firmato",
-      "created_at": "2026-07-22T21:26:40.057Z",
-      "updated_at": "2026-07-28T17:59:54.077Z"
-    },
     {
       "id": "quote-demo1",
       "client_id": "client-demo1",
@@ -92,7 +191,23 @@
       "status": "convertito",
       "totale_calcolato": 18000,
       "created_at": "2026-07-23T07:06:08.106Z",
-      "updated_at": "2026-09-17T19:43:26.935Z"
+      "updated_at": "2026-09-17T19:43:26.935Z",
+      "clients": {
+        "id": "client-demo1",
+        "nome": "Valerio",
+        "cognome": "De Simone",
+        "sposera_nome": "Laura",
+        "sposera_cognome": "Conti",
+        "email": "valerio.desimone@gmail.com",
+        "telefono": "+39 347 1122334",
+        "codice_fiscale": "DSMVLR90A01F839K",
+        "provenienza": "Napoli (Posillipo)",
+        "created_at": "2026-07-23T07:06:08.106Z"
+      },
+      "turno": "cena",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "numero_ospiti": 120
     },
     {
       "id": "quote-demo3",
@@ -122,7 +237,19 @@
           "prezzo_unitario": 500
         }
       ],
-      "updated_at": "2026-07-28T14:49:13.354Z"
+      "updated_at": "2026-07-28T14:49:13.354Z",
+      "clients": {
+        "id": "client-demo3",
+        "nome": "Studio Notarile Avv. Vincenzo",
+        "cognome": "Ferrara",
+        "email": "studio.ferrara@notariato.it",
+        "telefono": "+39 081 7654321",
+        "codice_fiscale": "FRRVNC75B12F839Z",
+        "provenienza": "Napoli Centro",
+        "tipo_cliente": "azienda",
+        "ragione_sociale": "Studio Notarile Avv. Vincenzo Ferrara",
+        "created_at": "2026-07-23T07:06:08.106Z"
+      }
     },
     {
       "id": "quote-demo4-old",
@@ -131,7 +258,20 @@
       "data_evento": "2023-05-20",
       "status": "firmato",
       "totale_calcolato": 15000,
-      "created_at": "2022-10-10T00:00:00.000Z"
+      "created_at": "2022-10-10T00:00:00.000Z",
+      "clients": {
+        "id": "client-demo4",
+        "nome": "Dott. Gianluigi",
+        "cognome": "Coppola",
+        "sposera_nome": "Marika",
+        "sposera_cognome": "Russo",
+        "email": "gianluigi.coppola@sanita.it",
+        "telefono": "+39 335 8899001",
+        "codice_fiscale": "CPPGNL88C15F839T",
+        "provenienza": "Napoli (Vomero)",
+        "note": "Cliente storico VIP Club TDA con 2 eventi firmati (2023 e 2025).",
+        "created_at": "2022-10-10T00:00:00.000Z"
+      }
     },
     {
       "id": "quote-demo4-new",
@@ -140,1033 +280,784 @@
       "data_evento": "2025-04-10",
       "status": "firmato",
       "totale_calcolato": 4000,
-      "created_at": "2026-07-23T07:06:08.106Z"
+      "created_at": "2026-07-23T07:06:08.106Z",
+      "clients": {
+        "id": "client-demo4",
+        "nome": "Dott. Gianluigi",
+        "cognome": "Coppola",
+        "sposera_nome": "Marika",
+        "sposera_cognome": "Russo",
+        "email": "gianluigi.coppola@sanita.it",
+        "telefono": "+39 335 8899001",
+        "codice_fiscale": "CPPGNL88C15F839T",
+        "provenienza": "Napoli (Vomero)",
+        "note": "Cliente storico VIP Club TDA con 2 eventi firmati (2023 e 2025).",
+        "created_at": "2022-10-10T00:00:00.000Z"
+      }
     },
     {
-      "id": "ae629c9d-8a6f-4dae-90ef-2b33d6851111",
-      "client_id": "40f4b151-34a9-4c2b-ac6e-2151b9a49510",
+      "id": "2ea7faa3-ef17-4d28-b067-6b33a1f12e80",
+      "client_id": "b82a0f22-dd90-4c73-ac66-ddf212f17a7c",
       "tipo_evento": "wedding",
-      "data_evento": null,
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric01",
-          "code": "RIC01",
-          "nome": "Matrimonio adulti",
-          "quantita": 100,
-          "prezzo_unitario": 140
-        }
+      "data_evento": "2027-07-03",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Sala Tufo",
+        "Sala Bianca",
+        "Terrazza Panoramica"
       ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 14000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:02:37.391Z",
-      "updated_at": "2026-08-28T09:02:37.391Z"
-    },
-    {
-      "id": "54ffa085-e8d4-4863-8aa3-ed5136f4237c",
-      "client_id": "a65c966b-bf0a-41a0-b103-aaec38c81849",
-      "tipo_evento": "wedding",
-      "data_evento": null,
-      "numero_ospiti": 100,
+      "numero_ospiti": 140,
+      "canale_contratto": "accordo_diretto",
+      "fase_contratto": "accordo_diretto",
+      "source": "admin_rapido",
       "items": [
         {
-          "id": "ric01",
-          "code": "RIC01",
-          "nome": "Matrimonio adulti",
-          "quantita": 100,
-          "prezzo_unitario": 140
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 14000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:02:48.991Z",
-      "updated_at": "2026-08-28T09:02:48.991Z"
-    },
-    {
-      "id": "eb8fc68e-11b6-498d-b9ab-2b5b6bd18a87",
-      "client_id": "3bb4354b-7a70-470d-bf73-52bb4ec5e6f1",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-09-25",
-      "numero_ospiti": 110,
-      "items": [
-        {
-          "id": "ric02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo": 130,
-          "qty": 110
+          "id": 1791407508312,
+          "descrizione": "Canone Concessione Villa (Esclusiva)",
+          "quantita": 1,
+          "prezzo_unitario": 4500,
+          "splitKey": "ss100",
+          "totale": 4500
         },
         {
-          "id": "ext04",
-          "nome": "Parcheggio",
-          "prezzo": 300,
-          "qty": 1
+          "id": 1791407508246,
+          "descrizione": "Banchetto Gourmet Ricevimento (140 Ospiti)",
+          "quantita": 140,
+          "prezzo_unitario": 110,
+          "splitKey": "40_60",
+          "totale": 15400
+        },
+        {
+          "id": 1791407513852,
+          "descrizione": "Show Cooking Graffette Calde all'Arancio",
+          "quantita": 1,
+          "prezzo_unitario": 600,
+          "splitKey": "40_60",
+          "totale": 600
+        },
+        {
+          "id": 1791407509795,
+          "descrizione": "Open Bar Premium Illimitato Dopopranzo",
+          "quantita": 1,
+          "prezzo_unitario": 1500,
+          "splitKey": "40_60",
+          "totale": 1500
+        },
+        {
+          "id": 1791407510963,
+          "descrizione": "Spettacolo Fontane Fredde Piriche Taglio Torta",
+          "quantita": 1,
+          "prezzo_unitario": 500,
+          "splitKey": "ss100",
+          "totale": 500
         }
       ],
       "sconto_fisso": 500,
-      "totale_calcolato": 14100,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:02:54.473Z",
-      "updated_at": "2026-08-28T09:02:54.473Z"
-    },
-    {
-      "id": "e6b4b837-5206-4601-8476-d4631443330f",
-      "client_id": "f85a0c16-9398-4e8e-803f-a89e376f5d03",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-06-12",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 130,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 13000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:02:54.485Z",
-      "updated_at": "2026-08-28T09:02:54.485Z"
-    },
-    {
-      "id": "f82bc0c9-6653-4147-b8b2-7d72620711a3",
-      "client_id": "34c7b270-01e3-4d62-9f60-5faf0432ca02",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-05-15",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 130,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 13000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:03:09.518Z",
-      "updated_at": "2026-08-28T09:03:09.518Z"
-    },
-    {
-      "id": "c8440f4c-0db9-4848-b224-207021f994c0",
-      "client_id": "a16cbc00-def7-4501-9f59-84ac4f4d1af8",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-06-20",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 150,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 15000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:03:09.524Z",
-      "updated_at": "2026-08-28T09:03:09.524Z"
-    },
-    {
-      "id": "848510ba-1ba9-48da-b3bf-b8094be0ac75",
-      "client_id": "fe1ba8a6-5cd1-4c1f-ae77-f6f9ace7a7bb",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-09-25",
-      "numero_ospiti": 110,
-      "items": [
-        {
-          "id": "ric02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo": 130,
-          "qty": 110
-        },
-        {
-          "id": "ext04",
-          "nome": "Parcheggio",
-          "prezzo": 300,
-          "qty": 1
-        }
-      ],
-      "sconto_fisso": 500,
-      "totale_calcolato": 14100,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:03:48.712Z",
-      "updated_at": "2026-08-28T09:03:48.712Z"
-    },
-    {
-      "id": "6ef3dd4b-96ec-42d0-9f12-b1b4bc13c64c",
-      "client_id": "c14eb877-fcc2-4350-9e36-d3bf8b107cce",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-06-12",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 130,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 13000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:03:48.722Z",
-      "updated_at": "2026-08-28T09:03:48.722Z"
-    },
-    {
-      "id": "b9b9026c-292b-43f9-be40-6ca747cd3865",
-      "client_id": "5fb1d094-bd2d-4f78-8b90-053b3defdd5a",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-05-15",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 130,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 13000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:04:22.305Z",
-      "updated_at": "2026-08-28T09:04:22.305Z"
-    },
-    {
-      "id": "71e6c72c-b47a-4297-9d6b-ce717e90db3e",
-      "client_id": "afce7e65-26bc-4b50-950f-26830d13d2f1",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-06-20",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 150,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 15000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:04:22.311Z",
-      "updated_at": "2026-08-28T09:04:22.311Z"
-    },
-    {
-      "id": "869d4812-8422-46fc-b2bf-96c85f646b40",
-      "client_id": "173531cd-e88d-400b-a294-d8f1ad4ddbee",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-09-25",
-      "numero_ospiti": 110,
-      "items": [
-        {
-          "id": "ric02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo": 130,
-          "qty": 110
-        },
-        {
-          "id": "ext04",
-          "nome": "Parcheggio",
-          "prezzo": 300,
-          "qty": 1
-        }
-      ],
-      "sconto_fisso": 500,
-      "totale_calcolato": 14100,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:05:13.087Z",
-      "updated_at": "2026-08-28T09:05:13.087Z"
-    },
-    {
-      "id": "5672da4e-dfdb-4792-af6f-4614174c41b2",
-      "client_id": "64f69731-05ba-4859-9f66-e2825d583725",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-06-12",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 130,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 13000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:05:13.099Z",
-      "updated_at": "2026-08-28T09:05:13.099Z"
-    },
-    {
-      "id": "f14df293-8146-4b91-adb7-0860cba0e27c",
-      "client_id": "14324ae1-f330-4b0f-a9f6-bb3480d65395",
-      "tipo_evento": "wedding",
-      "data_evento": null,
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric01",
-          "code": "RIC01",
-          "nome": "Matrimonio adulti",
-          "quantita": 100,
-          "prezzo_unitario": 140
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 14000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:05:13.465Z",
-      "updated_at": "2026-08-28T09:05:13.465Z"
-    },
-    {
-      "id": "157899d8-1475-48c2-ac82-e03a03c3f7f9",
-      "client_id": "5cfd0bc5-27d7-4a02-973f-a5de56e795ca",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-05-15",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 130,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 13000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:05:21.874Z",
-      "updated_at": "2026-08-28T09:05:21.874Z"
-    },
-    {
-      "id": "38e0ecb5-9589-406c-a0c8-9e11e3e30d78",
-      "client_id": "45690f2a-fd73-4288-8268-1a202cb635fa",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-06-20",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 150,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 15000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:05:21.882Z",
-      "updated_at": "2026-08-28T09:05:21.882Z"
-    },
-    {
-      "id": "dfeb6195-18ee-4bab-b81c-96d868e46218",
-      "client_id": "13b28186-970c-4b23-9f16-56e2ea5e7c55",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-06-15",
-      "numero_ospiti": 120,
-      "items": [
-        {
-          "id": "ric01",
-          "code": "RIC01",
-          "nome": "Matrimonio adulti (70–99)",
-          "quantita": 100,
-          "prezzo_unitario": 140
-        },
-        {
-          "id": "ext01",
-          "code": "EXT01",
-          "nome": "Rito Simbolico in Agrumeto",
-          "quantita": 1,
-          "prezzo_unitario": 1000
-        },
-        {
-          "id": "ext12",
-          "code": "EXT12",
-          "nome": "Service Luci Architetturali",
-          "quantita": 1,
-          "prezzo_unitario": 1800
-        },
-        {
-          "id": "ang05",
-          "code": "ANG05",
-          "nome": "Angolo Ostriche & Champagne",
-          "quantita": 100,
-          "prezzo_unitario": 25
-        },
-        {
-          "id": "ult01",
-          "code": "ULT01",
-          "nome": "After Party Club Villa",
-          "quantita": 1,
-          "prezzo_unitario": 2500
-        }
-      ],
-      "sconto_fisso": 500,
-      "totale_calcolato": 21300,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:05:34.352Z",
-      "updated_at": "2026-08-28T09:05:34.352Z"
-    },
-    {
-      "id": "e636752b-9703-4b0b-a884-bab2d2aecbd9",
-      "client_id": "e680f071-1b26-40d1-8109-9dea63d776e4",
-      "tipo_evento": "wedding",
-      "data_evento": null,
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric01",
-          "code": "RIC01",
-          "nome": "Matrimonio adulti",
-          "quantita": 100,
-          "prezzo_unitario": 140
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 14000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:05:34.882Z",
-      "updated_at": "2026-08-28T09:05:34.882Z"
-    },
-    {
-      "id": "c379f698-7f25-4a91-8647-4241a6f6dda7",
-      "client_id": "fd21d402-0d44-4041-a13d-062a4d08d727",
-      "tipo_evento": "wedding",
-      "data_evento": null,
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric01",
-          "code": "RIC01",
-          "nome": "Matrimonio adulti",
-          "quantita": 100,
-          "prezzo_unitario": 140
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 14000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:05:36.953Z",
-      "updated_at": "2026-08-28T09:05:36.953Z"
-    },
-    {
-      "id": "2f1e122b-e41b-429a-94d3-05f0a6c4e4ec",
-      "client_id": "b92f2a4b-4d0b-40c4-a5c1-adb32a69d01b",
-      "tipo_evento": "private",
-      "data_evento": null,
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ext05",
-          "code": "EXT05",
-          "nome": "Parcheggio (40–60 auto)",
-          "quantita": 2,
-          "prezzo_unitario": 450
-        },
-        {
-          "id": "ext06",
-          "code": "EXT06",
-          "nome": "Parcheggio (60–80 auto)",
-          "quantita": 2,
-          "prezzo_unitario": 600
-        },
-        {
-          "id": "ext07",
-          "code": "EXT07",
-          "nome": "Supplemento parcheggio after dinner (Parcheggio aperto per after)",
-          "quantita": 2,
-          "prezzo_unitario": 150
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 2400,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:06:13.207Z",
-      "updated_at": "2026-08-28T09:06:13.207Z"
-    },
-    {
-      "id": "60b93476-56d1-4b9e-89f3-b8be2b3515a9",
-      "client_id": "705b3e21-f7fb-49a4-b4ab-89651479513b",
-      "tipo_evento": "wedding",
-      "data_evento": null,
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ext15",
-          "code": "EXT15",
-          "nome": "Preparazione degli sposi (Prima del rito)",
-          "quantita": 4,
-          "prezzo_unitario": 200
-        },
-        {
-          "id": "ext16",
-          "code": "EXT16",
-          "nome": "Celebrante (Prezzo base)",
-          "quantita": 4,
-          "prezzo_unitario": 500
-        },
-        {
-          "id": "ext17",
-          "code": "EXT17",
-          "nome": "Antipasto servito al tavolo in giardino (Servito al tavolo)",
-          "quantita": 4,
-          "prezzo_unitario": 5
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 2820,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:06:13.219Z",
-      "updated_at": "2026-08-28T09:06:13.219Z"
-    },
-    {
-      "id": "8fa6273a-a816-4fcd-91ca-4afc9524d27a",
-      "client_id": "fa3a9777-f064-4e07-b6bf-86133e3eca20",
-      "tipo_evento": "private",
-      "data_evento": null,
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ext25",
-          "code": "EXT25",
-          "nome": "Illuminazione musicisti (Extra luci)",
-          "quantita": 6,
-          "prezzo_unitario": 150
-        },
-        {
-          "id": "ext26",
-          "code": "EXT26",
-          "nome": "Spot colorati in giardino (Minimo 10)",
-          "quantita": 6,
-          "prezzo_unitario": 20
-        },
-        {
-          "id": "ext27",
-          "code": "EXT27",
-          "nome": "Illuminazione dance floor (2 teste mobili)",
-          "quantita": 6,
-          "prezzo_unitario": 200
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 2220,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:06:13.232Z",
-      "updated_at": "2026-08-28T09:06:13.232Z"
-    },
-    {
-      "id": "06091870-7691-4955-80c7-994281124259",
-      "client_id": "787da7a9-f7fb-4414-957b-973f8f8114ce",
-      "tipo_evento": "wedding",
-      "data_evento": null,
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ext35",
-          "code": "EXT35",
-          "nome": "Pet sitter (Assistenza evento)",
-          "quantita": 8,
-          "prezzo_unitario": 250
-        },
-        {
-          "id": "ext36",
-          "code": "EXT36",
-          "nome": "Disegni live (100 caricature)",
-          "quantita": 8,
-          "prezzo_unitario": 500
-        },
-        {
-          "id": "ext37",
-          "code": "EXT37",
-          "nome": "Disegni live (Live sketching - formula intrattenimento 3 ore)",
-          "quantita": 8,
-          "prezzo_unitario": 550
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 10400,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:06:13.244Z",
-      "updated_at": "2026-08-28T09:06:13.244Z"
-    },
-    {
-      "id": "44b4aa08-33c3-4269-9975-b28ef43f8d69",
-      "client_id": "44440b69-dc42-4552-8378-6aac380dc4c5",
-      "tipo_evento": "private",
-      "data_evento": null,
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ext45",
-          "code": "EXT45",
-          "nome": "Matrimonio sostenibile (Impatto zero / basso impatto)",
-          "quantita": 10,
-          "prezzo_unitario": 0
-        },
-        {
-          "id": "ext46",
-          "code": "EXT46",
-          "nome": "Invito digitale o wedding site (Personalizzato)",
-          "quantita": 10,
-          "prezzo_unitario": 0
-        },
-        {
-          "id": "ext47",
-          "code": "EXT47",
-          "nome": "Convenzioni (Alberghi / transfert / tour / esperienze)",
-          "quantita": 10,
-          "prezzo_unitario": 0
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 0,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:06:13.255Z",
-      "updated_at": "2026-08-28T09:06:13.255Z"
-    },
-    {
-      "id": "edd86915-6dc5-446e-ba43-f89ea9a92102",
-      "client_id": "d533da1c-cab9-48f6-be2b-44d34f9634c7",
-      "tipo_evento": "wedding",
-      "data_evento": null,
-      "numero_ospiti": 90,
-      "items": [
-        {
-          "id": "ric01",
-          "code": "RIC01",
-          "nome": "Matrimonio adulti (70–99 adulti)",
-          "quantita": 90,
-          "prezzo_unitario": 140
-        },
-        {
-          "id": "ric04",
-          "code": "RIC04",
-          "nome": "Menu Mandarancio",
-          "quantita": 90,
-          "prezzo_unitario": 10
-        },
-        {
-          "id": "ext04",
-          "code": "EXT04",
-          "nome": "Parcheggio",
-          "quantita": 1,
-          "prezzo_unitario": 300
-        },
-        {
-          "id": "ext12",
-          "code": "EXT12",
-          "nome": "Rito in Villa",
-          "quantita": 1,
-          "prezzo_unitario": 800
-        },
-        {
-          "id": "ext23",
-          "code": "EXT23",
-          "nome": "After Party Sala Tufo",
-          "quantita": 1,
-          "prezzo_unitario": 2000
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 16600,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:07:09.830Z",
-      "updated_at": "2026-08-28T09:07:09.830Z",
+      "prezzo": 22000,
+      "totale": 22000,
+      "totale_calcolato": 22000,
       "importo_caparra": 1500,
-      "importo_secondo_acconto": 3000
+      "importo_secondo_acconto": 3000,
+      "status": "firmato",
+      "note_visita_segreteria": "Visita in villa effettuata a Luglio 2026. Coppia molto decisa ed elegante.",
+      "created_at": "2026-09-10T12:00:00.000Z",
+      "updated_at": "2026-10-07T21:11:44.101Z",
+      "opzione": null,
+      "clients": {
+        "id": "b82a0f22-dd90-4c73-ac66-ddf212f17a7c",
+        "nome": "Marco",
+        "cognome": "Esposito",
+        "sposera_nome": "Sofia",
+        "sposera_cognome": "De Luca",
+        "email": "marco.esposito@gmail.com",
+        "telefono": "+39 347 8891234",
+        "codice_fiscale": "CFF340737D-B2D6-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
     },
     {
-      "id": "4e624dc0-b0bb-45ee-8ff8-beee71f58b3d",
-      "client_id": "881ef2d6-8c16-449e-ade8-30bbe732b94a",
+      "id": "e2bd4cb2-d65b-4211-adf6-0b39c00f58cd",
+      "client_id": "6db3038f-140d-40a4-b7de-e1dd06590dd2",
       "tipo_evento": "wedding",
-      "data_evento": null,
-      "numero_ospiti": 100,
+      "data_evento": "2027-07-03",
+      "turno": "cena",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_tufo",
+      "spazi_riservati": [
+        "Sala Tufo",
+        "Giardino delle Promesse",
+        "Terrazza Taglio Torta"
+      ],
+      "numero_ospiti": 85,
+      "canale_contratto": "accordo_diretto",
+      "fase_contratto": "accordo_diretto",
+      "source": "admin_rapido",
       "items": [
         {
-          "id": "ric01",
-          "code": "RIC01",
-          "nome": "Matrimonio adulti",
-          "quantita": 80,
-          "prezzo_unitario": 140
-        },
-        {
-          "id": "ext01",
-          "code": "EXT01",
-          "nome": "Rito civile in agrumeto",
+          "id": 1791407505788,
+          "descrizione": "Canone Concessione Villa (Semi-Esclusiva sala_tufo)",
           "quantita": 1,
-          "prezzo_unitario": 500
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 11700,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:10:32.719Z",
-      "updated_at": "2026-08-28T09:10:32.719Z"
-    },
-    {
-      "id": "dc60aac5-f267-4210-80d2-4aa15340ad8b",
-      "client_id": "417294eb-a97c-403d-bfbe-7a2329033144",
-      "tipo_evento": "wedding",
-      "data_evento": null,
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric01",
-          "code": "RIC01",
-          "nome": "Matrimonio adulti",
-          "quantita": 80,
-          "prezzo_unitario": 140
+          "prezzo_unitario": 3500,
+          "splitKey": "ss100",
+          "totale": 3500
         },
         {
-          "id": "ext01",
-          "code": "EXT01",
-          "nome": "Rito civile in agrumeto",
+          "id": 1791407505925,
+          "descrizione": "Banchetto Gourmet Ricevimento (85 Ospiti)",
+          "quantita": 85,
+          "prezzo_unitario": 120,
+          "splitKey": "40_60",
+          "totale": 10200
+        },
+        {
+          "id": 1791407511780,
+          "descrizione": "Angolo Sigari, Cioccolato Pregiato & Rum",
           "quantita": 1,
-          "prezzo_unitario": 500
+          "prezzo_unitario": 700,
+          "splitKey": "40_60",
+          "totale": 700
         }
       ],
       "sconto_fisso": 0,
-      "totale_calcolato": 11700,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:10:42.118Z",
-      "updated_at": "2026-08-28T09:10:42.118Z"
+      "prezzo": 14400,
+      "totale": 14400,
+      "totale_calcolato": 14400,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "firmato",
+      "note_visita_segreteria": "La sera del 3 Luglio convive perfettamente col matrimonio del pranzo!",
+      "created_at": "2026-09-10T12:00:00.000Z",
+      "updated_at": "2026-10-07T21:11:44.102Z",
+      "opzione": null,
+      "clients": {
+        "id": "6db3038f-140d-40a4-b7de-e1dd06590dd2",
+        "nome": "Lorenzo",
+        "cognome": "Romano",
+        "sposera_nome": "Camilla",
+        "sposera_cognome": "Ferrara",
+        "email": "lorenzo.romano@libero.it",
+        "telefono": "+39 338 7654321",
+        "codice_fiscale": "CFAA29E8A7-B79B-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
     },
     {
-      "id": "3d9cc74f-d5ad-49d3-bca2-e09f1b0c973c",
-      "client_id": "806a66fa-925a-43ab-bea2-2fc27598ff24",
+      "id": "edaca3ef-b858-43b5-8a8c-c500ee001ccc",
+      "client_id": "63f10172-4163-42c4-97b4-71c7f3ad27bf",
       "tipo_evento": "wedding",
-      "data_evento": null,
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric01",
-          "code": "RIC01",
-          "nome": "Matrimonio adulti",
-          "quantita": 100,
-          "prezzo_unitario": 140
-        }
+      "data_evento": "2027-07-04",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Sala Bianca",
+        "Sala Tufo"
       ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 14000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:10:47.194Z",
-      "updated_at": "2026-08-28T09:10:47.194Z"
-    },
-    {
-      "id": "72b826e5-6251-475d-b715-ceb7db301691",
-      "client_id": "87fc8c62-777c-41cd-ba39-15f08bd36a80",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-09-25",
-      "numero_ospiti": 110,
+      "numero_ospiti": 120,
+      "canale_contratto": "accordo_diretto",
+      "fase_contratto": "accordo_diretto",
+      "source": "admin_rapido",
       "items": [
         {
-          "id": "ric02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo": 130,
-          "qty": 110
+          "id": 1791407513464,
+          "descrizione": "Canone Concessione Villa (Esclusiva)",
+          "quantita": 1,
+          "prezzo_unitario": 4500,
+          "splitKey": "ss100",
+          "totale": 4500
         },
         {
-          "id": "ext04",
-          "nome": "Parcheggio",
-          "prezzo": 300,
-          "qty": 1
-        }
-      ],
-      "sconto_fisso": 500,
-      "totale_calcolato": 14100,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:12:57.774Z",
-      "updated_at": "2026-08-28T09:12:57.774Z"
-    },
-    {
-      "id": "b775688d-e992-4abe-8c29-a253912c45e7",
-      "client_id": "1fcf4ce4-1452-4769-a6a9-3ce72cc49f66",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-06-12",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 130,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 13000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:12:57.792Z",
-      "updated_at": "2026-08-28T09:12:57.792Z"
-    },
-    {
-      "id": "482da829-961c-4d6c-9217-43056cbbd0ca",
-      "client_id": "7a7dfed6-5ace-474b-9821-4d6da3d8c4cb",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-09-25",
-      "numero_ospiti": 110,
-      "items": [
-        {
-          "id": "ric02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo": 130,
-          "qty": 110
+          "id": 1791407505048,
+          "descrizione": "Banchetto Gourmet Ricevimento (120 Ospiti)",
+          "quantita": 120,
+          "prezzo_unitario": 115,
+          "splitKey": "40_60",
+          "totale": 13800
         },
         {
-          "id": "ext04",
-          "nome": "Parcheggio",
-          "prezzo": 300,
-          "qty": 1
-        }
-      ],
-      "sconto_fisso": 500,
-      "totale_calcolato": 14100,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:12:59.676Z",
-      "updated_at": "2026-08-28T09:12:59.676Z"
-    },
-    {
-      "id": "e504eaed-6c39-4202-b89d-f0e632662287",
-      "client_id": "c49c57a1-14f5-4618-b4b3-c9afca8e4e94",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-06-12",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 130,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 13000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:12:59.694Z",
-      "updated_at": "2026-08-28T09:12:59.694Z"
-    },
-    {
-      "id": "d1e35344-c9b5-4213-8564-553afece2d65",
-      "client_id": "a7fe8aa2-45d7-45b9-9bd8-f68d93240fb6",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-05-15",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 130,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 13000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:13:06.474Z",
-      "updated_at": "2026-08-28T09:13:06.474Z"
-    },
-    {
-      "id": "ba8ee35a-0d4f-447a-9050-8012db071433",
-      "client_id": "563aef8d-1357-478f-9272-1f95b65a32c5",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-06-20",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 150,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 15000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:13:06.484Z",
-      "updated_at": "2026-08-28T09:13:06.484Z"
-    },
-    {
-      "id": "f6dbd5b5-a8fa-44c3-b9ad-5b07d9d8fa02",
-      "client_id": "4eb85a45-28f6-4506-b2a3-e02e347f4e67",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-05-15",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 130,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 13000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:13:09.454Z",
-      "updated_at": "2026-08-28T09:13:09.454Z"
-    },
-    {
-      "id": "8dfb39d0-d1f9-4172-ba1f-4acbed5f9892",
-      "client_id": "e6615230-2dd9-4c0c-be63-3a525c85f3ca",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-06-20",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 150,
-          "qty": 100
-        }
-      ],
-      "sconto_fisso": 0,
-      "totale_calcolato": 15000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:13:09.465Z",
-      "updated_at": "2026-08-28T09:13:09.465Z"
-    },
-    {
-      "id": "47251092-dd11-4208-b8de-f5b26fe9d6c5",
-      "client_id": "6bd2a194-d335-4a89-b255-8d5a7f0715e6",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-09-25",
-      "numero_ospiti": 110,
-      "items": [
-        {
-          "id": "ric02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo": 130,
-          "qty": 110
+          "id": 1791407504352,
+          "descrizione": "Rito Civile nel Giardino delle Promesse",
+          "quantita": 1,
+          "prezzo_unitario": 1200,
+          "splitKey": "ss100",
+          "totale": 1200
         },
         {
-          "id": "ext04",
-          "nome": "Parcheggio",
-          "prezzo": 300,
-          "qty": 1
-        }
-      ],
-      "sconto_fisso": 500,
-      "totale_calcolato": 14100,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:13:44.869Z",
-      "updated_at": "2026-08-28T09:13:44.869Z"
-    },
-    {
-      "id": "62887312-2a53-4071-8f45-4152448bb228",
-      "client_id": "ff681817-38b6-4948-a2b0-681837d78ed0",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-06-12",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 130,
-          "qty": 100
+          "id": 1791407507163,
+          "descrizione": "Carretto Gelato Artigianale Napoletano",
+          "quantita": 1,
+          "prezzo_unitario": 600,
+          "splitKey": "40_60",
+          "totale": 600
         }
       ],
       "sconto_fisso": 0,
-      "totale_calcolato": 13000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:13:44.881Z",
-      "updated_at": "2026-08-28T09:13:44.881Z"
+      "prezzo": 20100,
+      "totale": 20100,
+      "totale_calcolato": 20100,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "convertito",
+      "note_visita_segreteria": "Contratto emesso con opzione bloccata per 7 giorni. Sposi in attesa di confermare bonifico caparra.",
+      "created_at": "2026-09-10T12:00:00.000Z",
+      "updated_at": "2026-10-07T21:11:44.102Z",
+      "opzione": {
+        "attiva": true,
+        "tipo": "esclusiva",
+        "data_inizio": "2026-10-02T10:00:00.000Z",
+        "scadenza": "2026-10-12T23:59:59.000Z",
+        "turno": "pranzo",
+        "spazi": [
+          "Agrumeto Storico",
+          "Sala Bianca",
+          "Sala Tufo"
+        ],
+        "canale": "calendario_rapido"
+      },
+      "clients": {
+        "id": "63f10172-4163-42c4-97b4-71c7f3ad27bf",
+        "nome": "Antonio",
+        "cognome": "De Rosa",
+        "sposera_nome": "Chiara",
+        "sposera_cognome": "Russo",
+        "email": "antonio.derosa@outlook.it",
+        "telefono": "+39 335 4433221",
+        "codice_fiscale": "CF21E47337-6AE8-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
     },
     {
-      "id": "350844cb-474d-4be3-9c60-5807874e472e",
-      "client_id": "753773ac-2d23-41f2-923f-8f4387be668e",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-05-15",
-      "numero_ospiti": 100,
+      "id": "8583d35c-18ce-4c2b-9eb2-783292aae33e",
+      "client_id": "41d73a9f-8f47-4e41-9c77-20b1e7fc2588",
+      "tipo_evento": "eventi",
+      "data_evento": "2027-07-08",
+      "turno": "cena",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_tufo",
+      "spazi_riservati": [
+        "Sala Tufo",
+        "Terrazza Agrumeto"
+      ],
+      "numero_ospiti": 65,
+      "canale_contratto": "accordo_diretto",
+      "fase_contratto": "accordo_diretto",
+      "source": "admin_rapido",
       "items": [
         {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 130,
-          "qty": 100
+          "id": 1791407508414,
+          "descrizione": "Canone Concessione Villa (Semi-Esclusiva sala_tufo)",
+          "quantita": 1,
+          "prezzo_unitario": 2000,
+          "splitKey": "ss100",
+          "totale": 2000
+        },
+        {
+          "id": 1791407508373,
+          "descrizione": "Banchetto Gourmet Ricevimento (65 Ospiti)",
+          "quantita": 65,
+          "prezzo_unitario": 50,
+          "splitKey": "40_60",
+          "totale": 3250
+        },
+        {
+          "id": 1791407511186,
+          "descrizione": "DJ Set & Cocktail Bar Illimitato Laurea",
+          "quantita": 1,
+          "prezzo_unitario": 850,
+          "splitKey": "40_60",
+          "totale": 850
         }
       ],
       "sconto_fisso": 0,
-      "totale_calcolato": 13000,
-      "status": "inviato",
-      "created_at": "2026-08-28T09:13:49.543Z",
-      "updated_at": "2026-08-28T09:13:49.543Z"
+      "prezzo": 6100,
+      "totale": 6100,
+      "totale_calcolato": 6100,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 0,
+      "status": "firmato",
+      "note_visita_segreteria": "Festa di Laurea Magistrale in Medicina. Richiesto carretto graffette a mezzanotte.",
+      "created_at": "2026-09-10T12:00:00.000Z",
+      "updated_at": "2026-10-07T21:11:44.102Z",
+      "opzione": null,
+      "clients": {
+        "id": "41d73a9f-8f47-4e41-9c77-20b1e7fc2588",
+        "nome": "Dott.ssa Giulia",
+        "cognome": "De Angelis",
+        "sposera_nome": "",
+        "sposera_cognome": "",
+        "email": "giulia.deangelis@gmail.com",
+        "telefono": "+39 349 9871122",
+        "codice_fiscale": "CFACE47C98-6156-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
     },
     {
-      "id": "e94b97d6-53fe-4cfd-aa8a-de19a40febbf",
-      "client_id": "ff2fde48-ae92-418a-8e51-b84f040cc1a5",
+      "id": "c903448e-6a08-43ed-8082-a87f8c648192",
+      "client_id": "2ded73a5-1324-4717-a737-757a148b1a08",
       "tipo_evento": "wedding",
-      "data_evento": "2027-06-20",
-      "numero_ospiti": 100,
+      "data_evento": "2027-07-10",
+      "turno": "pranzo",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_bianca",
+      "spazi_riservati": [
+        "Sala Bianca",
+        "Agrumeto Storico"
+      ],
+      "numero_ospiti": 90,
+      "canale_contratto": "accordo_diretto",
+      "fase_contratto": "accordo_diretto",
+      "source": "admin_rapido",
       "items": [
         {
-          "id": "ric02",
-          "code": "RIC02",
-          "nome": "Matrimonio adulti (Da 100 adulti)",
-          "prezzo_unitario": 150,
-          "qty": 100
+          "id": 1791407505498,
+          "descrizione": "Canone Concessione Villa (Semi-Esclusiva sala_bianca)",
+          "quantita": 1,
+          "prezzo_unitario": 3500,
+          "splitKey": "ss100",
+          "totale": 3500
+        },
+        {
+          "id": 1791407512677,
+          "descrizione": "Banchetto Gourmet Ricevimento (90 Ospiti)",
+          "quantita": 90,
+          "prezzo_unitario": 115,
+          "splitKey": "40_60",
+          "totale": 10350
         }
       ],
       "sconto_fisso": 0,
-      "totale_calcolato": 15000,
+      "prezzo": 13850,
+      "totale": 13850,
+      "totale_calcolato": 13850,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "firmato",
+      "note_visita_segreteria": "",
+      "created_at": "2026-09-10T12:00:00.000Z",
+      "updated_at": "2026-10-07T21:11:44.102Z",
+      "opzione": null,
+      "clients": {
+        "id": "2ded73a5-1324-4717-a737-757a148b1a08",
+        "nome": "Davide",
+        "cognome": "Rinaldi",
+        "sposera_nome": "Elena",
+        "sposera_cognome": "Sorrentino",
+        "email": "davide.rinaldi@gmail.com",
+        "telefono": "+39 333 1122334",
+        "codice_fiscale": "CF8C03AC08-F8A3-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
+    },
+    {
+      "id": "91e1475a-ef5f-4be0-880b-232ec8a63c7b",
+      "client_id": "598f7982-f962-4f06-b695-9bbd061d4841",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-10",
+      "turno": "pranzo",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_tufo",
+      "spazi_riservati": [
+        "Sala Tufo",
+        "Giardino delle Promesse"
+      ],
+      "numero_ospiti": 75,
+      "canale_contratto": "accordo_diretto",
+      "fase_contratto": "accordo_diretto",
+      "source": "admin_rapido",
+      "items": [
+        {
+          "id": 1791407508198,
+          "descrizione": "Canone Concessione Villa (Semi-Esclusiva sala_tufo)",
+          "quantita": 1,
+          "prezzo_unitario": 3500,
+          "splitKey": "ss100",
+          "totale": 3500
+        },
+        {
+          "id": 1791407513563,
+          "descrizione": "Banchetto Gourmet Ricevimento (75 Ospiti)",
+          "quantita": 75,
+          "prezzo_unitario": 110,
+          "splitKey": "40_60",
+          "totale": 8250
+        }
+      ],
+      "sconto_fisso": 0,
+      "prezzo": 11750,
+      "totale": 11750,
+      "totale_calcolato": 11750,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "firmato",
+      "note_visita_segreteria": "",
+      "created_at": "2026-09-10T12:00:00.000Z",
+      "updated_at": "2026-10-07T21:11:44.102Z",
+      "opzione": null,
+      "clients": {
+        "id": "598f7982-f962-4f06-b695-9bbd061d4841",
+        "nome": "Gennaro",
+        "cognome": "Marino",
+        "sposera_nome": "Federica",
+        "sposera_cognome": "Vitale",
+        "email": "gennaro.marino@alice.it",
+        "telefono": "+39 340 5566778",
+        "codice_fiscale": "CF397A5DF1-B3DE-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
+    },
+    {
+      "id": "db91c807-3c1b-4260-9bae-cdf76be48c97",
+      "client_id": "b9bd8689-66fe-4a60-b631-d5c0f555b8c7",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-10",
+      "turno": "cena",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Sala Bianca",
+        "Sala Tufo"
+      ],
+      "numero_ospiti": 110,
+      "fase_contratto": "opzione_rapida",
+      "items": [
+        {
+          "id": 1791407513825,
+          "descrizione": "Canone Concessione Villa (Esclusiva)",
+          "quantita": 1,
+          "prezzo_unitario": 4500,
+          "splitKey": "ss100",
+          "totale": 4500
+        },
+        {
+          "id": 1791407504757,
+          "descrizione": "Banchetto Gourmet Ricevimento (110 Ospiti)",
+          "quantita": 110,
+          "prezzo_unitario": 120,
+          "splitKey": "40_60",
+          "totale": 13200
+        }
+      ],
+      "sconto_fisso": 0,
+      "prezzo": 17700,
+      "totale": 17700,
+      "totale_calcolato": 17700,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "opzione",
+      "note_visita_segreteria": "Opzione telefonica rapida di 7 giorni presa il 4 Ottobre. Richiesta prelazione prima di rilasciare.",
+      "created_at": "2026-09-10T12:00:00.000Z",
+      "updated_at": "2026-10-07T21:11:44.102Z",
+      "opzione": {
+        "attiva": true,
+        "tipo": "esclusiva",
+        "data_inizio": "2026-10-02T10:00:00.000Z",
+        "scadenza": "2026-10-12T23:59:59.000Z",
+        "turno": "cena",
+        "spazi": [
+          "Agrumeto Storico",
+          "Sala Bianca",
+          "Sala Tufo"
+        ],
+        "canale": "calendario_rapido"
+      },
+      "clients": {
+        "id": "b9bd8689-66fe-4a60-b631-d5c0f555b8c7",
+        "nome": "Roberto",
+        "cognome": "D'Amico",
+        "sposera_nome": "Beatrice",
+        "sposera_cognome": "Mancini",
+        "email": "roberto.damico@yahoo.it",
+        "telefono": "+39 348 2233445",
+        "codice_fiscale": "CFCE0D5C01-F480-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
+    },
+    {
+      "id": "b94e1739-e2b0-462b-9a1c-1b4f306c59f4",
+      "client_id": "898f4b99-c39a-493b-96a6-4a833e674609",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-11",
+      "turno": "cena",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Sala Tufo",
+        "Terrazza"
+      ],
+      "numero_ospiti": 130,
+      "items": [
+        {
+          "id": 1791407510838,
+          "descrizione": "Canone Concessione Villa (Esclusiva)",
+          "quantita": 1,
+          "prezzo_unitario": 4500,
+          "splitKey": "ss100",
+          "totale": 4500
+        },
+        {
+          "id": 1791407510120,
+          "descrizione": "Banchetto Gourmet Ricevimento (130 Ospiti)",
+          "quantita": 130,
+          "prezzo_unitario": 115,
+          "splitKey": "40_60",
+          "totale": 14950
+        }
+      ],
+      "sconto_fisso": 0,
+      "prezzo": 19450,
+      "totale": 19450,
+      "totale_calcolato": 19450,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
       "status": "inviato",
-      "created_at": "2026-08-28T09:13:49.586Z",
-      "updated_at": "2026-08-28T09:13:49.586Z"
+      "note_visita_segreteria": "Preventivo analitico inviato con degustazione vini campani DOC.",
+      "created_at": "2026-09-10T12:00:00.000Z",
+      "updated_at": "2026-10-07T21:11:44.102Z",
+      "opzione": null,
+      "clients": {
+        "id": "898f4b99-c39a-493b-96a6-4a833e674609",
+        "nome": "Fabio",
+        "cognome": "Caruso",
+        "sposera_nome": "Noemi",
+        "sposera_cognome": "Barone",
+        "email": "fabio.caruso@gmail.com",
+        "telefono": "+39 331 9988776",
+        "codice_fiscale": "CF6E5A940C-1752-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
+    },
+    {
+      "id": "560c8969-b516-4a4f-8bc3-5f6dc3c7ed99",
+      "client_id": "1f04f52a-41e3-413f-ac18-f16bed9ecd5e",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-17",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Sala Bianca",
+        "Sala Tufo",
+        "Terrazza Panoramica"
+      ],
+      "numero_ospiti": 150,
+      "canale_contratto": "accordo_diretto",
+      "fase_contratto": "accordo_diretto",
+      "source": "admin_rapido",
+      "items": [
+        {
+          "id": 1791407504749,
+          "descrizione": "Canone Concessione Villa (Esclusiva)",
+          "quantita": 1,
+          "prezzo_unitario": 4500,
+          "splitKey": "ss100",
+          "totale": 4500
+        },
+        {
+          "id": 1791407513930,
+          "descrizione": "Banchetto Gourmet Ricevimento (150 Ospiti)",
+          "quantita": 150,
+          "prezzo_unitario": 115,
+          "splitKey": "40_60",
+          "totale": 17250
+        },
+        {
+          "id": 1791407504584,
+          "descrizione": "Angolo Sigari Cubani & Distillati Pregiati",
+          "quantita": 1,
+          "prezzo_unitario": 800,
+          "splitKey": "40_60",
+          "totale": 800
+        },
+        {
+          "id": 1791407513084,
+          "descrizione": "Show Cooking Brace Gourmet in Giardino",
+          "quantita": 1,
+          "prezzo_unitario": 1200,
+          "splitKey": "40_60",
+          "totale": 1200
+        },
+        {
+          "id": 1791407508525,
+          "descrizione": "Illuminazione Architetturale Catene Vintage Giardino",
+          "quantita": 1,
+          "prezzo_unitario": 900,
+          "splitKey": "ss100",
+          "totale": 900
+        }
+      ],
+      "sconto_fisso": 0,
+      "prezzo": 24650,
+      "totale": 24650,
+      "totale_calcolato": 24650,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "firmato",
+      "note_visita_segreteria": "Cliente alto spendente, già cliente della famiglia per una cresima nel 2024.",
+      "created_at": "2026-09-10T12:00:00.000Z",
+      "updated_at": "2026-10-07T21:11:44.102Z",
+      "opzione": null,
+      "clients": {
+        "id": "1f04f52a-41e3-413f-ac18-f16bed9ecd5e",
+        "nome": "Claudio",
+        "cognome": "Ferri",
+        "sposera_nome": "Simona",
+        "sposera_cognome": "Marchetti",
+        "email": "claudio.ferri@virgilio.it",
+        "telefono": "+39 345 6677889",
+        "codice_fiscale": "CFCF3AFB9B-C76B-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
+    },
+    {
+      "id": "1664c5ff-84a8-44b7-a9b3-c14c9f00be5b",
+      "client_id": "82dba888-c9cb-4979-9532-e26b0363ef8a",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-24",
+      "turno": "cena",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Sala Tufo",
+        "Sala Bianca"
+      ],
+      "numero_ospiti": 125,
+      "items": [
+        {
+          "id": 1791407512698,
+          "descrizione": "Canone Concessione Villa (Esclusiva)",
+          "quantita": 1,
+          "prezzo_unitario": 4500,
+          "splitKey": "ss100",
+          "totale": 4500
+        },
+        {
+          "id": 1791407511441,
+          "descrizione": "Banchetto Gourmet Ricevimento (125 Ospiti)",
+          "quantita": 125,
+          "prezzo_unitario": 110,
+          "splitKey": "40_60",
+          "totale": 13750
+        }
+      ],
+      "sconto_fisso": 0,
+      "prezzo": 18250,
+      "totale": 18250,
+      "totale_calcolato": 18250,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "bozza_visita",
+      "note_visita_segreteria": "Visita guidata in villa con tablet iPad effettuata il 06/10. La coppia ha adorato l'Agrumeto al tramonto e la Sala Tufo. In attesa che Roberto generi il contratto rapido.",
+      "created_at": "2026-09-10T12:00:00.000Z",
+      "updated_at": "2026-10-07T21:11:44.102Z",
+      "opzione": null,
+      "clients": {
+        "id": "82dba888-c9cb-4979-9532-e26b0363ef8a",
+        "nome": "Edoardo",
+        "cognome": "Gallo",
+        "sposera_nome": "Giorgia",
+        "sposera_cognome": "Castaldi",
+        "email": "edoardo.gallo@gmail.com",
+        "telefono": "+39 339 3344556",
+        "codice_fiscale": "CFE2EDCF4E-A73D-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
+    },
+    {
+      "id": "dffa3705-5312-4bfe-924a-996c2e44fa7f",
+      "client_id": "2351289a-1901-4556-9dea-f6afa03dc829",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-31",
+      "turno": "cena",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Sala Bianca",
+        "Sala Tufo",
+        "Terrazza Taglio Torta"
+      ],
+      "numero_ospiti": 160,
+      "canale_contratto": "accordo_diretto",
+      "fase_contratto": "accordo_diretto",
+      "source": "admin_rapido",
+      "items": [
+        {
+          "id": 1791407506316,
+          "descrizione": "Canone Concessione Villa (Esclusiva)",
+          "quantita": 1,
+          "prezzo_unitario": 4500,
+          "splitKey": "ss100",
+          "totale": 4500
+        },
+        {
+          "id": 1791407512203,
+          "descrizione": "Banchetto Gourmet Ricevimento (160 Ospiti)",
+          "quantita": 160,
+          "prezzo_unitario": 125,
+          "splitKey": "40_60",
+          "totale": 20000
+        },
+        {
+          "id": 1791407511834,
+          "descrizione": "Show Cooking Pizza Fritta Napoletana & Montanarine",
+          "quantita": 1,
+          "prezzo_unitario": 800,
+          "splitKey": "40_60",
+          "totale": 800
+        },
+        {
+          "id": 1791407509477,
+          "descrizione": "Open Bar Illimitato con Barman Acrobatico",
+          "quantita": 1,
+          "prezzo_unitario": 1600,
+          "splitKey": "40_60",
+          "totale": 1600
+        }
+      ],
+      "sconto_fisso": 0,
+      "prezzo": 26900,
+      "totale": 26900,
+      "totale_calcolato": 26900,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "firmato",
+      "note_visita_segreteria": "Grande evento di chiusura del mese di Luglio.",
+      "created_at": "2026-09-10T12:00:00.000Z",
+      "updated_at": "2026-10-07T21:11:44.102Z",
+      "opzione": null,
+      "clients": {
+        "id": "2351289a-1901-4556-9dea-f6afa03dc829",
+        "nome": "Federico",
+        "cognome": "Testa",
+        "sposera_nome": "Ludovica",
+        "sposera_cognome": "Leone",
+        "email": "federico.testa@hotmail.it",
+        "telefono": "+39 346 7788990",
+        "codice_fiscale": "CFAE3706F6-5FFA-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
     }
   ],
   "signed_contracts": [
-    {
-      "id": "sc-a24bd21b",
-      "quote_id": "a24bd21b-e442-49c0-b660-188b60b7accc",
-      "client_id": "a94c8673-8d9d-41e1-b21e-856bfdb2a802",
-      "tipoContratto": "wedding",
-      "lingua": "it",
-      "prezzo": "16740",
-      "datiCliente": {
-        "tipo_cliente": "privato",
-        "nazione": "Italia",
-        "nome": "Roberto",
-        "cognome": "Sola",
-        "luogo_di_nascita": "Napoli",
-        "data_di_nascita": "1980-05-15",
-        "citta_di_residenza": "Napoli",
-        "indirizzo": "Piazzetta Santo Stefano",
-        "numero_civico": "7",
-        "cap": "80127",
-        "codice_fiscale": "SLARBT80E15F205K",
-        "telefono": "36635683",
-        "email": "mariopepecc@gmail.com",
-        "sposera_nome": "Rosaria",
-        "sposera_cognome": "Iovino",
-        "data_evento": "2027-01-22",
-        "accetto": true,
-        "comunicazione_terzi": true,
-        "marketing": "SI"
-      },
-      "firma_disegnata": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAABaCAYAAAA2z76wAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABWSURBVHhe7cExAQAAAMKg9U9tDC8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB4GAfAAAH0aC8YAAAAAElFTkSuQmCC",
-      "firma_disegnata_clausole": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAABaCAYAAAA2z76wAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABWSURBVHhe7cExAQAAAMKg9U9tDC8gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB4GAfAAAH0aC8YAAAAAElFTkSuQmCC",
-      "signed_at": "2026-07-22T21:39:37.295Z"
-    },
     {
       "id": "sc-quote-demo3",
       "quote_id": "quote-demo3",
@@ -1192,181 +1083,233 @@
       "signed_at": "2026-07-23T07:06:08.106Z"
     },
     {
-      "id": "539b4811-5ad7-4949-9b62-1127f31371de",
-      "quote_id": "ae629c9d-8a6f-4dae-90ef-2b33d6851111",
-      "tipoContratto": "wedding",
-      "lingua": "it",
-      "prezzo": 14000,
+      "quote_id": "2ea7faa3-ef17-4d28-b067-6b33a1f12e80",
+      "tipo_evento": "wedding",
+      "firmato_il": "2026-09-15T15:30:00.000Z",
       "datiCliente": {
-        "nome": "Mario Rossi"
-      },
-      "firma_disegnata": "",
-      "firma_disegnata_clausole": "",
-      "pdf_url": "",
-      "signed_at": "2026-08-28T09:02:37.401Z"
+        "id": "b82a0f22-dd90-4c73-ac66-ddf212f17a7c",
+        "nome": "Marco",
+        "cognome": "Esposito",
+        "sposera_nome": "Sofia",
+        "sposera_cognome": "De Luca",
+        "email": "marco.esposito@gmail.com",
+        "telefono": "+39 347 8891234",
+        "codice_fiscale": "CFF340737D-B2D6-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
     },
     {
-      "id": "e18fd93f-965a-4867-899d-ef2c1bf44f52",
-      "quote_id": "54ffa085-e8d4-4863-8aa3-ed5136f4237c",
-      "tipoContratto": "wedding",
-      "lingua": "it",
-      "prezzo": 14000,
+      "quote_id": "e2bd4cb2-d65b-4211-adf6-0b39c00f58cd",
+      "tipo_evento": "wedding",
+      "firmato_il": "2026-09-15T15:30:00.000Z",
       "datiCliente": {
-        "nome": "Mario Rossi"
-      },
-      "firma_disegnata": "",
-      "firma_disegnata_clausole": "",
-      "pdf_url": "",
-      "signed_at": "2026-08-28T09:02:49.002Z"
+        "id": "6db3038f-140d-40a4-b7de-e1dd06590dd2",
+        "nome": "Lorenzo",
+        "cognome": "Romano",
+        "sposera_nome": "Camilla",
+        "sposera_cognome": "Ferrara",
+        "email": "lorenzo.romano@libero.it",
+        "telefono": "+39 338 7654321",
+        "codice_fiscale": "CFAA29E8A7-B79B-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
     },
     {
-      "id": "731197ba-eac8-4766-a356-82ca87d8fd22",
-      "quote_id": "f14df293-8146-4b91-adb7-0860cba0e27c",
-      "tipoContratto": "wedding",
-      "lingua": "it",
-      "prezzo": 14000,
+      "quote_id": "8583d35c-18ce-4c2b-9eb2-783292aae33e",
+      "tipo_evento": "eventi",
+      "firmato_il": "2026-09-15T15:30:00.000Z",
       "datiCliente": {
-        "nome": "Mario Rossi"
-      },
-      "firma_disegnata": "",
-      "firma_disegnata_clausole": "",
-      "pdf_url": "",
-      "signed_at": "2026-08-28T09:05:13.476Z"
+        "id": "41d73a9f-8f47-4e41-9c77-20b1e7fc2588",
+        "nome": "Dott.ssa Giulia",
+        "cognome": "De Angelis",
+        "sposera_nome": "",
+        "sposera_cognome": "",
+        "email": "giulia.deangelis@gmail.com",
+        "telefono": "+39 349 9871122",
+        "codice_fiscale": "CFACE47C98-6156-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
     },
     {
-      "id": "9b603626-b8cf-4a6b-b4ae-1a1734c8eb7a",
-      "quote_id": "dfeb6195-18ee-4bab-b81c-96d868e46218",
-      "tipoContratto": "wedding",
-      "lingua": "it",
-      "prezzo": 21300,
+      "quote_id": "c903448e-6a08-43ed-8082-a87f8c648192",
+      "tipo_evento": "wedding",
+      "firmato_il": "2026-09-15T15:30:00.000Z",
       "datiCliente": {
-        "nome": "Giulia",
-        "cognome": "Bianchi",
-        "email": "giulia.bianchi@test.it",
-        "telefono": "+39 333 1234567",
-        "codice_fiscale": "BNCGLI90A41F839X"
-      },
-      "firma_disegnata": "",
-      "firma_disegnata_clausole": "",
-      "pdf_url": "",
-      "signed_at": "2026-08-28T09:05:34.366Z"
-    },
-    {
-      "id": "325e69ff-b607-438a-9d83-bb396556b3f5",
-      "quote_id": "e636752b-9703-4b0b-a884-bab2d2aecbd9",
-      "tipoContratto": "wedding",
-      "lingua": "it",
-      "prezzo": 14000,
-      "datiCliente": {
-        "nome": "Mario Rossi"
-      },
-      "firma_disegnata": "",
-      "firma_disegnata_clausole": "",
-      "pdf_url": "",
-      "signed_at": "2026-08-28T09:05:34.895Z"
-    },
-    {
-      "id": "ac69ebf5-ffa0-463b-9fa2-3b1bbb583975",
-      "quote_id": "c379f698-7f25-4a91-8647-4241a6f6dda7",
-      "tipoContratto": "wedding",
-      "lingua": "it",
-      "prezzo": 14000,
-      "datiCliente": {
-        "nome": "Mario Rossi"
-      },
-      "firma_disegnata": "",
-      "firma_disegnata_clausole": "",
-      "pdf_url": "",
-      "signed_at": "2026-08-28T09:05:36.962Z"
-    },
-    {
-      "id": "c48e11b6-1b3c-471e-979b-aff29e83bad6",
-      "quote_id": "edd86915-6dc5-446e-ba43-f89ea9a92102",
-      "tipoContratto": "wedding",
-      "lingua": "it",
-      "prezzo": 16600,
-      "datiCliente": {
-        "nome": "Francesco Esposito"
-      },
-      "firma_disegnata": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA...",
-      "firma_disegnata_clausole": "",
-      "pdf_url": "https://r2.laterradegliaranci.it/contratti/contratto-esposito.pdf",
-      "signed_at": "2026-08-28T09:07:09.845Z"
-    },
-    {
-      "id": "6c94c15c-6efd-4674-86b8-6d78cc3e165d",
-      "quote_id": "3d9cc74f-d5ad-49d3-bca2-e09f1b0c973c",
-      "tipoContratto": "wedding",
-      "lingua": "it",
-      "prezzo": 14000,
-      "datiCliente": {
-        "nome": "Mario Rossi"
-      },
-      "firma_disegnata": "",
-      "firma_disegnata_clausole": "",
-      "pdf_url": "",
-      "signed_at": "2026-08-28T09:10:47.208Z"
-    },
-    {
-      "id": "f659876f-26fe-4628-ad9f-2a717b3d25e7",
-      "quote_id": "7eedebfc",
-      "tipoContratto": "wedding",
-      "lingua": "it",
-      "prezzo": "10500",
-      "datiCliente": {
-        "nome": "Mario",
-        "cognome": "Pepe",
-        "email": "mario@test.it",
-        "telefono": "3331234567",
-        "luogo_di_nascita": "Napoli",
-        "data_di_nascita": "15/07/1983",
-        "citta_di_residenza": "Napoli",
-        "indirizzo": "Via Roma",
-        "numero_civico": "1",
-        "cap": "80100",
-        "codice_fiscale": "PPEMRA83L15F839X",
+        "id": "2ded73a5-1324-4717-a737-757a148b1a08",
+        "nome": "Davide",
+        "cognome": "Rinaldi",
         "sposera_nome": "Elena",
-        "sposera_cognome": "Dumea",
-        "data_evento": "2027-06-20T19:30",
-        "accetto": true,
-        "comunicazione_terzi": true,
-        "mezzo_anticipo": "Bonifico Bancario",
-        "mezzo_secondo_acconto": "Bonifico Bancario",
-        "mezzo_saldo": "Bonifico Bancario"
-      },
-      "firma_disegnata": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-      "firma_disegnata_clausole": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-      "pdf_url": "https://pub-ace85c0d97114c1a980199bf8afb379b.r2.dev/contratti/wedding/2026-10-07T13-53-19_Mario-Pepe.pdf",
-      "signed_at": "2026-10-07T13:53:20.798Z"
+        "sposera_cognome": "Sorrentino",
+        "email": "davide.rinaldi@gmail.com",
+        "telefono": "+39 333 1122334",
+        "codice_fiscale": "CF8C03AC08-F8A3-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
+    },
+    {
+      "quote_id": "91e1475a-ef5f-4be0-880b-232ec8a63c7b",
+      "tipo_evento": "wedding",
+      "firmato_il": "2026-09-15T15:30:00.000Z",
+      "datiCliente": {
+        "id": "598f7982-f962-4f06-b695-9bbd061d4841",
+        "nome": "Gennaro",
+        "cognome": "Marino",
+        "sposera_nome": "Federica",
+        "sposera_cognome": "Vitale",
+        "email": "gennaro.marino@alice.it",
+        "telefono": "+39 340 5566778",
+        "codice_fiscale": "CF397A5DF1-B3DE-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
+    },
+    {
+      "quote_id": "560c8969-b516-4a4f-8bc3-5f6dc3c7ed99",
+      "tipo_evento": "wedding",
+      "firmato_il": "2026-09-15T15:30:00.000Z",
+      "datiCliente": {
+        "id": "1f04f52a-41e3-413f-ac18-f16bed9ecd5e",
+        "nome": "Claudio",
+        "cognome": "Ferri",
+        "sposera_nome": "Simona",
+        "sposera_cognome": "Marchetti",
+        "email": "claudio.ferri@virgilio.it",
+        "telefono": "+39 345 6677889",
+        "codice_fiscale": "CFCF3AFB9B-C76B-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
+    },
+    {
+      "quote_id": "dffa3705-5312-4bfe-924a-996c2e44fa7f",
+      "tipo_evento": "wedding",
+      "firmato_il": "2026-09-15T15:30:00.000Z",
+      "datiCliente": {
+        "id": "2351289a-1901-4556-9dea-f6afa03dc829",
+        "nome": "Federico",
+        "cognome": "Testa",
+        "sposera_nome": "Ludovica",
+        "sposera_cognome": "Leone",
+        "email": "federico.testa@hotmail.it",
+        "telefono": "+39 346 7788990",
+        "codice_fiscale": "CFAE3706F6-5FFA-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z"
+      }
     }
   ],
   "wedding_diaries": [
-    {
-      "id": "922a33c3-162a-4ee7-8a8c-eec4c6253c96",
-      "client_id": "test-client-faq",
-      "music_preferences": "Preferenza musicale espressa: \"Fino a che ora è consentita la musica all'aperto nei giardini?\"",
-      "updated_at": "2026-09-05T10:04:53.566Z",
-      "preferred_spaces": [
-        "Boschetto Panoramico (Rito Simbolico)"
-      ]
-    },
-    {
-      "id": "27388571-a4c8-4b46-a1fa-461531e43bf3",
-      "client_id": "challenger-diary-test-1788602693618",
-      "palette": "Botanic Green & Eucalyptus",
-      "updated_at": "2026-09-05T10:04:53.691Z",
-      "dietary_notes": "Segnalazione cliente via AI Concierge: \"Vi comunico che abbiamo 4 ospiti celiaci gravi che necessitano di menù gluten free certificato e 2 vegetariani\"",
-      "music_preferences": "Preferenza musicale espressa: \"Come musica desideriamo una band swing e jazz dal vivo durante l'aperitivo e poi dj set\"",
-      "preferred_spaces": [
-        "Giardino degli Aranci (Cocktail & Aperitivi)",
-        "Sala Bianca (Pranzo/Cena Panoramica)"
-      ]
-    },
     {
       "id": "763a01f2-fcb4-468e-9157-6ca0dbd413be",
       "client_id": "demo-client",
       "music_preferences": "Preferenza musicale espressa: \"A che ora deve finire la musica all aperto?\"",
       "updated_at": "2026-09-17T19:43:15.479Z"
+    },
+    {
+      "id": "ea99d179-5041-44f6-8682-d8c9fc80437b",
+      "client_id": "b82a0f22-dd90-4c73-ac66-ddf212f17a7c",
+      "quote_id": "2ea7faa3-ef17-4d28-b067-6b33a1f12e80",
+      "answers": {
+        "music_preference": "Band Swing & Bossa Nova per buffet aperitivo in Agrumeto, poi DJ Set",
+        "style_mood": "Elegante botanico con dettagli agrumi e ceramiche vietresi",
+        "first_dance": "'A te' - Lorenzo Jovanotti",
+        "cake_cutting": "Millefoglie espressa con frutti di bosco e fontane luminose",
+        "dietary_notes": "5 celiaci certificati, 2 vegani, 1 allergia grave ai crostacei",
+        "general_notes": "Gli sposi desiderano ingresso trionfale in giardino con brindisi sotto gli aranci.",
+        "ceremony_type": "Rito Simbolico nel Giardino delle Promesse",
+        "guest_count_estimate": "140",
+        "open_bar_cocktails": "Gin Mare, Vodka Belvedere, Mojito all'Arancio"
+      },
+      "updated_at": "2026-10-05T18:00:00.000Z"
+    },
+    {
+      "id": "417b7e8a-72a6-4aa9-999b-474b21a05273",
+      "client_id": "6db3038f-140d-40a4-b7de-e1dd06590dd2",
+      "quote_id": "e2bd4cb2-d65b-4211-adf6-0b39c00f58cd",
+      "answers": {
+        "music_preference": "Arpa celtica e violino al tramonto, lounge bar dopocena",
+        "style_mood": "Rustico chic con candele sospese e tufo illuminato caldo",
+        "first_dance": "'Perfect' - Ed Sheeran",
+        "cake_cutting": "Naked cake con crema chantilly e gocce di cioccolato",
+        "dietary_notes": "3 celiaci, 1 intollerante al lattosio",
+        "general_notes": "Tavoli imperiali in Sala Tufo con runner di eucalipto.",
+        "ceremony_type": "Rito Simbolico nel Giardino delle Promesse",
+        "guest_count_estimate": "85",
+        "open_bar_cocktails": "Gin Mare, Vodka Belvedere, Mojito all'Arancio"
+      },
+      "updated_at": "2026-10-05T18:00:00.000Z"
+    },
+    {
+      "id": "a87923e7-86e4-4ee0-81d6-7a988b903394",
+      "client_id": "2ded73a5-1324-4717-a737-757a148b1a08",
+      "quote_id": "c903448e-6a08-43ed-8082-a87f8c648192",
+      "answers": {
+        "music_preference": "Pianoforte a coda e voce dal vivo",
+        "style_mood": "Total White con accenti oro e lino naturale",
+        "first_dance": "'She' - Elvis Costello",
+        "cake_cutting": "Torta monumentale a piani all'arancia e mandorla",
+        "dietary_notes": "4 celiaci, 1 intollerante al nichel",
+        "general_notes": "Centrotavola floreali bassi con ortensie bianche e rose inglesi.",
+        "ceremony_type": "Rito Simbolico nel Giardino delle Promesse",
+        "guest_count_estimate": "90",
+        "open_bar_cocktails": "Gin Mare, Vodka Belvedere, Mojito all'Arancio"
+      },
+      "updated_at": "2026-10-05T18:00:00.000Z"
+    },
+    {
+      "id": "444cbcbf-d4c9-433c-a556-ea6da53d25b8",
+      "client_id": "598f7982-f962-4f06-b695-9bbd061d4841",
+      "quote_id": "91e1475a-ef5f-4be0-880b-232ec8a63c7b",
+      "answers": {
+        "music_preference": "Quartetto d'archi classico all'accoglienza",
+        "style_mood": "Romantico mediterraneo con ulivo e rosmarino",
+        "first_dance": "'Il cielo in una stanza'",
+        "cake_cutting": "Crostata monumentale di frutta fresca di stagione",
+        "dietary_notes": "2 celiaci, 3 vegetariani",
+        "general_notes": "Stesso turno del matrimonio Rinaldi: sale indipendenti con acustica separata.",
+        "ceremony_type": "Rito Simbolico nel Giardino delle Promesse",
+        "guest_count_estimate": "75",
+        "open_bar_cocktails": "Gin Mare, Vodka Belvedere, Mojito all'Arancio"
+      },
+      "updated_at": "2026-10-05T18:00:00.000Z"
+    },
+    {
+      "id": "7fba01a2-0456-472b-a1b1-a60d3ed42bd8",
+      "client_id": "1f04f52a-41e3-413f-ac18-f16bed9ecd5e",
+      "quote_id": "560c8969-b516-4a4f-8bc3-5f6dc3c7ed99",
+      "answers": {
+        "music_preference": "Trio jazz all'accoglienza, sax solista al taglio torta, DJ set scatenato",
+        "style_mood": "Luxury botanico con lampadari di cristallo tra gli aranci",
+        "first_dance": "'All of Me' - John Legend",
+        "cake_cutting": "Torta d'autore con cascata di fiori freschi e fuochi pirotecnici",
+        "dietary_notes": "8 celiaci (richiesto menu parallelo completo Iovino), 3 vegani, 2 senza lattosio",
+        "general_notes": "Sposi molto attenti alla mise en place: piatti in porcellana dipinta a mano.",
+        "ceremony_type": "Rito Simbolico nel Giardino delle Promesse",
+        "guest_count_estimate": "150",
+        "open_bar_cocktails": "Gin Mare, Vodka Belvedere, Mojito all'Arancio"
+      },
+      "updated_at": "2026-10-05T18:00:00.000Z"
+    },
+    {
+      "id": "73761bed-0a74-4ec8-8719-3e69a86d18b8",
+      "client_id": "2351289a-1901-4556-9dea-f6afa03dc829",
+      "quote_id": "dffa3705-5312-4bfe-924a-996c2e44fa7f",
+      "answers": {
+        "music_preference": "Band acustica live all'aperitivo, DJ Set dopocena fino alle 03:00",
+        "style_mood": "Glamour estivo sotto le stelle con candele e specchi",
+        "first_dance": "'Thinking Out Loud'",
+        "cake_cutting": "Torta monumentale a vista con taglio in terrazza panoramica",
+        "dietary_notes": "6 celiaci, 1 allergia alla frutta secca",
+        "general_notes": "Richiesto angolo sigari e carretto graffette caldo alle 02:00.",
+        "ceremony_type": "Rito Simbolico nel Giardino delle Promesse",
+        "guest_count_estimate": "160",
+        "open_bar_cocktails": "Gin Mare, Vodka Belvedere, Mojito all'Arancio"
+      },
+      "updated_at": "2026-10-05T18:00:00.000Z"
     }
   ],
   "quote_changes": [
@@ -4139,5 +4082,188 @@
     }
   ],
   "blog_posts": [],
-  "payments": []
+  "payments": [
+    {
+      "id": "pay-hist-1",
+      "quote_id": "quote-demo4-old",
+      "data_incasso": "2023-05-20",
+      "importo_cents": 1500000,
+      "metodo": "bonifico",
+      "incassato_da": "santo_stefano",
+      "riferimento": "Saldo Matrimonio 2023",
+      "note": "Saldo integrale ricevimento nuziale",
+      "stato": "valido",
+      "registrato_da": "Direzione TDA",
+      "created_at": "2023-05-20T10:00:00.000Z"
+    },
+    {
+      "id": "pay-hist-2",
+      "quote_id": "quote-demo4-new",
+      "data_incasso": "2025-04-10",
+      "importo_cents": 400000,
+      "metodo": "bonifico",
+      "incassato_da": "santo_stefano",
+      "riferimento": "Saldo Battesimo 2025",
+      "note": "Saldo festa privata Club TDA",
+      "stato": "valido",
+      "registrato_da": "Direzione TDA",
+      "created_at": "2025-04-10T10:00:00.000Z"
+    },
+    {
+      "id": "pay-hist-3",
+      "quote_id": "quote-demo3",
+      "data_incasso": "2026-10-05",
+      "importo_cents": 240000,
+      "metodo": "bonifico",
+      "incassato_da": "santo_stefano",
+      "riferimento": "Saldo Ricevimento Notarile",
+      "note": "Saldo evento aziendale",
+      "stato": "valido",
+      "registrato_da": "Direzione TDA",
+      "created_at": "2026-10-05T10:00:00.000Z"
+    },
+    {
+      "id": "7782c606-2cb5-417c-a3c3-fa6ee75594c9",
+      "quote_id": "2ea7faa3-ef17-4d28-b067-6b33a1f12e80",
+      "data_incasso": "2026-09-15",
+      "importo_cents": 150000,
+      "metodo": "bonifico",
+      "incassato_da": "santo_stefano",
+      "riferimento": "CRO: IT9801239842",
+      "note": "Caparra confirmatoria alla firma",
+      "stato": "valido",
+      "registrato_da": "Roberto Sola (Direzione)",
+      "created_at": "2026-09-15T10:00:00.000Z"
+    },
+    {
+      "id": "617831e7-cd81-4a7a-ba41-d8e7f299c6a3",
+      "quote_id": "2ea7faa3-ef17-4d28-b067-6b33a1f12e80",
+      "data_incasso": "2027-01-03",
+      "importo_cents": 300000,
+      "metodo": "bonifico",
+      "incassato_da": "iovino",
+      "riferimento": "CRO: IT5509823411",
+      "note": "2° Acconto -6 mesi somministrazione cucina",
+      "stato": "valido",
+      "registrato_da": "Roberto Sola (Direzione)",
+      "created_at": "2027-01-03T10:00:00.000Z"
+    },
+    {
+      "id": "67be8b9b-ab86-42f7-9568-005f26dbd02a",
+      "quote_id": "e2bd4cb2-d65b-4211-adf6-0b39c00f58cd",
+      "data_incasso": "2026-09-20",
+      "importo_cents": 150000,
+      "metodo": "bonifico",
+      "incassato_da": "santo_stefano",
+      "riferimento": "CRO: IT1209384756",
+      "note": "Caparra confirmatoria blocco data Sala Tufo",
+      "stato": "valido",
+      "registrato_da": "Roberto Sola (Direzione)",
+      "created_at": "2026-09-20T10:00:00.000Z"
+    },
+    {
+      "id": "9f2f8d0a-80ac-44f8-be3d-41ac47979b16",
+      "quote_id": "8583d35c-18ce-4c2b-9eb2-783292aae33e",
+      "data_incasso": "2026-10-01",
+      "importo_cents": 100000,
+      "metodo": "contanti",
+      "incassato_da": "santo_stefano",
+      "riferimento": "Rif: Ricevuta Manuale n. 44",
+      "note": "Acconto confirmatorio festa di laurea",
+      "stato": "valido",
+      "registrato_da": "Roberto Sola (Direzione)",
+      "created_at": "2026-10-01T10:00:00.000Z"
+    },
+    {
+      "id": "e2bdcb08-b4fa-4fc5-8332-b78e361223b5",
+      "quote_id": "c903448e-6a08-43ed-8082-a87f8c648192",
+      "data_incasso": "2026-09-10",
+      "importo_cents": 150000,
+      "metodo": "bonifico",
+      "incassato_da": "santo_stefano",
+      "riferimento": "CRO: IT4409823412",
+      "note": "Caparra confirmatoria Sala Bianca",
+      "stato": "valido",
+      "registrato_da": "Roberto Sola (Direzione)",
+      "created_at": "2026-09-10T10:00:00.000Z"
+    },
+    {
+      "id": "15f8023e-010e-4d15-a8f2-49c577e44479",
+      "quote_id": "91e1475a-ef5f-4be0-880b-232ec8a63c7b",
+      "data_incasso": "2026-09-12",
+      "importo_cents": 150000,
+      "metodo": "bonifico",
+      "incassato_da": "santo_stefano",
+      "riferimento": "CRO: IT7788990011",
+      "note": "Caparra confirmatoria Sala Tufo",
+      "stato": "valido",
+      "registrato_da": "Roberto Sola (Direzione)",
+      "created_at": "2026-09-12T10:00:00.000Z"
+    },
+    {
+      "id": "cb3311a9-792c-4de9-b720-d9a36e9142f7",
+      "quote_id": "560c8969-b516-4a4f-8bc3-5f6dc3c7ed99",
+      "data_incasso": "2026-08-01",
+      "importo_cents": 150000,
+      "metodo": "bonifico",
+      "incassato_da": "santo_stefano",
+      "riferimento": "CRO: IT8829103948",
+      "note": "Caparra confirmatoria iniziale",
+      "stato": "valido",
+      "registrato_da": "Roberto Sola (Direzione)",
+      "created_at": "2026-08-01T10:00:00.000Z"
+    },
+    {
+      "id": "4549c9b9-0426-4b56-912e-126756b74fb2",
+      "quote_id": "560c8969-b516-4a4f-8bc3-5f6dc3c7ed99",
+      "data_incasso": "2027-01-17",
+      "importo_cents": 300000,
+      "metodo": "bonifico",
+      "incassato_da": "iovino",
+      "riferimento": "CRO: IT9948201948",
+      "note": "2° Acconto Banqueting Iovino",
+      "stato": "valido",
+      "registrato_da": "Roberto Sola (Direzione)",
+      "created_at": "2027-01-17T10:00:00.000Z"
+    },
+    {
+      "id": "8616a124-a54b-4dc9-8d3b-5ea66d13fa7a",
+      "quote_id": "560c8969-b516-4a4f-8bc3-5f6dc3c7ed99",
+      "data_incasso": "2027-05-02",
+      "importo_cents": 200000,
+      "metodo": "contanti",
+      "incassato_da": "santo_stefano",
+      "riferimento": "Quietanza cassa n. 88",
+      "note": "Versamento straordinario anticipato su canone",
+      "stato": "valido",
+      "registrato_da": "Roberto Sola (Direzione)",
+      "created_at": "2027-05-02T10:00:00.000Z"
+    },
+    {
+      "id": "b18c267d-abc1-4dcf-963d-8b29d7fc1c46",
+      "quote_id": "dffa3705-5312-4bfe-924a-996c2e44fa7f",
+      "data_incasso": "2026-08-25",
+      "importo_cents": 150000,
+      "metodo": "bonifico",
+      "incassato_da": "santo_stefano",
+      "riferimento": "CRO: IT4473829102",
+      "note": "Caparra confirmatoria blocco data estate 2027",
+      "stato": "valido",
+      "registrato_da": "Roberto Sola (Direzione)",
+      "created_at": "2026-08-25T10:00:00.000Z"
+    },
+    {
+      "id": "329ae0b0-2212-4d81-9c62-6401f219129a",
+      "quote_id": "dffa3705-5312-4bfe-924a-996c2e44fa7f",
+      "data_incasso": "2027-01-31",
+      "importo_cents": 300000,
+      "metodo": "bonifico",
+      "incassato_da": "iovino",
+      "riferimento": "CRO: IT9938291023",
+      "note": "2° Acconto programmato Banqueting",
+      "stato": "valido",
+      "registrato_da": "Roberto Sola (Direzione)",
+      "created_at": "2027-01-31T10:00:00.000Z"
+    }
+  ]
 }

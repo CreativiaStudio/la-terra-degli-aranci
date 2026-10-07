@@ -18,6 +18,7 @@ interface CalendarioClientProps {
   signedPdfs: any[];
   pendingContracts?: PendingContractLocal[];
   quickOptions?: QuickCalendarOptionLocal[];
+  initialMonth?: string;
 }
 
 type OptionFormula = "esclusiva" | "sala_bianca" | "sala_tufo";
@@ -509,7 +510,8 @@ function buildEvents(
 
     const isSigned = q.status === "firmato";
     const isOption = !isSigned && OPTION_STATUSES.includes(String(q.status || "").toLowerCase());
-    if (!isSigned && !isOption) return; // non è ancora una prenotazione reale
+    const isVisita = !isSigned && !isOption && (q.status === "bozza_visita" || q.status === "inviato" || q.tipo_evento === "visita");
+    if (!isSigned && !isOption && !isVisita) return; // non è ancora una prenotazione reale
 
     const intestatari =
       [q.clients?.nome, q.clients?.cognome].filter(Boolean).join(" ").trim() || "Cliente";
@@ -532,10 +534,12 @@ function buildEvents(
 
     events.push({
       id: String(q.id),
-      title: `${isWedding ? "Matrimonio" : "Evento Privato"} ${clientName}`,
+      title: isVisita
+        ? `Visita Accoglienza ${clientName}`
+        : `${isWedding ? "Matrimonio" : "Evento Privato"} ${clientName}`,
       clientName,
-      tipo: isWedding ? "wedding" : "privato",
-      status: isSigned ? "firmato" : "opzione",
+      tipo: isVisita ? "visita" : isWedding ? "wedding" : "privato",
+      status: isSigned ? "firmato" : isOption ? "opzione" : "visita",
       data: String(q.data_evento).slice(0, 10),
       ora: turno === "cena" ? "19:00" : "12:00",
       turno,
@@ -813,10 +817,17 @@ export default function CalendarioClient({
   signedPdfs,
   pendingContracts = [],
   quickOptions = [],
+  initialMonth,
 }: CalendarioClientProps) {
   const router = useRouter();
-  // Mese corrente reale (non più Gennaio 2027 hardcoded).
-  const [currentMonth, setCurrentMonth] = useState<Date>(() => new Date());
+  // Supporta parametro mese iniziale (es. 2027-07) o fallback mese corrente.
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => {
+    if (initialMonth && /^\d{4}-\d{2}$/.test(initialMonth)) {
+      const [y, m] = initialMonth.split("-").map(Number);
+      return new Date(y, m - 1, 1);
+    }
+    return new Date();
+  });
   const [viewMode, setViewMode] = useState<ViewMode>("griglia");
   const [activeFilter, setActiveFilter] = useState<string>("tutti");
   const [eventsList, setEventsList] = useState<CalendarEvent[]>(() =>
@@ -1238,6 +1249,25 @@ export default function CalendarioClient({
             {format(currentMonth, "MMMM yyyy", { locale: it })}
           </strong>
           <button type="button" onClick={handleNextMonth} style={{ background: "#f5f0e8", border: "none", borderRadius: "8px", padding: "0.4rem 0.8rem", fontSize: "1rem", cursor: "pointer", fontWeight: "bold" }}>➡️</button>
+          <button
+            type="button"
+            onClick={() => setCurrentMonth(new Date(2027, 6, 1))}
+            style={{
+              background: currentMonth.getFullYear() === 2027 && currentMonth.getMonth() === 6 ? "#e58c2c" : "#f5f0e8",
+              color: currentMonth.getFullYear() === 2027 && currentMonth.getMonth() === 6 ? "#ffffff" : "#6a6764",
+              border: "none",
+              borderRadius: "8px",
+              padding: "0.4rem 0.8rem",
+              fontSize: "0.82rem",
+              cursor: "pointer",
+              fontWeight: "bold",
+              marginLeft: "0.2rem",
+              whiteSpace: "nowrap",
+            }}
+            title="Visualizza gli eventi simulati di Luglio 2027"
+          >
+            ☀️ Luglio 2027
+          </button>
         </div>
       </div>
 

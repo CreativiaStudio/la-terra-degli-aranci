@@ -3,7 +3,9 @@ import { listPdfsInR2 } from "@/lib/r2";
 import { getPendingContractsLocal, getQuickCalendarOptionsLocal, getStore } from "@/lib/localDb";
 import CalendarioClient from "./CalendarioClient";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 /** Allega il record cliente a una quote proveniente da `store.quotes` (che non lo contiene). */
 function attachClient(store: ReturnType<typeof getStore>, quote: any): any {
@@ -17,7 +19,13 @@ function attachClient(store: ReturnType<typeof getStore>, quote: any): any {
   return { ...quote, clients: client };
 }
 
-export default async function CalendarioPage() {
+export default async function CalendarioPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ month?: string }>;
+}) {
+  const params = searchParams ? await searchParams : {};
+  const initialMonth = params?.month || undefined;
   // 1) Opzioni / contratti in attesa di firma (opzione 7 giorni).
   const pendingContracts = getPendingContractsLocal();
 
@@ -105,6 +113,7 @@ export default async function CalendarioPage() {
       signedPdfs={signedPdfs}
       pendingContracts={pendingContracts}
       quickOptions={getQuickCalendarOptionsLocal()}
+      initialMonth={initialMonth}
     />
   );
 }
