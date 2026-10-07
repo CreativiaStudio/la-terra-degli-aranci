@@ -46,13 +46,23 @@ const ROLES: RoleOption[] = [
     accent: "#8b5cf6",
   },
   {
-    id: "wedding",
-    name: "Sposi (Wedding)",
-    badge: "Cliente",
+    id: "wedding_pre",
+    name: "Sposi (In Opzione)",
+    badge: "Pre-Firma 🔒",
+    icon: "⏳",
+    user: "wedding.demo",
+    pass: "Sposi2027!",
+    dest: "/cliente?mode=wedding&id=demo-pre-firma",
+    accent: "#d97706",
+  },
+  {
+    id: "wedding_signed",
+    name: "Sposi (Firmato)",
+    badge: "Area Sbloccata ✨",
     icon: "👰",
     user: "wedding.demo",
     pass: "Sposi2027!",
-    dest: "/cliente?mode=wedding&id=demo1",
+    dest: "/cliente?mode=wedding&id=demo-firmato",
     accent: "#ec4899",
   },
   {
@@ -91,10 +101,13 @@ export default function DemoRoleSwitcher() {
       if (typeof window !== "undefined") {
         const params = new URLSearchParams(window.location.search);
         const mode = params.get("mode");
+        const id = params.get("id");
         if (mode === "privato") return "privato";
         if (mode === "storico") return "storico";
+        if (id === "demo-pre-firma" || id === "demo1") return "wedding_pre";
+        if (id === "demo-firmato" || id === "demo-signed") return "wedding_signed";
       }
-      return "wedding";
+      return "wedding_signed";
     }
     return null;
   };

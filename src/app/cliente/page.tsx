@@ -29,7 +29,8 @@ export default async function ClientPortalPage({ searchParams }: PageProps) {
 
   // Mappatura parametri e determinazione Modalità Dinamica (Wedding, Privato, Storico)
   let searchId = params.id;
-  if (searchId === "demo1") searchId = "client-demo1";
+  if (searchId === "demo1" || searchId === "demo-pre-firma") searchId = "client-demo-pre-firma";
+  if (searchId === "demo-firmato" || searchId === "demo-signed") searchId = "client-demo-firmato";
   if (searchId === "demo-ai" || searchId === "demo1b") searchId = "client-demo-ai";
   if (searchId === "demo2") searchId = "client-demo-privato";
   if (searchId === "demo3") searchId = "client-demo3";
@@ -53,13 +54,59 @@ export default async function ClientPortalPage({ searchParams }: PageProps) {
     mode = "privato";
   }
 
-  // Trova il preventivo selezionato o configura i mock dedicati per le 3 modalità
+  // Trova il preventivo selezionato o configura i mock dedicati per le modalità
   const clientQuotesRaw = searchId
     ? quotes.filter((q) => q.id === searchId || q.client_id === searchId)
     : quotes;
   let selectedQuote = clientQuotesRaw[0];
 
-  if (mode === "storico") {
+  if (searchId === "client-demo-firmato") {
+    // Sposi che hanno GIÀ firmato il contratto: Area Riservata completamente sbloccata
+    selectedQuote = {
+      id: "quote-demo-firmato",
+      client_id: "client-demo-firmato",
+      tipo_evento: "wedding",
+      data_evento: "2027-06-18",
+      totale_calcolato: 18200,
+      status: "firmato",
+      clients: {
+        id: "client-demo-firmato",
+        nome: "Marco & Sofia",
+        cognome: "(Contratto Firmato)",
+        email: "sposi@laterradegliaranci.it",
+        telefono: "+39 347 1234567",
+      },
+      items: [
+        { descrizione: "Ricevimento Nuziale in Agrumeto & Villa", prezzo_unitario: 14000, quantita: 1 },
+        { descrizione: "Rito Simbolico nel Giardino delle Promesse", prezzo_unitario: 1200, quantita: 1 },
+        { descrizione: "Open Bar & Angolo Graffette Calde", prezzo_unitario: 1800, quantita: 1 },
+        { descrizione: "Illuminazione Architetturale Catene Vintage", prezzo_unitario: 1200, quantita: 1 },
+      ],
+    };
+  } else if (searchId === "client-demo-pre-firma") {
+    // Sposi in Opzione: contratto emesso ma NON ancora firmato (Area bloccata in attesa di firma)
+    selectedQuote = {
+      id: "quote-demo-pre-firma",
+      client_id: "client-demo-pre-firma",
+      tipo_evento: "wedding",
+      data_evento: "2027-09-15",
+      totale_calcolato: 16500,
+      status: "convertito", // Non firmato! Attiva il banner di blocco
+      clients: {
+        id: "client-demo-pre-firma",
+        nome: "Luca & Valentina",
+        cognome: "(Opzione in Attesa di Firma)",
+        email: "opzione.sposi@laterradegliaranci.it",
+        telefono: "+39 338 9876543",
+      },
+      items: [
+        { descrizione: "Ricevimento Nuziale Base in Esclusiva", prezzo_unitario: 14000, quantita: 1 },
+        { descrizione: "Confettata Pregiata Mandorla d'Avola", prezzo_unitario: 450, quantita: 1 },
+        { descrizione: "Brace Gourmet in Giardino", prezzo_unitario: 1000, quantita: 1 },
+        { descrizione: "Show Cooking Pizza Espressa", prezzo_unitario: 1050, quantita: 1 },
+      ],
+    };
+  } else if (mode === "storico") {
     selectedQuote = {
       id: "quote-demo-storico",
       client_id: "client-demo4",
