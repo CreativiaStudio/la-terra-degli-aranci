@@ -25,6 +25,7 @@ const PILLARS: NavItem[] = [
 const SETTINGS: NavItem[] = [
   { href: "/admin/catalogo", label: "Listino servizi", icon: "⚙️" },
   { href: "/admin/articoli", label: "Blog", icon: "📰" },
+  { href: "/admin/scatola-nera", label: "Scatola Nera", icon: "📟" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

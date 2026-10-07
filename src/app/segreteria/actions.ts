@@ -5,6 +5,7 @@ import path from "path";
 import crypto from "crypto";
 
 import { saveLeadQuoteLocal } from "@/lib/localDb";
+import { logActivity, logError } from "@/lib/blackbox";
 
 export interface LeadVisitData {
   nome: string;
@@ -69,6 +70,26 @@ export async function saveLeadVisitSheet(data: LeadVisitData): Promise<SaveLeadR
       // Ignora silenziosamente: fallback locale completato con successo
     }
 
+    const sposi = `${String(data.nome || "").trim()} ${String(data.cognome || "").trim()}`.trim();
+
+    logActivity({
+      category: "LEAD_VISITA",
+      actor: "Tablet Segreteria (iPad)",
+      action: "SCHEDA_VISITA_COMPILATA",
+      message: `Scheda visita compilata per ${sposi || "cliente"} — data richiesta: ${
+        data.dataEvento || "da definire"
+      }.`,
+      metadata: {
+        quoteId,
+        clientId: client.id,
+        sposi: sposi || null,
+        data_richiesta: data.dataEvento || null,
+        tipo_evento: data.tipoEvento,
+        canale_provenienza: data.canaleProvenienza,
+        numero_ospiti: data.numeroOspiti,
+      },
+    });
+
     return {
       success: true,
       message:
@@ -77,6 +98,11 @@ export async function saveLeadVisitSheet(data: LeadVisitData): Promise<SaveLeadR
     };
   } catch (error) {
     console.error("Errore nel salvataggio scheda visita:", error);
+    logError("LEAD_VISITA", "Tablet Segreteria (iPad)", "SCHEDA_VISITA_ERRORE", error, {
+      nome: data?.nome,
+      cognome: data?.cognome,
+      dataEvento: data?.dataEvento,
+    });
     return {
       success: false,
       message: "Errore durante il salvataggio della scheda. Riprova.",

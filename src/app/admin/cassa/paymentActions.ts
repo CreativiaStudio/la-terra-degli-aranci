@@ -5,6 +5,7 @@ import {
   recordPaymentLocal,
   cancelPaymentLocal,
   getQuoteLocal,
+  getAllPaymentsLocal,
 } from '@/lib/localDb';
 import {
   VALID_PAYMENT_METHODS,
@@ -13,6 +14,7 @@ import {
   type PaymentMethod,
   type Company,
 } from '@/lib/eventLedger';
+import { logActivity, logError } from '@/lib/blackbox';
 
 /** Payload di registrazione di un incasso reale. */
 export interface RecordPaymentPayload {
@@ -58,6 +60,19 @@ function errorMessage(err: unknown): string {
   if (err instanceof Error && err.message) return err.message;
   const message = String(err ?? '');
   return message || 'Errore inatteso';
+}
+
+/** Formatta un importo in centesimi come stringa euro leggibile (es. "1.250,00"). */
+function formatEuroCents(cents: number): string {
+  return new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    .format(Math.max(0, Number(cents) || 0) / 100);
+}
+
+/** Etichetta leggibile della società incassante. */
+function companyLabel(company: Company): string {
+  return company === 'santo_stefano'
+    ? 'Tenuta Santo Stefano S.r.l.'
+    : 'Iovino Banqueting S.r.l.';
 }
 
 /** Verifica che una stringa sia una data valida 'YYYY-MM-DD' non futura (max oggi+1). */
@@ -127,9 +142,30 @@ export async function recordPaymentAction(
 
     revalidateEvent(quoteId);
 
+    logActivity({
+      category: 'CASSA',
+      actor: 'Direzione Roberto',
+      action: 'INCASSO_REGISTRATO',
+      message: `Incasso di € ${formatEuroCents(importoCents)} registrato il ${payload.data_incasso} su ${companyLabel(incassatoDa)}.`,
+      metadata: {
+        paymentId: payment.id,
+        quoteId,
+        importo_cents: importoCents,
+        data_incasso: payload.data_incasso,
+        metodo,
+        incassato_da: incassatoDa,
+        riferimento: payload.riferimento ?? null,
+        registrato_da: payment.registrato_da,
+      },
+    });
+
     return { success: true, payment };
   } catch (err: unknown) {
     console.error('Errore in recordPaymentAction:', err);
+    logError('CASSA', 'Direzione Roberto', 'INCASSO_ERRORE', err, {
+      quote_id: payload?.quote_id,
+      importo_cents: payload?.importo_cents,
+    });
     return { success: false, error: errorMessage(err) };
   }
 }
@@ -152,6 +188,8 @@ export async function cancelPaymentAction(
       return { success: false, error: 'Motivo di annullamento obbligatorio (minimo 3 caratteri)' };
     }
 
+    const existing = getAllPaymentsLocal().find((p) => p.id === id);
+
     const success = cancelPaymentLocal(id, reason);
     if (!success) {
       return { success: false, error: 'Pagamento non trovato o già annullato' };
@@ -159,9 +197,28 @@ export async function cancelPaymentAction(
 
     revalidateEvent();
 
+    logActivity({
+      category: 'CASSA',
+      actor: 'Direzione Roberto',
+      action: 'INCASSO_ANNULLATO',
+      message: `Incasso annullato${
+        existing ? ` di € ${formatEuroCents(existing.importo_cents)}` : ''
+      }. Motivo: ${reason}`,
+      metadata: {
+        paymentId: id,
+        motivo: reason,
+        quote_id: existing?.quote_id ?? null,
+        importo_cents: existing?.importo_cents ?? null,
+      },
+    });
+
     return { success: true };
   } catch (err: unknown) {
     console.error('Errore in cancelPaymentAction:', err);
+    logError('CASSA', 'Direzione Roberto', 'INCASSO_ANNULLAMENTO_ERRORE', err, {
+      paymentId,
+      motivo,
+    });
     return { success: false, error: errorMessage(err) };
   }
 }

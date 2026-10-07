@@ -51,3 +51,7 @@ test-*.js
 verify_*.js
 verify_*.mjs
 *.backup*.json
+
+# blackbox audit ledger (runtime, ritenzione 30gg + archivi mensili)
+/data/blackbox_log.json
+/data/blackbox_archive_*.json
