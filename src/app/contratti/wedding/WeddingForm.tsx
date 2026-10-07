@@ -7,6 +7,7 @@ import SignaturePad from "@/components/SignaturePad";
 import DateTextInput from "@/components/DateTextInput";
 import FormulaBadge, { parseSpazi } from "@/components/FormulaBadge";
 import ContractPaymentsSection from "@/components/ContractPaymentsSection";
+import ContractServicesAnnex from "@/components/ContractServicesAnnex";
 import { normalizeEventDateTime, formatItalianDate, turnoLabel, derivePaymentDates, sanitizeDraft } from "@/lib/contractPayments";
 
 export default function WeddingForm({ initialPrezzo, initialPreventivo, initialData, initialSig }: { initialPrezzo: string, initialPreventivo: string, initialData?: any, initialSig?: string }) {
@@ -688,6 +689,8 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo, initialD
             dataSaldo={paymentDates.dataSaldo}
           />
         </div>
+
+        <ContractServicesAnnex lang={lang} />
 
         <SignaturePad label={t.sig_contratto} onEnd={setFirmaContratto} initialData={firmaContratto} />
         
