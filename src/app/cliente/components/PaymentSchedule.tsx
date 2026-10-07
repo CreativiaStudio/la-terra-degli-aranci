@@ -8,10 +8,21 @@ interface PaymentScheduleProps {
   importoSecondoAcconto?: number;
   isSigned?: boolean;
   lang?: "it" | "en";
+  quoteId?: string;
+  clientName?: string;
+  eventDate?: string;
 }
 
-export default function PaymentSchedule({ totalAmount = 15200, importoCaparra, importoSecondoAcconto, isSigned = true, lang = "it" }: PaymentScheduleProps) {
+export default function PaymentSchedule({ totalAmount = 15200, importoCaparra, importoSecondoAcconto, isSigned = true, lang = "it", quoteId, clientName, eventDate }: PaymentScheduleProps) {
   const isEng = lang === "en";
+
+  const handleDownloadReceipt = (stepIndex: number, amount: number) => {
+    const qId = quoteId || "demo-firmato";
+    window.open(
+      `/api/ricevuta?quoteId=${encodeURIComponent(qId)}&step=${stepIndex}&importo=${amount}`,
+      "_blank"
+    );
+  };
 
   // Disciplinare TDA: 1° acconto fisso €1.500 (Santo Stefano S.r.l.), 2° acconto €3.000 a -6 mesi (Iovino Banquetting S.r.l.), Saldo finale a 10-15gg.
   const hasFrozenInstallments = importoCaparra != null && importoSecondoAcconto != null;
@@ -109,7 +120,7 @@ export default function PaymentSchedule({ totalAmount = 15200, importoCaparra, i
               {p.status === "paid" && (
                 <button
                   type="button"
-                  onClick={() => alert(isEng ? "Receipt download available in your dashboard." : "Ricevuta acconto pronta per il download.")}
+                  onClick={() => handleDownloadReceipt(idx + 1, p.amount)}
                   style={{
                     display: "block",
                     marginTop: "0.4rem",

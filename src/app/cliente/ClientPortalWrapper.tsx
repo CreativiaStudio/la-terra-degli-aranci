@@ -694,6 +694,9 @@ export default function ClientPortalWrapper({
             importoSecondoAcconto={quote?.importo_secondo_acconto ?? undefined}
             isSigned={quote?.status === "firmato"}
             lang={lang}
+            quoteId={quote?.id}
+            clientName={clientName}
+            eventDate={eventDateStr}
           />
         )}
 
