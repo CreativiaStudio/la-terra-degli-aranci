@@ -129,50 +129,6 @@
       "updated_at": "2026-10-02T12:24:12.776Z"
     },
     {
-      "id": "114e18c3-3e44-4c04-ba75-20b96177cf06",
-      "client_id": "4977ac69-9867-40fd-b36b-60af16eefbf4",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-01-01",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": 1784753122680,
-          "descrizione": "Affitto Villa in Esclusiva & Menu Wedding Base",
-          "quantita": 1,
-          "prezzo_unitario": 14000
-        },
-        {
-          "id": 1784753157454,
-          "descrizione": "Confettata Elegante Completa (Mandorla d'Avola & Gusti Gourmet)",
-          "quantita": 1,
-          "prezzo_unitario": 450
-        },
-        {
-          "id": 1784753160517,
-          "descrizione": "Show Cooking Pizza Espressa con Mastro Pizzaiolo",
-          "quantita": 1,
-          "prezzo_unitario": 700
-        },
-        {
-          "id": 1784753161479,
-          "descrizione": "Brace Gourmet in Giardino",
-          "quantita": 1,
-          "prezzo_unitario": 1000
-        },
-        {
-          "id": 1784753162563,
-          "descrizione": "Angolo Disegni Live & Caricature ad Acquerello",
-          "quantita": 1,
-          "prezzo_unitario": 500
-        }
-      ],
-      "sconto_fisso": 3000,
-      "totale_calcolato": 13650,
-      "status": "convertito",
-      "created_at": "2026-07-22T20:46:10.389Z",
-      "updated_at": "2026-07-22T21:22:01.426Z"
-    },
-    {
       "id": "a24bd21b-e442-49c0-b660-188b60b7accc",
       "client_id": "a94c8673-8d9d-41e1-b21e-856bfdb2a802",
       "tipo_evento": "wedding",
@@ -273,50 +229,6 @@
       "status": "firmato",
       "totale_calcolato": 4000,
       "created_at": "2026-07-23T07:06:08.106Z"
-    },
-    {
-      "id": "a678f753-4144-4f81-8b48-08abbe09facf",
-      "client_id": "b8d6e8a9-cf98-44aa-a342-4c05527e8229",
-      "tipo_evento": "wedding",
-      "data_evento": "2027-01-22",
-      "numero_ospiti": 100,
-      "items": [
-        {
-          "id": 1784801220474,
-          "descrizione": "Affitto Villa in Esclusiva & Menu Wedding Base",
-          "quantita": 1,
-          "prezzo_unitario": 14000
-        },
-        {
-          "id": 1784801238862,
-          "descrizione": "Angolo Liquori Biologici dell'Agrumeto (Arancello, Limoncello, Mandarinetto)",
-          "quantita": 1,
-          "prezzo_unitario": 400
-        },
-        {
-          "id": 1784801242409,
-          "descrizione": "Brace Gourmet in Giardino",
-          "quantita": 1,
-          "prezzo_unitario": 1000
-        },
-        {
-          "id": 1784801243574,
-          "descrizione": "Brace Gourmet in Giardino",
-          "quantita": 1,
-          "prezzo_unitario": 1000
-        },
-        {
-          "id": 1784801244659,
-          "descrizione": "Show Cooking Caciocavallo Impiccato sulla Brace",
-          "quantita": 1,
-          "prezzo_unitario": 800
-        }
-      ],
-      "sconto_fisso": 500,
-      "totale_calcolato": 16700,
-      "status": "convertito",
-      "created_at": "2026-07-23T10:07:58.737Z",
-      "updated_at": "2026-07-23T10:09:46.627Z"
     },
     {
       "id": "ae629c9d-8a6f-4dae-90ef-2b33d6851111",
@@ -4314,5 +4226,6 @@
       "created_at": "2026-09-05T10:05:52.274Z"
     }
   ],
-  "blog_posts": []
+  "blog_posts": [],
+  "payments": []
 }

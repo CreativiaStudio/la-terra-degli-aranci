@@ -2,7 +2,9 @@ import { getQuotesFast } from "@/lib/dataHelper";
 import { listPdfsInR2 } from "@/lib/r2";
 import EnterpriseDashboardClient from "./EnterpriseDashboardClient";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export default async function AdminDashboardPage() {
   const [quotes, signedPdfs] = await Promise.all([

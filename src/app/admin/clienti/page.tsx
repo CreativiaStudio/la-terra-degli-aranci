@@ -4,7 +4,9 @@ import { computeEventLedger } from "@/lib/eventLedger";
 import { deriveEventStage } from "@/lib/eventStage";
 import ClientiClient, { type ClienteRow, type ClienteEventoRow } from "./ClientiClient";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 /** Estrae la parte data 'YYYY-MM-DD' da un valore ISO/italiano. */
 function onlyDate(value: unknown): string {

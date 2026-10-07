@@ -10,10 +10,21 @@ import { deletePendingContractLocal } from '@/lib/localDb';
 export async function deletePendingContractAction(quoteId: string) {
   const success = deletePendingContractLocal(quoteId);
 
-  revalidatePath('/admin/contratti');
-  revalidatePath('/admin/calendario');
-  revalidatePath('/admin');
-  revalidatePath('/calendario');
+  // Prova eliminazione/aggiornamento su Supabase se configurato
+  try {
+    const { getServiceSupabase } = await import('@/lib/supabase');
+    const supabase = getServiceSupabase();
+    await supabase.from('quotes').delete().eq('id', quoteId);
+  } catch {
+    // ignore
+  }
+
+  revalidatePath('/admin/contratti', 'page');
+  revalidatePath('/admin/contratti', 'layout');
+  revalidatePath('/admin/eventi', 'page');
+  revalidatePath('/admin/calendario', 'page');
+  revalidatePath('/admin', 'page');
+  revalidatePath('/calendario', 'page');
 
   return { success };
 }

@@ -3,7 +3,9 @@ import { getQuotesFast } from "@/lib/dataHelper";
 import { deriveEventStage } from "@/lib/eventStage";
 import { getTurnoTime } from "@/lib/eventStage";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 function formatDate(iso?: string | null): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso ?? ""));

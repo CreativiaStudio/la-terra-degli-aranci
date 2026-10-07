@@ -11,7 +11,9 @@ import CassaClient, {
   type CassaRateRow,
 } from "./CassaClient";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 const CONFIRMED_STAGES = ["confermato", "in_regia", "svolto", "in_firma"];
 

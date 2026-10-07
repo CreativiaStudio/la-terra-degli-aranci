@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
 import type { PendingContractLocal } from "@/lib/localDb";
 import { isoToItalian } from "@/lib/dateInput";
@@ -77,9 +78,14 @@ interface PendingContractsListProps {
 }
 
 export default function PendingContractsList({ initialContracts }: PendingContractsListProps) {
+  const router = useRouter();
   const [contracts, setContracts] = useState<PendingContractLocal[]>(initialContracts);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setContracts(initialContracts);
+  }, [initialContracts]);
 
   const handleCopy = async (contract: PendingContractLocal) => {
     const link = contract.absoluteUrl || contract.url;
@@ -106,6 +112,7 @@ export default function PendingContractsList({ initialContracts }: PendingContra
       const res = await deletePendingContractAction(contract.quoteId);
       if (res?.success) {
         setContracts((prev) => prev.filter((c) => c.quoteId !== contract.quoteId));
+        router.refresh();
       } else {
         window.alert("Impossibile revocare l'opzione o record non trovato.");
       }

@@ -11,7 +11,9 @@ import { computeEventLedger } from "@/lib/eventLedger";
 import { deriveEventStage } from "@/lib/eventStage";
 import EventRegiaClient from "./EventRegiaClient";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 /** Cerca la quote per id esatto e, in fallback, per prefisso a 8 caratteri. */
 function findQuote(id: string) {
