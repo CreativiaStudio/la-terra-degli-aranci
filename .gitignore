@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# scratch briefs
+scratch/
+
 # scratch and test results
 empirical_results*.json
 scratch/

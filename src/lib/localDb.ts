@@ -4,6 +4,14 @@ import crypto from 'crypto';
 import { SERVICES_CATALOG, ServiceCatalogItem } from '@/lib/servicesCatalog';
 import { generateSignature } from '@/lib/crypto';
 import { SEMI_ESCLUSIVA_FORMULE } from '@/lib/contractMeta';
+import type { Payment } from '@/lib/eventLedger';
+
+/**
+ * Re-export dei tipi contabili di riferimento, per permettere ai moduli di
+ * dominio (eventStage, eventDto, ...) di importare `Quote`/`EventLedger` da
+ * `@/lib/localDb` senza dipendenze dirette multiple.
+ */
+export type { Quote, EventLedger, QuoteChange } from '@/lib/eventLedger';
 
 function getDataFilePath(): string {
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || (typeof process.cwd === 'function' && process.cwd().startsWith('/var/task'))) {
@@ -34,6 +42,11 @@ export interface LocalStore {
   ticket_orders?: any[];
   blog_posts?: any[];
   /**
+   * Registro incassi reale (append-only). Vive a livello radice dello store,
+   * separato dalle quote: mappa 1:1 su una futura tabella Supabase `payments`.
+   */
+  payments?: Payment[];
+  /**
    * Contratti finali / accordi diretti generati dall'admin rapido.
    * Volutamente SEPARATI da `signed_contracts` (evita la regressione S1):
    * un accordo diretto non è un contratto firmato e non deve attivare
@@ -54,7 +67,8 @@ export function getStore(): LocalStore {
       project_builder_sessions: [],
       services_catalog: [...SERVICES_CATALOG],
       ticket_orders: [],
-      blog_posts: []
+      blog_posts: [],
+      payments: []
     };
     try {
       fs.writeFileSync(dataFile, JSON.stringify(initial, null, 2), 'utf8');
@@ -72,6 +86,7 @@ export function getStore(): LocalStore {
     if (!parsed.project_builder_sessions) parsed.project_builder_sessions = [];
     if (!parsed.ticket_orders) parsed.ticket_orders = [];
     if (!parsed.blog_posts) parsed.blog_posts = [];
+    if (!parsed.payments) parsed.payments = [];
     if (!parsed.services_catalog || !Array.isArray(parsed.services_catalog) || parsed.services_catalog.length === 0) {
       parsed.services_catalog = [...SERVICES_CATALOG];
       try {
@@ -90,7 +105,8 @@ export function getStore(): LocalStore {
       quote_changes: [],
       project_builder_sessions: [],
       services_catalog: [...SERVICES_CATALOG],
-      ticket_orders: []
+      ticket_orders: [],
+      payments: []
     };
   }
 }
@@ -576,6 +592,77 @@ export function getTicketOrdersLocal(clienteEmail?: string): TicketOrder[] {
   return orders.filter(o => o.cliente_email.toLowerCase() === clienteEmail.toLowerCase());
 }
 
+/* ------------------------------------------------------------------ */
+/* Registro Incassi Reale (collezione `payments`, append-only)         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Registra un incasso reale. Il record non viene mai eliminato fisicamente:
+ * nasce `valido` e può solo essere annullato con motivo (vedi cancelPaymentLocal).
+ */
+export function recordPaymentLocal(
+  payment: Omit<Payment, 'id' | 'created_at' | 'stato'>
+): Payment {
+  const store = getStore();
+  if (!store.payments) store.payments = [];
+
+  const entry: Payment = {
+    ...payment,
+    id: crypto.randomUUID(),
+    stato: 'valido',
+    created_at: new Date().toISOString(),
+  };
+
+  store.payments.push(entry);
+  saveStore(store);
+  return entry;
+}
+
+/**
+ * Annulla un pagamento valido (soft delete append-only). Restituisce `false`
+ * se il pagamento non esiste o è già annullato.
+ */
+export function cancelPaymentLocal(paymentId: string, motivo: string): boolean {
+  const store = getStore();
+  if (!store.payments) store.payments = [];
+
+  const payment = store.payments.find(p => p.id === paymentId);
+  if (!payment || payment.stato === 'annullato') return false;
+
+  payment.stato = 'annullato';
+  payment.annullato_motivo = motivo;
+  payment.annullato_at = new Date().toISOString();
+  saveStore(store);
+  return true;
+}
+
+/** Tutti i pagamenti (validi e annullati) collegati a una quote, per id esatto. */
+export function getPaymentsForQuoteLocal(quoteId: string): Payment[] {
+  const store = getStore();
+  const search = String(quoteId || '').trim().toLowerCase();
+  if (!search) return [];
+
+  return (store.payments || [])
+    .filter(p => p.quote_id && p.quote_id.toLowerCase() === search)
+    .sort((a, b) => {
+      const byDate = String(a.data_incasso || '').localeCompare(String(b.data_incasso || ''));
+      if (byDate !== 0) return byDate;
+      return String(a.created_at || '').localeCompare(String(b.created_at || ''));
+    });
+}
+
+/** Intero registro incassi (validi e annullati), in ordine cronologico. */
+export function getAllPaymentsLocal(): Payment[] {
+  const store = getStore();
+  return (store.payments || [])
+    .slice()
+    .sort((a, b) => {
+      const byDate = String(a.data_incasso || '').localeCompare(String(b.data_incasso || ''));
+      if (byDate !== 0) return byDate;
+      return String(a.created_at || '').localeCompare(String(b.created_at || ''));
+    });
+}
+
 export function saveBlogPostLocal(post: any) {
   const store = getStore();
   if (!store.blog_posts) store.blog_posts = [];
@@ -872,9 +959,84 @@ export function saveAdminQuickQuoteLocal(payload: AdminQuickQuotePayload) {
   return { quoteId, client, quote, clientId: client.id };
 }
 
-/* ------------------------------------------------------------------ */
-/* Opzione Veloce 7gg da Calendario (senza prezzi né preventivi)       */
-/* ------------------------------------------------------------------ */
+export interface ExistingClientEventPayload {
+  /** id esatto del cliente esistente in `store.clients`. */
+  client_id: string;
+  tipo_evento: string;
+  /** 'YYYY-MM-DD' */
+  data_evento: string;
+  turno?: string;
+  tipo_esclusiva?: string;
+  spazi_riservati?: string[];
+  canale_contratto?: string;
+  source?: string;
+  fase_contratto?: string;
+  prezzo?: number;
+  items?: any[];
+  note?: string;
+  importo_caparra?: number;
+  importo_secondo_acconto?: number;
+  opzione?: any;
+}
+
+/**
+ * Crea una quote rapida collegandola in modo RIGOROSO a un cliente esistente
+ * (per id esatto), senza ricerche per contatto. Usata dalla Rubrica Clienti
+ * per il flusso "Nuovo Evento per Cliente Esistente".
+ *
+ * Restituisce `null` se il cliente non esiste, così il chiamante può
+ * interrompere senza creare record orfani.
+ */
+export function createClientEventQuoteLocal(payload: ExistingClientEventPayload) {
+  const store = getStore();
+  const client = (store.clients || []).find((c: any) => c && c.id === payload.client_id);
+  if (!client) return null;
+
+  const prezzo = Number(payload.prezzo) || 0;
+  const caparra = payload.importo_caparra ?? Math.min(1500, prezzo);
+  const secondoAcconto =
+    payload.importo_secondo_acconto ?? Math.min(3000, Math.max(0, prezzo - caparra));
+
+  const quoteId = crypto.randomUUID();
+  const nowIso = new Date().toISOString();
+
+  const quote = {
+    id: quoteId,
+    client_id: client.id,
+    tipo_evento: payload.tipo_evento === "wedding" ? "wedding" : "eventi",
+    tipo_cliente: client.tipo_cliente === "azienda" ? "azienda" : "privato",
+    ragione_sociale: client.ragione_sociale || "",
+    partita_iva: client.partita_iva || "",
+    sdi: client.sdi || "",
+    pec: client.pec || "",
+    data_evento: payload.data_evento,
+    turno: payload.turno || null,
+    tipo_esclusiva: payload.tipo_esclusiva || "semi_esclusiva",
+    spazi_riservati: payload.spazi_riservati || [],
+    canale_contratto: payload.canale_contratto || "accordo_diretto",
+    source: payload.source || "admin_clienti",
+    fase_contratto: payload.fase_contratto || "accordo_diretto",
+    opzione: payload.opzione ?? null,
+    numero_ospiti: 0,
+    items: payload.items || [],
+    sconto_fisso: 0,
+    prezzo: prezzo,
+    totale: prezzo,
+    totale_calcolato: prezzo,
+    importo_caparra: caparra,
+    importo_secondo_acconto: secondoAcconto,
+    note_visita_segreteria: payload.note || "",
+    status: "inviato",
+    created_at: nowIso,
+    updated_at: nowIso,
+    clients: client,
+  };
+
+  store.quotes.unshift(quote);
+  saveStore(store);
+
+  return { quoteId, client, quote, clientId: client.id };
+}
 
 const OPTION_QUICK_DAYS = 7;
 const OPTION_QUICK_PRELAZIONE_ORE = 24;
@@ -1314,6 +1476,44 @@ export function deletePendingContractLocal(quoteId: string): boolean {
 
   saveStore(store);
   return true;
+}
+
+/* ------------------------------------------------------------------ */
+/* Riprogrammazione data/turno evento (Scheda Regia)                   */
+/* ------------------------------------------------------------------ */
+
+export interface QuoteScheduleUpdate {
+  /** Nuova data evento 'YYYY-MM-DD'. */
+  data_evento?: string;
+  turno?: string | null;
+  tipo_esclusiva?: string;
+  spazi_riservati?: string[];
+  formula_opzione?: string | null;
+}
+
+/**
+ * Aggiorna data/turno/formula di un preventivo (match per id esatto o prefisso).
+ * Usato dalla "Sposta Data" della Scheda Regia dopo la verifica dei conflitti.
+ */
+export function updateQuoteScheduleLocal(quoteId: string, schedule: QuoteScheduleUpdate) {
+  const store = getStore();
+  const search = String(quoteId || '').toLowerCase();
+  if (!search) return null;
+
+  const quote =
+    store.quotes.find((q) => String(q.id).toLowerCase() === search) ||
+    store.quotes.find((q) => String(q.id).toLowerCase().startsWith(search));
+  if (!quote) return null;
+
+  if (schedule.data_evento !== undefined) quote.data_evento = schedule.data_evento;
+  if (schedule.turno !== undefined) quote.turno = schedule.turno;
+  if (schedule.tipo_esclusiva !== undefined) quote.tipo_esclusiva = schedule.tipo_esclusiva;
+  if (schedule.spazi_riservati !== undefined) quote.spazi_riservati = schedule.spazi_riservati;
+  if (schedule.formula_opzione !== undefined) quote.formula_opzione = schedule.formula_opzione;
+
+  quote.updated_at = new Date().toISOString();
+  saveStore(store);
+  return quote;
 }
 
 

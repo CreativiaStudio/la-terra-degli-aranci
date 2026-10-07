@@ -18,6 +18,8 @@ interface ClientDocumentsProps {
   onLangChange?: (lang: "it" | "en") => void;
   isHistoricalDashboard?: boolean;
   canEditServices?: boolean;
+  /** Area riservata bloccata in attesa della firma digitale del contratto. */
+  isAreaLocked?: boolean;
   serviceChangesHistory?: any[];
 }
 
@@ -30,6 +32,7 @@ export default function ClientDocuments({
   lang = "it",
   isHistoricalDashboard = false,
   canEditServices = false,
+  isAreaLocked = false,
   serviceChangesHistory = []
 }: ClientDocumentsProps) {
   const isEng = lang === "en";
@@ -353,6 +356,34 @@ export default function ClientDocuments({
             </div>
           )}
         </div>
+
+        {isAreaLocked && !isHistoricalDashboard && (
+          <div
+            style={{
+              display: "flex",
+              gap: "0.9rem",
+              alignItems: "flex-start",
+              background: "#fff8ee",
+              border: "1px solid #f3d9b4",
+              borderLeft: "4px solid #e58c2c",
+              borderRadius: "12px",
+              padding: "1rem 1.2rem",
+              margin: "-0.4rem 0 1.5rem 0",
+            }}
+          >
+            <span style={{ fontSize: "1.3rem", lineHeight: 1 }} aria-hidden="true">🔒</span>
+            <div>
+              <strong style={{ display: "block", color: "#9a5a10", fontSize: "0.92rem", marginBottom: "0.25rem" }}>
+                {isEng ? "Section locked until contract signature" : "Sezione bloccata in attesa di firma"}
+              </strong>
+              <p style={{ margin: 0, color: "#5a4a35", fontSize: "0.9rem", lineHeight: 1.55 }}>
+                {isEng
+                  ? "This section will be editable directly by you as soon as the contract is signed. In the meantime, preliminary preferences can be noted by our office during your visit to the venue."
+                  : "Questa sezione sarà modificabile direttamente da voi non appena il contratto sarà firmato. Nel frattempo, le preferenze preliminari possono essere annotate dalla nostra segreteria durante la visita in villa."}
+              </p>
+            </div>
+          </div>
+        )}
 
         {canEditServices && (
           <p style={{ margin: "-0.8rem 0 1.5rem 0", fontSize: "0.85rem", color: "#888" }}>

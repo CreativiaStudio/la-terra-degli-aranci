@@ -42,6 +42,11 @@ export default function ClientPortalWrapper({
   const isHistorical = mode === "storico" || new Date(eventDateStr).getTime() < new Date().getTime();
   const isPrivato = mode === "privato" || quote?.tipo_evento === "eventi";
 
+  // L'Area Riservata operativa si sblocca SOLO dopo la firma digitale del contratto.
+  // Gli eventi storici restano sempre accessibili (capsula del tempo / Club TDA).
+  const isContractSigned = quote?.status === "firmato";
+  const isAreaLocked = !isContractSigned && !isHistorical;
+
   const [activeTab, setActiveTab] = useState<"documenti" | "diary" | "acconti" | "guida" | "eventi-club" | "concierge" | "tavoli">(
     isHistorical ? "eventi-club" : "documenti"
   );
@@ -60,10 +65,10 @@ export default function ClientPortalWrapper({
   }, []);
 
   const isWedding = mode === "wedding" || quote?.tipo_evento === "wedding";
-  const showDiaryBanner = isWedding && !isHistorical && activeTab !== "diary" && diaryProgress < 80;
+  const showDiaryBanner = isWedding && !isHistorical && !isAreaLocked && activeTab !== "diary" && diaryProgress < 80;
 
-  // I servizi si possono modificare solo su un contratto firmato o attivo, non storico, e fino a 10gg dall'evento
-  const canEditServices = (quote?.status === "firmato" || quote?.status === "inviato" || quote?.status === "accettato" || !quote?.status) && !isHistorical && isWithinEditableWindow(quote?.data_evento);
+  // I servizi si possono modificare solo su un contratto firmato, non storico, e fino a 10gg dall'evento
+  const canEditServices = quote?.status === "firmato" && !isHistorical && !isAreaLocked && isWithinEditableWindow(quote?.data_evento);
 
   // Calcolo giorni mancanti all'evento
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
@@ -76,6 +81,35 @@ export default function ClientPortalWrapper({
       setDaysLeft(diff > 0 ? diff : 0);
     }
   }, [eventDateStr]);
+
+  // Avviso riutilizzabile per le sezioni operative bloccate in attesa di firma.
+  const lockedSectionNotice = (
+    <div
+      style={{
+        display: "flex",
+        gap: "1rem",
+        alignItems: "flex-start",
+        background: "#fff8ee",
+        border: "1px solid #f3d9b4",
+        borderLeft: "4px solid #e58c2c",
+        borderRadius: "16px",
+        padding: "1.4rem 1.6rem",
+        boxShadow: "0 8px 24px rgba(229,140,44,0.08)",
+      }}
+    >
+      <span style={{ fontSize: "1.6rem", lineHeight: 1 }} aria-hidden="true">🔒</span>
+      <div>
+        <h3 style={{ margin: "0 0 0.4rem 0", color: "#9a5a10", fontSize: "1.05rem" }}>
+          {isEng ? "Section locked until contract signature" : "Sezione bloccata in attesa di firma"}
+        </h3>
+        <p style={{ margin: 0, color: "#5a4a35", fontSize: "0.95rem", lineHeight: 1.6 }}>
+          {isEng
+            ? "This section will be editable directly by you as soon as the contract is signed. In the meantime, preliminary preferences can be noted by our office during your visit to the venue."
+            : "Questa sezione sarà modificabile direttamente da voi non appena il contratto sarà firmato. Nel frattempo, le preferenze preliminari possono essere annotate dalla nostra segreteria durante la visita in villa."}
+        </p>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #fbf9f5 0%, #f6f1e9 100%)", color: "#2c2a27", fontFamily: "'Outfit', sans-serif" }}>
@@ -244,6 +278,71 @@ export default function ClientPortalWrapper({
             </div>
           )}
         </div>
+
+        {/* Banner Bloccante: Area Riservata in attesa della firma digitale */}
+        {isAreaLocked && (
+          <div
+            style={{
+              background: "linear-gradient(135deg, #ffffff 0%, #fff7ed 100%)",
+              border: "2px solid #f97316",
+              borderRadius: "20px",
+              padding: "2.2rem 2.5rem",
+              marginBottom: "2rem",
+              boxShadow: "0 12px 30px rgba(249, 115, 22, 0.15)",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "0.8rem", marginBottom: "0.7rem", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "1.8rem", lineHeight: 1 }} aria-hidden="true">🔒</span>
+              <span
+                style={{
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  padding: "0.35rem 0.85rem",
+                  borderRadius: "20px",
+                  background: "#c2410c",
+                  color: "#ffffff",
+                  textTransform: "uppercase",
+                  letterSpacing: "1.2px",
+                }}
+              >
+                {isEng ? "Private Area Pending Signature" : "Area Riservata in Attesa di Firma"}
+              </span>
+            </div>
+
+            <h3 style={{ fontSize: "1.55rem", color: "#1e1b18", margin: "0 0 0.6rem 0", fontWeight: 600 }}>
+              {isEng
+                ? "Date Reserved — Awaiting Digital Signature"
+                : "Data Opzionata — In Attesa di Firma Digitale"}
+            </h3>
+
+            <p style={{ color: "#4a3c31", fontSize: "1rem", lineHeight: 1.65, margin: "0 0 1.5rem 0", maxWidth: "760px" }}>
+              {isEng
+                ? "Welcome to La Terra degli Aranci! Your date is currently held as an option. As soon as the contract is digitally signed, all features of your Private Area will be activated (Wedding Diary, service selection and organisation with our team)."
+                : "Benvenuti a La Terra degli Aranci! La vostra data è attualmente bloccata in opzione. Non appena il contratto sarà firmato digitalmente, si attiveranno tutte le funzionalità della vostra Area Riservata (Wedding Diary, scelta servizi e organizzazione con il nostro team)."}
+            </p>
+
+            <a
+              href={contractUrl || "#"}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.7rem",
+                background: "linear-gradient(135deg, #e58c2c 0%, #d17a22 100%)",
+                color: "#ffffff",
+                padding: "1.05rem 2rem",
+                borderRadius: "14px",
+                fontWeight: 700,
+                fontSize: "1.02rem",
+                textDecoration: "none",
+                boxShadow: "0 8px 20px rgba(229,140,44,0.4)",
+              }}
+            >
+              {isEng
+                ? "✍️ Sign the Contract to Unlock the Private Area"
+                : "✍️ Firma il Contratto per Sbloccare l'Area Riservata"}
+            </a>
+          </div>
+        )}
 
         {/* Reminder Banner: Wedding Diary incompleto (< 80%) */}
         {showDiaryBanner && (
@@ -449,7 +548,7 @@ export default function ClientPortalWrapper({
                   </button>
                 )}
 
-                {(!showTwoLevelMenu || activeCategory === "organizzazione") && quote?.status === "firmato" && !isHistorical && quote?.tipo_evento === "wedding" && (
+                {(!showTwoLevelMenu || activeCategory === "organizzazione") && !isHistorical && quote?.tipo_evento === "wedding" && (quote?.status === "firmato" || isAreaLocked) && (
                   <button
                     onClick={() => setActiveTab("tavoli")}
                     style={{
@@ -540,11 +639,13 @@ export default function ClientPortalWrapper({
             lang={lang}
             isHistoricalDashboard={isHistorical}
             canEditServices={canEditServices}
+            isAreaLocked={isAreaLocked}
             serviceChangesHistory={serviceChangesHistory}
           />
         )}
 
         {activeTab === "diary" && isWedding && (
+          isAreaLocked ? lockedSectionNotice : (
           <WeddingDiaryForm
             clientId={quote?.client_id || ""}
             quoteId={quote?.id}
@@ -553,9 +654,11 @@ export default function ClientPortalWrapper({
             isReadOnly={isHistorical}
             onProgressChange={handleDiaryProgress}
           />
+          )
         )}
 
         {activeTab === "diary" && !isWedding && (
+          isAreaLocked ? lockedSectionNotice : (
           <PrivateEventDossier
             clientId={quote?.client_id || ""}
             quoteId={quote?.id}
@@ -563,6 +666,7 @@ export default function ClientPortalWrapper({
             lang={lang}
             isReadOnly={isHistorical}
           />
+          )
         )}
 
         {activeTab === "eventi-club" && (
@@ -580,7 +684,7 @@ export default function ClientPortalWrapper({
         )}
 
         {activeTab === "tavoli" && (
-          <GuestManager lang={lang} />
+          isAreaLocked ? lockedSectionNotice : <GuestManager lang={lang} />
         )}
 
         {activeTab === "acconti" && (
