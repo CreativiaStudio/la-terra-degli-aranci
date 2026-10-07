@@ -86,6 +86,107 @@ export function sixMonthsBefore(isoDate: string): string {
   return `${targetYear}-${String(targetMonth).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`;
 }
 
+/**
+ * Estrae un anno a 4 cifre da un codice preventivo/sessione (es. "TDA-2027-089" -> 2027).
+ * Restituisce `null` se non trova un anno plausibile.
+ */
+export function extractYearFromCode(code: string | null | undefined): number | null {
+  const match = /(\d{4})/.exec(String(code ?? ""));
+  if (!match) return null;
+  const year = Number(match[1]);
+  return Number.isFinite(year) && year > 1900 ? year : null;
+}
+
+/**
+ * Data evento di default quando il preventivo non è trovato o non ha una data.
+ * Usa l'anno del codice preventivo se plausibile (>= anno corrente), altrimenti
+ * l'anno successivo. In nessun caso produce date nel passato remoto (es. 1983).
+ */
+export function defaultEventDate(
+  preventivo: string | null | undefined,
+  todayIso: string
+): string {
+  const currentYear = Number(String(todayIso || "").slice(0, 4)) || new Date().getUTCFullYear();
+  const codeYear = extractYearFromCode(preventivo);
+  const year = codeYear && codeYear >= currentYear ? codeYear : currentYear + 1;
+  return `${year}-06-15`;
+}
+
+export interface DerivedPaymentDates {
+  dataAnticipo: string;
+  dataSecondoAcconto: string;
+  dataSaldo: string;
+}
+
+/**
+ * RELAZIONE DETERMINISTICA tra le date economiche e la data evento:
+ * - Anticipo/Caparra = data odierna (giorno della firma del contratto).
+ * - Saldo Canone    = data dell'evento (stesso giorno, parte YYYY-MM-DD).
+ * - 2° Acconto      = sei mesi prima della data dell'evento.
+ * Non legge MAI da bozze locali o da campi diversi dalla data evento.
+ */
+export function derivePaymentDates(
+  dataEventoIso: string,
+  todayIso: string
+): DerivedPaymentDates {
+  const evento = String(dataEventoIso || "").slice(0, 10);
+  const validEvento = /^\d{4}-\d{2}-\d{2}$/.test(evento) ? evento : "";
+  return {
+    dataAnticipo: todayIso,
+    dataSecondoAcconto: validEvento ? sixMonthsBefore(validEvento) : "",
+    dataSaldo: validEvento || todayIso,
+  };
+}
+
+/**
+ * Campi di bozza ammessi: SOLO dati anagrafici compilati dal Cliente e il metodo
+ * di pagamento scelto. Mai date economiche, importi o data evento.
+ */
+export const DRAFT_ALLOWED_FIELDS = [
+  "tipo_cliente",
+  "nazione",
+  "nome",
+  "cognome",
+  "ragione_sociale",
+  "luogo_di_nascita",
+  "data_di_nascita",
+  "citta_di_residenza",
+  "indirizzo",
+  "numero_civico",
+  "cap",
+  "codice_fiscale",
+  "partita_iva",
+  "sdi",
+  "telefono",
+  "email",
+  "pec",
+  "sposera_nome",
+  "sposera_cognome",
+  "tipo_evento",
+  "accetto",
+  "comunicazione_terzi",
+  "marketing",
+  "mezzo_anticipo",
+  "mezzo_secondo_acconto",
+  "mezzo_saldo",
+] as const;
+
+/**
+ * Ripulisce una bozza locale: rimuove QUALSIASI campo economico, importo,
+ * data evento/anticipo/2° acconto/saldo. La bozza può contenere esclusivamente
+ * dati anagrafici del Cliente e il metodo di pagamento scelto.
+ */
+export function sanitizeDraft(fields: any): Record<string, any> {
+  const out: Record<string, any> = {};
+  if (!fields || typeof fields !== "object") return out;
+  for (const key of DRAFT_ALLOWED_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(fields, key) && fields[key] !== undefined) {
+      out[key] = fields[key];
+    }
+  }
+  return out;
+}
+
 export interface ContractFinancials {
   prezzoTotale: number;
   caparra: number;

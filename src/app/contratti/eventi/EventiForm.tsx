@@ -7,7 +7,7 @@ import SignaturePad from "@/components/SignaturePad";
 import DateTextInput from "@/components/DateTextInput";
 import FormulaBadge, { parseSpazi } from "@/components/FormulaBadge";
 import ContractPaymentsSection from "@/components/ContractPaymentsSection";
-import { normalizeEventDateTime, formatItalianDate, turnoLabel } from "@/lib/contractPayments";
+import { normalizeEventDateTime, formatItalianDate, turnoLabel, derivePaymentDates, sanitizeDraft } from "@/lib/contractPayments";
 
 export default function EventiForm({ initialPrezzo, initialPreventivo, initialData, initialSig }: { initialPrezzo: string, initialPreventivo: string, initialData?: any, initialSig?: string }) {
   const [lang, setLang] = useState<"it" | "en">("it");
@@ -23,7 +23,7 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
   const [isSuccess, setIsSuccess] = useState(false);
   const [customError, setCustomError] = useState("");
 
-  const { register, handleSubmit, watch, reset, control, formState: { errors } } = useForm({
+  const { register, handleSubmit, watch, reset, setValue, control, formState: { errors } } = useForm({
     defaultValues: {
       tipo_cliente: initialData?.tipo_cliente === "azienda" ? "azienda" : "privato",
       nazione: "Italia",
@@ -71,6 +71,26 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
   const importoSecondoAcconto = Number(formValues?.importo_secondo_acconto ?? initialData?.importo_secondo_acconto ?? 0) || 0;
   const importoSaldo = Number(formValues?.importo_saldo ?? initialData?.importo_saldo ?? 0) || 0;
 
+  // Data odierna = giorno della firma (anticipo/caparra).
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  // RELAZIONE DETERMINISTICA: le date economiche dipendono SOLO dalla data evento.
+  // - Saldo = giorno dell'evento
+  // - 2° acconto = 6 mesi prima dell'evento
+  // - Anticipo = oggi (firma)
+  // Non ereditano MAI data di nascita o vecchie bozze sporche.
+  const dataEventoIso = String(formValues?.data_evento || "").slice(0, 10);
+  const paymentDates = derivePaymentDates(dataEventoIso, todayIso);
+
+  // Allinea i campi registrati (che scorrono nel payload) alla data evento,
+  // anche quando la data evento arriva da initialData/watch.
+  useEffect(() => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dataEventoIso)) return;
+    setValue("data_saldo", paymentDates.dataSaldo, { shouldDirty: false });
+    setValue("data_secondo_acconto", paymentDates.dataSecondoAcconto, { shouldDirty: false });
+    setValue("data_anticipo", paymentDates.dataAnticipo, { shouldDirty: false });
+  }, [dataEventoIso, paymentDates.dataSaldo, paymentDates.dataSecondoAcconto, paymentDates.dataAnticipo, setValue]);
+
   // Pulisce vecchie bozze globali non indicizzate
   useEffect(() => {
     try {
@@ -86,7 +106,12 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       const savedDraft = localStorage.getItem(draftKey);
       if (savedDraft) {
         const parsed = JSON.parse(savedDraft);
-        draftFields = parsed.form || {};
+        // IGNORA e CANCELLA ogni campo economico o data evento/saldo/anticipo/acconto.
+        // La bozza può contenere solo dati anagrafici del Cliente e il metodo di pagamento.
+        draftFields = sanitizeDraft(parsed.form);
+        try {
+          localStorage.setItem(draftKey, JSON.stringify({ form: draftFields }));
+        } catch {}
       }
     } catch (e) {
       console.error("Errore nel recupero bozza", e);
@@ -94,11 +119,10 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
 
     // Unisce: la bozza del cliente compila SOLO i campi mancanti (residenza, nascita, etc.)
     // mentre i campi inseriti da Roberto (initialData) hanno sempre la priorità e appaiono già compilati.
-    // La data/orario normalizzata ha SEMPRE la priorità: initialData (concordata
-    // dalla direzione) batte la bozza locale, che potrebbe essere vuota o malformata.
+    // La data evento proviene ESCLUSIVAMENTE da initialData (concordata dalla direzione).
     const resolvedDataEvento = initialData?.data_evento
       ? normalizeEventDateTime(initialData.data_evento, initialData?.turno)
-      : normalizeEventDateTime(draftFields.data_evento, initialData?.turno);
+      : "";
 
     reset({
       tipo_cliente: initialData?.tipo_cliente === "azienda" ? "azienda" : (draftFields.tipo_cliente || "privato"),
@@ -130,9 +154,9 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       mezzo_secondo_acconto: draftFields.mezzo_secondo_acconto || initialData?.mezzo_secondo_acconto || "Bonifico Bancario",
       mezzo_saldo: draftFields.mezzo_saldo || initialData?.mezzo_saldo || "Bonifico Bancario",
       // Importi e date restano vincolati alla direzione: initialData vince sempre.
-      data_anticipo: initialData?.data_anticipo || draftFields.data_anticipo || "",
+      data_anticipo: initialData?.data_anticipo || "",
       data_secondo_acconto: initialData?.data_secondo_acconto || "",
-      data_saldo: initialData?.data_saldo || draftFields.data_saldo || "",
+      data_saldo: initialData?.data_saldo || "",
       prezzo_totale: initialData?.prezzo_totale ?? 0,
       importo_caparra: initialData?.importo_caparra ?? 0,
       importo_secondo_acconto: initialData?.importo_secondo_acconto ?? 0,
@@ -145,7 +169,8 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
   useEffect(() => {
     const draftKey = `draft_eventi_form_${initialPreventivo}`;
     const timeoutId = setTimeout(() => {
-      const draft = { form: formValues };
+      // Salva SOLO dati anagrafici e metodo di pagamento: mai importi, date evento o scadenze.
+      const draft = { form: sanitizeDraft(formValues) };
       try {
         localStorage.setItem(draftKey, JSON.stringify(draft));
       } catch {}
@@ -614,9 +639,9 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
             caparra={importoCaparra}
             secondoAcconto={importoSecondoAcconto}
             saldo={importoSaldo}
-            dataAnticipo={formValues?.data_anticipo || ""}
-            dataSecondoAcconto={formValues?.data_secondo_acconto || ""}
-            dataSaldo={formValues?.data_saldo || ""}
+            dataAnticipo={paymentDates.dataAnticipo}
+            dataSecondoAcconto={paymentDates.dataSecondoAcconto}
+            dataSaldo={paymentDates.dataSaldo}
           />
         </div>
 

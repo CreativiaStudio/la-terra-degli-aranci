@@ -6,6 +6,8 @@ import {
   resolveTurno,
   normalizeEventDateTime,
   computeContractFinancials,
+  derivePaymentDates,
+  defaultEventDate,
 } from "@/lib/contractPayments";
 
 export const dynamic = 'force-dynamic';
@@ -45,30 +47,41 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ [
   
   const todayIso = new Date().toISOString().slice(0, 10);
   const turno = resolveTurno(matchingQuote);
-  const dataEvento = normalizeEventDateTime(matchingQuote?.data_evento, turno);
+
+  // DATA EVENTO: rigorosamente da matchingQuote se presente, altrimenti fallback
+  // deterministico basato sull'anno del codice preventivo (mai date nel passato).
+  const resolvedEvento = matchingQuote?.data_evento
+    ? normalizeEventDateTime(matchingQuote.data_evento, turno)
+    : normalizeEventDateTime(defaultEventDate(preventivo, todayIso), turno);
+  const dataEvento = resolvedEvento || normalizeEventDateTime(defaultEventDate(preventivo, todayIso), turno);
   const dataEventoIso = dataEvento ? dataEvento.slice(0, 10) : "";
+
+  // DATE ECONOMICHE: derivate SOLO dalla data evento (saldo = evento; 2° acconto = -6 mesi;
+  // anticipo = oggi). Non leggono mai da bozze locali.
+  const paymentDates = derivePaymentDates(dataEventoIso, todayIso);
   const financials = computeContractFinancials(matchingQuote, prezzo, "wedding");
 
-  const initialData = matchingQuote ? {
-    nome: matchingQuote.clients?.nome || "",
-    cognome: matchingQuote.clients?.cognome || "",
-    email: matchingQuote.clients?.email || "",
-    telefono: matchingQuote.clients?.telefono || "",
-    codice_fiscale: matchingQuote.clients?.codice_fiscale || "",
-    tipo_cliente: (matchingQuote as any).tipo_cliente || matchingQuote.clients?.tipo_cliente || "privato",
-    ragione_sociale: (matchingQuote as any).ragione_sociale || matchingQuote.clients?.ragione_sociale || "",
-    partita_iva: (matchingQuote as any).partita_iva || matchingQuote.clients?.partita_iva || "",
-    sdi: (matchingQuote as any).sdi || matchingQuote.clients?.sdi || "",
-    pec: (matchingQuote as any).pec || matchingQuote.clients?.pec || "",
-    sposera_nome: matchingQuote.clients?.sposera_nome || matchingQuote.clients?.partnerNome || "",
-    sposera_cognome: matchingQuote.clients?.sposera_cognome || matchingQuote.clients?.partnerCognome || "",
+  // initialData è SEMPRE definito: garantisce date e importi anche senza preventivo trovato.
+  const initialData = {
+    nome: matchingQuote?.clients?.nome || "",
+    cognome: matchingQuote?.clients?.cognome || "",
+    email: matchingQuote?.clients?.email || "",
+    telefono: matchingQuote?.clients?.telefono || "",
+    codice_fiscale: matchingQuote?.clients?.codice_fiscale || "",
+    tipo_cliente: (matchingQuote as any)?.tipo_cliente || matchingQuote?.clients?.tipo_cliente || "privato",
+    ragione_sociale: (matchingQuote as any)?.ragione_sociale || matchingQuote?.clients?.ragione_sociale || "",
+    partita_iva: (matchingQuote as any)?.partita_iva || matchingQuote?.clients?.partita_iva || "",
+    sdi: (matchingQuote as any)?.sdi || matchingQuote?.clients?.sdi || "",
+    pec: (matchingQuote as any)?.pec || matchingQuote?.clients?.pec || "",
+    sposera_nome: matchingQuote?.clients?.sposera_nome || matchingQuote?.clients?.partnerNome || "",
+    sposera_cognome: matchingQuote?.clients?.sposera_cognome || matchingQuote?.clients?.partnerCognome || "",
     data_evento: dataEvento,
     turno,
-    tipo_esclusiva: (matchingQuote as any).tipo_esclusiva || "",
-    spazi_riservati: (matchingQuote as any).spazi_riservati || (matchingQuote as any).spazi_selezionati || [],
-    data_anticipo: todayIso,
-    data_secondo_acconto: financials.dataSecondoAcconto,
-    data_saldo: dataEventoIso || todayIso,
+    tipo_esclusiva: (matchingQuote as any)?.tipo_esclusiva || "",
+    spazi_riservati: (matchingQuote as any)?.spazi_riservati || (matchingQuote as any)?.spazi_selezionati || [],
+    data_anticipo: paymentDates.dataAnticipo,
+    data_secondo_acconto: paymentDates.dataSecondoAcconto,
+    data_saldo: paymentDates.dataSaldo,
     mezzo_anticipo: "Bonifico Bancario",
     mezzo_secondo_acconto: "Bonifico Bancario",
     mezzo_saldo: "Bonifico Bancario",
@@ -76,7 +89,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ [
     importo_caparra: financials.caparra,
     importo_secondo_acconto: financials.secondoAcconto,
     importo_saldo: financials.saldo,
-  } : undefined;
+  };
 
   return (
     <div className="container">
