@@ -736,13 +736,26 @@ export interface AdminQuickQuotePayload {
 
 /**
  * Crea (o riutilizza) il cliente e genera un preventivo formale per l'admin rapido.
- * Il cliente viene riutilizzato se email o telefono coincidono (case-insensitive).
+ *
+ * Regola di riutilizzo: un cliente esistente viene riutilizzato SOLO quando
+ * coincidono SIA il contatto (email/telefono) SIA nome e cognome (case-insensitive).
+ * Se il contatto coincide ma il nome è diverso (es. "Luca Esposito" vs "Mario Pepe")
+ * si tratta di una persona o simulazione differente: viene creato un nuovo cliente
+ * autonomo con il proprio id, così riepilogo e link del contratto mostrano sempre i
+ * dati inseriti da Roberto.
  */
 export function saveAdminQuickQuoteLocal(payload: AdminQuickQuotePayload) {
   const store = getStore();
 
-  const email = String(payload.cliente.email || "").trim().toLowerCase();
+  const emailRaw = String(payload.cliente.email || "").trim();
+  const email = emailRaw.toLowerCase();
   const telefono = String(payload.cliente.telefono || "").trim();
+  const nome = String(payload.cliente.nome || "").trim();
+  const cognome = String(payload.cliente.cognome || "").trim();
+  const nomeNorm = nome.toLowerCase();
+  const cognomeNorm = cognome.toLowerCase();
+  const partnerNome = String(payload.cliente.partnerNome || "").trim();
+  const partnerCognome = String(payload.cliente.partnerCognome || "").trim();
 
   const tipoCliente: 'privato' | 'azienda' = payload.tipo_cliente === 'azienda' ? 'azienda' : 'privato';
   const ragioneSociale = tipoCliente === 'azienda' ? String(payload.ragione_sociale || "").trim() : "";
@@ -751,50 +764,64 @@ export function saveAdminQuickQuoteLocal(payload: AdminQuickQuotePayload) {
   const pec = tipoCliente === 'azienda' ? String(payload.pec || "").trim() : "";
   const codiceFiscale = String(payload.cliente.codice_fiscale || "").trim();
 
-  let client = store.clients.find(
-    c =>
-      (email && String(c.email || "").trim().toLowerCase() === email) ||
-      (telefono && String(c.telefono || "").trim() === telefono)
-  );
+  // Stesso cliente SOLO se coincidono contatto (email o telefono) E nome + cognome.
+  const hasContact = Boolean(email || telefono);
+  const contactMatches = (c: any) =>
+    (!!email && String(c.email || "").trim().toLowerCase() === email) ||
+    (!!telefono && String(c.telefono || "").trim() === telefono);
+  const nameMatches = (c: any) =>
+    String(c.nome || "").trim().toLowerCase() === nomeNorm &&
+    String(c.cognome || "").trim().toLowerCase() === cognomeNorm;
+
+  let client: any;
+  if (hasContact) {
+    client = store.clients.find((c) => contactMatches(c) && nameMatches(c));
+  }
 
   if (!client) {
+    // Persona (o simulazione) diversa: nuovo record cliente autonomo.
     client = {
       id: crypto.randomUUID(),
-      nome: String(payload.cliente.nome || "").trim(),
-      cognome: String(payload.cliente.cognome || "").trim(),
-      email: String(payload.cliente.email || "").trim(),
-      telefono: telefono,
+      nome,
+      cognome,
+      email: emailRaw,
+      telefono,
       codice_fiscale: codiceFiscale,
       tipo_cliente: tipoCliente,
       ragione_sociale: ragioneSociale,
       partita_iva: partitaIva,
       sdi: sdi,
       pec: pec,
-      sposera_nome: payload.cliente.partnerNome || "",
-      sposera_cognome: payload.cliente.partnerCognome || "",
+      sposera_nome: partnerNome,
+      sposera_cognome: partnerCognome,
       provenienza: "Admin Rapido",
       created_at: new Date().toISOString(),
     };
     store.clients.unshift(client);
   } else {
-    // I dati fiscali aziendali dell'emissione corrente prevalgono su quelli precedenti.
+    // Stesso cliente: i dati dell'emissione corrente aggiornano il record.
+    if (nome) client.nome = nome;
+    if (cognome) client.cognome = cognome;
+    if (emailRaw) client.email = emailRaw;
+    if (telefono) client.telefono = telefono;
+    if (codiceFiscale) client.codice_fiscale = codiceFiscale;
+    if (partnerNome) client.sposera_nome = partnerNome;
+    if (partnerCognome) client.sposera_cognome = partnerCognome;
+
+    client.tipo_cliente = tipoCliente;
     if (tipoCliente === 'azienda') {
-      client.tipo_cliente = 'azienda';
+      // I dati fiscali aziendali dell'emissione corrente prevalgono su quelli precedenti.
       if (ragioneSociale) client.ragione_sociale = ragioneSociale;
       if (partitaIva) client.partita_iva = partitaIva;
       if (sdi) client.sdi = sdi;
       if (pec) client.pec = pec;
-    } else if (!client.tipo_cliente) {
-      client.tipo_cliente = 'privato';
     }
-    if (!client.codice_fiscale && codiceFiscale) client.codice_fiscale = codiceFiscale;
-    // Arricchimento non distruttivo: compila solo i campi mancanti.
-    if (!client.nome && payload.cliente.nome) client.nome = String(payload.cliente.nome).trim();
-    if (!client.cognome && payload.cliente.cognome) client.cognome = String(payload.cliente.cognome).trim();
-    if (!client.email && payload.cliente.email) client.email = String(payload.cliente.email).trim();
-    if (!client.telefono && telefono) client.telefono = telefono;
-    if (!client.sposera_nome && payload.cliente.partnerNome) client.sposera_nome = payload.cliente.partnerNome;
-    if (!client.sposera_cognome && payload.cliente.partnerCognome) client.sposera_cognome = payload.cliente.partnerCognome;
+
+    // Allinea alla tabella `quotes` gli snapshot del cliente già collegati,
+    // così ogni riepilogo riflette sempre i dati aggiornati.
+    (store.quotes || []).forEach((q: any) => {
+      if (q && q.client_id === client.id) q.clients = client;
+    });
   }
 
   const prezzo = Number(payload.prezzo) || 0;
@@ -834,12 +861,15 @@ export function saveAdminQuickQuoteLocal(payload: AdminQuickQuotePayload) {
     status: "inviato",
     created_at: nowIso,
     updated_at: nowIso,
+    // Snapshot del cliente dell'emissione corrente: garantisce che il riepilogo
+    // e il link del contratto mostrino sempre nome/cognome inseriti da Roberto.
+    clients: client,
   };
 
   store.quotes.unshift(quote);
   saveStore(store);
 
-  return { quoteId, client, quote };
+  return { quoteId, client, quote, clientId: client.id };
 }
 
 /* ------------------------------------------------------------------ */
@@ -1252,13 +1282,36 @@ export function deletePendingContractLocal(quoteId: string): boolean {
   const search = String(quoteId || '').trim().toLowerCase();
   if (!search) return false;
 
-  let index = store.quotes.findIndex((q) => q && String(q.id).toLowerCase() === search);
-  if (index === -1) {
-    index = store.quotes.findIndex((q) => q && String(q.id).toLowerCase().startsWith(search));
-  }
-  if (index === -1) return false;
+  // Un id può essere passato per intero o come prefisso (numero preventivo a 8
+  // caratteri). Il match è bidirezionale: id esatto, id che inizia con la
+  // ricerca, oppure ricerca che inizia con l'id.
+  const matches = (value: any): boolean => {
+    const qid = String(value || '').trim().toLowerCase();
+    if (!qid) return false;
+    return qid === search || qid.startsWith(search) || search.startsWith(qid);
+  };
 
-  store.quotes.splice(index, 1);
+  let removed = false;
+
+  // Filtra TUTTE le quote corrispondenti: submit multipli possono aver
+  // generato duplicati, uno splice singolo ne lascerebbe qualcuno orfano.
+  if (Array.isArray(store.quotes)) {
+    const before = store.quotes.length;
+    store.quotes = store.quotes.filter((q) => !(q && matches(q.id)));
+    if (store.quotes.length !== before) removed = true;
+  }
+
+  // Rimuove anche l'eventuale contratto finale collegato, se presente.
+  if (Array.isArray(store.final_contracts)) {
+    const before = store.final_contracts.length;
+    store.final_contracts = store.final_contracts.filter(
+      (fc) => !(fc && (matches(fc.quote_id) || matches(fc.quoteId) || matches(fc.id)))
+    );
+    if (store.final_contracts.length !== before) removed = true;
+  }
+
+  if (!removed) return false;
+
   saveStore(store);
   return true;
 }

@@ -8,10 +8,12 @@ import { deletePendingContractLocal } from '@/lib/localDb';
  * Dopo l'eliminazione rinfresca la cache delle pagine admin interessate.
  */
 export async function deletePendingContractAction(quoteId: string) {
-  deletePendingContractLocal(quoteId);
+  const success = deletePendingContractLocal(quoteId);
 
   revalidatePath('/admin/contratti');
+  revalidatePath('/admin/calendario');
   revalidatePath('/admin');
+  revalidatePath('/calendario');
 
-  return { success: true as const };
+  return { success };
 }

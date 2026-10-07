@@ -79,9 +79,9 @@ export async function saveQuickCalendarOptionAction(input: {
 
 /** Rilascia (elimina) un'opzione rapida liberando lo slot in calendario. */
 export async function releaseQuickCalendarOptionAction(quoteId: string) {
-  const isOpenQuickOption = getQuickCalendarOptionsLocal().some((o) => o.quoteId === quoteId);
-  if (!isOpenQuickOption) return { success: false };
   const deleted = deletePendingContractLocal(quoteId);
   revalidatePath("/admin/calendario");
+  revalidatePath("/admin/contratti");
+  revalidatePath("/admin");
   return { success: deleted };
 }

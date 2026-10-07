@@ -106,6 +106,8 @@ export default function PendingContractsList({ initialContracts }: PendingContra
       const res = await deletePendingContractAction(contract.quoteId);
       if (res?.success) {
         setContracts((prev) => prev.filter((c) => c.quoteId !== contract.quoteId));
+      } else {
+        window.alert("Impossibile revocare l'opzione o record non trovato.");
       }
     } catch (err) {
       console.error("Errore durante la revoca dell'opzione:", err);
