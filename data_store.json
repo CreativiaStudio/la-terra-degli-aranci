@@ -1482,6 +1482,38 @@
       "firma_disegnata_clausole": "",
       "pdf_url": "",
       "signed_at": "2026-08-28T09:10:47.208Z"
+    },
+    {
+      "id": "f659876f-26fe-4628-ad9f-2a717b3d25e7",
+      "quote_id": "7eedebfc",
+      "tipoContratto": "wedding",
+      "lingua": "it",
+      "prezzo": "10500",
+      "datiCliente": {
+        "nome": "Mario",
+        "cognome": "Pepe",
+        "email": "mario@test.it",
+        "telefono": "3331234567",
+        "luogo_di_nascita": "Napoli",
+        "data_di_nascita": "15/07/1983",
+        "citta_di_residenza": "Napoli",
+        "indirizzo": "Via Roma",
+        "numero_civico": "1",
+        "cap": "80100",
+        "codice_fiscale": "PPEMRA83L15F839X",
+        "sposera_nome": "Elena",
+        "sposera_cognome": "Dumea",
+        "data_evento": "2027-06-20T19:30",
+        "accetto": true,
+        "comunicazione_terzi": true,
+        "mezzo_anticipo": "Bonifico Bancario",
+        "mezzo_secondo_acconto": "Bonifico Bancario",
+        "mezzo_saldo": "Bonifico Bancario"
+      },
+      "firma_disegnata": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "firma_disegnata_clausole": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      "pdf_url": "https://pub-ace85c0d97114c1a980199bf8afb379b.r2.dev/contratti/wedding/2026-10-07T13-53-19_Mario-Pepe.pdf",
+      "signed_at": "2026-10-07T13:53:20.798Z"
     }
   ],
   "wedding_diaries": [
