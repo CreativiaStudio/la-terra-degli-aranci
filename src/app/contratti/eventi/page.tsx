@@ -2,6 +2,11 @@ import { Suspense } from "react";
 import EventiForm from "./EventiForm";
 import { generateSignature } from "@/lib/crypto";
 import { getQuotesFast } from "@/lib/dataHelper";
+import {
+  resolveTurno,
+  normalizeEventDateTime,
+  computeContractFinancials,
+} from "@/lib/contractPayments";
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +42,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ [
   const matchingQuote = quotes.find(q => q.id.toLowerCase().startsWith(preventivo.toLowerCase()));
   
   const todayIso = new Date().toISOString().slice(0, 10);
-  const dataEventoIso = matchingQuote?.data_evento ? String(matchingQuote.data_evento).slice(0, 10) : "";
+  const turno = resolveTurno(matchingQuote);
+  const dataEvento = normalizeEventDateTime(matchingQuote?.data_evento, turno);
+  const dataEventoIso = dataEvento ? dataEvento.slice(0, 10) : "";
+  const financials = computeContractFinancials(matchingQuote, prezzo, "eventi");
 
   const initialData = matchingQuote ? {
     nome: matchingQuote.clients?.nome || "",
@@ -50,14 +58,21 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ [
     partita_iva: (matchingQuote as any).partita_iva || matchingQuote.clients?.partita_iva || "",
     sdi: (matchingQuote as any).sdi || matchingQuote.clients?.sdi || "",
     pec: (matchingQuote as any).pec || matchingQuote.clients?.pec || "",
-    data_evento: matchingQuote.data_evento || "",
+    data_evento: dataEvento,
+    turno,
     tipo_evento: (matchingQuote as any).tipo_evento || "",
     tipo_esclusiva: (matchingQuote as any).tipo_esclusiva || "",
     spazi_riservati: (matchingQuote as any).spazi_riservati || (matchingQuote as any).spazi_selezionati || [],
     data_anticipo: todayIso,
+    data_secondo_acconto: financials.dataSecondoAcconto,
     data_saldo: dataEventoIso || todayIso,
     mezzo_anticipo: "Bonifico Bancario",
+    mezzo_secondo_acconto: "Bonifico Bancario",
     mezzo_saldo: "Bonifico Bancario",
+    prezzo_totale: financials.prezzoTotale,
+    importo_caparra: financials.caparra,
+    importo_secondo_acconto: financials.secondoAcconto,
+    importo_saldo: financials.saldo,
   } : undefined;
 
   return (

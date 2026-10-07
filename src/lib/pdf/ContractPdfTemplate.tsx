@@ -3,6 +3,7 @@ import { Document, Page, Text, View, StyleSheet, Image, Font } from '@react-pdf/
 import { isoToItalian } from '@/lib/dateInput';
 import { formatFormulaConcessione } from '@/lib/contractMeta';
 import { SERVICES_CATALOG } from '@/lib/servicesCatalog';
+import { formatEuro, paymentMethodLabel } from '@/lib/contractPayments';
 
 const decodeEntities = (value: string) =>
   String(value || '').replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
@@ -161,6 +162,16 @@ export const ContractPdfTemplate = ({
   const prezzoNum = Number(prezzo) || 0;
   const prezzoFormattato = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(prezzoNum);
 
+  // Piano di pagamento concordato: importi e mezzi scelti dal Cliente nel form.
+  const prezzoTotalePdf = Number(data.prezzo_totale ?? prezzo) || prezzoNum;
+  const caparraPdf = Number(data.importo_caparra ?? Math.min(1500, prezzoTotalePdf)) || 0;
+  const secondoAccontoPdf = Number(data.importo_secondo_acconto ?? 0) || 0;
+  const saldoPdf =
+    Number(data.importo_saldo ?? Math.max(0, prezzoTotalePdf - caparraPdf - secondoAccontoPdf)) || 0;
+  const mezzoAnticipoPdf = paymentMethodLabel(data.mezzo_anticipo, isEn ? 'en' : 'it');
+  const mezzoSecondoPdf = paymentMethodLabel(data.mezzo_secondo_acconto, isEn ? 'en' : 'it');
+  const mezzoSaldoPdf = paymentMethodLabel(data.mezzo_saldo, isEn ? 'en' : 'it');
+
   // Art. 2-bis: formula di concessione. La data è composta per via testuale,
   // senza mai invocare new Date(), per garantire immunità dal timezone shift.
   const dataEventoRaw = String(data.data_evento || '').trim();
@@ -295,6 +306,27 @@ export const ContractPdfTemplate = ({
               {isEn ? "The indicated deposits are paid as an earnest money deposit and will be deducted from the total agreed amount to be paid on the day of the reception. Either party may withdraw from this contract by notifying the other via registered letter with return receipt with at least 30 days' notice from the reception date. In case of withdrawal by the Client, “Santo Stefano S.r.l.” and “Iovino Banqueting S.r.l. soc. unipersonale” are not required to refund any amount; otherwise, they shall be jointly required to return double the deposit received. The final number of guests must be communicated and delivered to the office within 10 days of the event date. This contract may be registered in case of use." : "Gli acconti indicati vengono versati a titolo di caparra confirmatoria e saranno imputati in conto prezzo all’atto del saldo complessivo dell’importo convenuto che sarà versato il giorno del ricevimento. Ciascuna parte potrà recedere dal presente contratto dandone comunicazione all’altra con lettera raccomandata a/r con preavviso di almeno 30 giorni dalla data del ricevimento. In caso di recesso dal presente impegno da parte del Cliente, le società “Santo Stefano S.r.l.” e “Iovino Banqueting S.r.l. soc. unipersonale” non saranno tenute a rendere alcun importo; nel caso contrario, le società “Santo Stefano S.r.l.” e “Iovino Banqueting S.r.l. soc. unipersonale” saranno tenute, solidalmente, alla restituzione del doppio della caparra ricevuta. Il numero definitivo degli ospiti dovrà essere comunicato e consegnato in sede entro 10 gg dalla data dell’evento. Il presente contratto potrà essere registrato in caso di uso."}
             </Text>
 
+            <View style={styles.paragraph} wrap={false}>
+              <Text style={styles.bold}>{isEn ? "Payment plan agreed with management:" : "Piano di pagamento concordato con la direzione:"}</Text>
+              <Text style={{ marginTop: 2 }}>
+                {isEn ? "Total agreed fee" : "Canone totale pattuito"}: {formatEuro(prezzoTotalePdf)}
+              </Text>
+              <Text>
+                {isEn ? "1st deposit (earnest money) upon signing" : "1° acconto (caparra confirmatoria) alla firma"}: {formatEuro(caparraPdf)}{' '}
+                — {isEn ? "payment method" : "metodo di pagamento"}: {mezzoAnticipoPdf}
+              </Text>
+              {secondoAccontoPdf > 0 ? (
+                <Text>
+                  {isEn ? "2nd deposit 6 months before the event" : "2° acconto a -6 mesi dall’evento"}: {formatEuro(secondoAccontoPdf)}{' '}
+                  — {isEn ? "payment method" : "metodo di pagamento"}: {mezzoSecondoPdf}
+                </Text>
+              ) : null}
+              <Text>
+                {isEn ? "Balance on the day of the reception" : "Saldo il giorno del ricevimento"}: {formatEuro(saldoPdf)}{' '}
+                — {isEn ? "payment method" : "metodo di pagamento"}: {mezzoSaldoPdf}
+              </Text>
+            </View>
+
             <View>
               <Text style={[styles.bold, {textAlign: 'center', marginBottom: 5, marginTop: 10}]} minPresenceAhead={60}>{isEn ? "Art. 4-bis - Additional services and subsequent supplements" : "Art. 4-bis — Servizi accessori e successive integrazioni"}</Text>
               {servizi4bis.map((paragrafo, index) => (
@@ -395,7 +427,13 @@ export const ContractPdfTemplate = ({
 
             <Text style={styles.paragraph}>
               {isEn ? "Price agreed:" : "Prezzo concordato:"} {prezzoFormattato} + IVA{'\n'}{'\n'}
-              {isEn ? "First Deposit: €1.500,00 (One thousand five hundred/00) by bank transfer to Santo Stefano srl (Iban IT10D0303203410010000000169)." : "Primo Acconto (caparra confirmatoria): €1.500,00 (Millecinquecento/00) a mezzo bonifico alla Santo Stefano srl (Iban IT10D0303203410010000000169)."}
+              {isEn ? "Total agreed fee:" : "Canone totale pattuito:"} {formatEuro(prezzoTotalePdf)}{'\n'}
+              {isEn ? "First Deposit (earnest money) upon signing:" : "Primo Acconto (caparra confirmatoria) alla firma:"} {formatEuro(caparraPdf)} — {isEn ? "payment method" : "metodo di pagamento"}: {mezzoAnticipoPdf}.{' '}
+              {isEn ? "Bank transfer to Santo Stefano srl (Iban IT10D0303203410010000000169)." : "Bonifico alla Santo Stefano srl (Iban IT10D0303203410010000000169)."}{'\n'}
+              {secondoAccontoPdf > 0
+                ? `${isEn ? "Second deposit 6 months before the event:" : "Secondo acconto a -6 mesi dall’evento:"} ${formatEuro(secondoAccontoPdf)} — ${isEn ? "payment method" : "metodo di pagamento"}: ${mezzoSecondoPdf}.${'\n'}`
+                : ''}
+              {isEn ? "Balance on the day of the event:" : "Saldo il giorno dell’evento:"} {formatEuro(saldoPdf)} — {isEn ? "payment method" : "metodo di pagamento"}: {mezzoSaldoPdf}.
             </Text>
           </View>
         ) : <View />}

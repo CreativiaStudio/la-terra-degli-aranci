@@ -6,6 +6,8 @@ import { useForm, Controller } from "react-hook-form";
 import SignaturePad from "@/components/SignaturePad";
 import DateTextInput from "@/components/DateTextInput";
 import FormulaBadge, { parseSpazi } from "@/components/FormulaBadge";
+import ContractPaymentsSection from "@/components/ContractPaymentsSection";
+import { normalizeEventDateTime, formatItalianDate, turnoLabel } from "@/lib/contractPayments";
 
 export default function WeddingForm({ initialPrezzo, initialPreventivo, initialData, initialSig }: { initialPrezzo: string, initialPreventivo: string, initialData?: any, initialSig?: string }) {
   const [lang, setLang] = useState<"it" | "en">("it");
@@ -41,20 +43,33 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo, initialD
       pec: initialData?.pec || "",
       sposera_nome: initialData?.sposera_nome || "",
       sposera_cognome: initialData?.sposera_cognome || "",
-      data_evento: initialData?.data_evento || "",
+      data_evento: normalizeEventDateTime(initialData?.data_evento, initialData?.turno) || "",
+      turno: initialData?.turno || "pranzo",
       accetto: false,
       comunicazione_terzi: false,
       marketing: "NO",
       mezzo_anticipo: initialData?.mezzo_anticipo || "Bonifico Bancario",
+      mezzo_secondo_acconto: initialData?.mezzo_secondo_acconto || "Bonifico Bancario",
       data_anticipo: initialData?.data_anticipo || "",
+      data_secondo_acconto: initialData?.data_secondo_acconto || "",
       mezzo_saldo: initialData?.mezzo_saldo || "Bonifico Bancario",
-      data_saldo: initialData?.data_saldo || ""
+      data_saldo: initialData?.data_saldo || "",
+      prezzo_totale: initialData?.prezzo_totale ?? 0,
+      importo_caparra: initialData?.importo_caparra ?? 0,
+      importo_secondo_acconto: initialData?.importo_secondo_acconto ?? 0,
+      importo_saldo: initialData?.importo_saldo ?? 0
     }
   });
 
   const tipoCliente = watch("tipo_cliente");
   const nazione = watch("nazione");
   const formValues = watch();
+
+  // Valori economici concordati (sempre vincolati a initialData, con fallback sul form).
+  const prezzoTotale = Number(formValues?.prezzo_totale ?? initialData?.prezzo_totale ?? initialPrezzo) || 0;
+  const importoCaparra = Number(formValues?.importo_caparra ?? initialData?.importo_caparra ?? 0) || 0;
+  const importoSecondoAcconto = Number(formValues?.importo_secondo_acconto ?? initialData?.importo_secondo_acconto ?? 0) || 0;
+  const importoSaldo = Number(formValues?.importo_saldo ?? initialData?.importo_saldo ?? 0) || 0;
 
   // Pulisce vecchie bozze globali non indicizzate
   useEffect(() => {
@@ -79,6 +94,12 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo, initialD
 
     // Unisce: la bozza del cliente compila SOLO i campi mancanti (residenza, nascita, etc.)
     // mentre i campi inseriti da Roberto (initialData) hanno sempre la priorità e appaiono già compilati.
+    // La data/orario normalizzata ha SEMPRE la priorità: initialData (concordata
+    // dalla direzione) batte la bozza locale, che potrebbe essere vuota o malformata.
+    const resolvedDataEvento = initialData?.data_evento
+      ? normalizeEventDateTime(initialData.data_evento, initialData?.turno)
+      : normalizeEventDateTime(draftFields.data_evento, initialData?.turno);
+
     reset({
       tipo_cliente: initialData?.tipo_cliente === "azienda" ? "azienda" : (draftFields.tipo_cliente || "privato"),
       nazione: draftFields.nazione || "Italia",
@@ -99,14 +120,24 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo, initialD
       email: initialData?.email || draftFields.email || "",
       sposera_nome: initialData?.sposera_nome || draftFields.sposera_nome || "",
       sposera_cognome: initialData?.sposera_cognome || draftFields.sposera_cognome || "",
-      data_evento: initialData?.data_evento || draftFields.data_evento || "",
+      data_evento: resolvedDataEvento || "",
+      turno: initialData?.turno || draftFields.turno || "pranzo",
       accetto: draftFields.accetto || false,
       comunicazione_terzi: draftFields.comunicazione_terzi || false,
       marketing: draftFields.marketing || "NO",
-      mezzo_anticipo: initialData?.mezzo_anticipo || "Bonifico Bancario",
-      data_anticipo: initialData?.data_anticipo || "",
-      mezzo_saldo: initialData?.mezzo_saldo || "Bonifico Bancario",
-      data_saldo: initialData?.data_saldo || ""
+      // Il metodo di pagamento è una scelta del Cliente: la bozza ha la priorità,
+      // poi il default concordato.
+      mezzo_anticipo: draftFields.mezzo_anticipo || initialData?.mezzo_anticipo || "Bonifico Bancario",
+      mezzo_secondo_acconto: draftFields.mezzo_secondo_acconto || initialData?.mezzo_secondo_acconto || "Bonifico Bancario",
+      mezzo_saldo: draftFields.mezzo_saldo || initialData?.mezzo_saldo || "Bonifico Bancario",
+      // Importi e date restano vincolati alla direzione: initialData vince sempre.
+      data_anticipo: initialData?.data_anticipo || draftFields.data_anticipo || "",
+      data_secondo_acconto: initialData?.data_secondo_acconto || "",
+      data_saldo: initialData?.data_saldo || draftFields.data_saldo || "",
+      prezzo_totale: initialData?.prezzo_totale ?? 0,
+      importo_caparra: initialData?.importo_caparra ?? 0,
+      importo_secondo_acconto: initialData?.importo_secondo_acconto ?? 0,
+      importo_saldo: initialData?.importo_saldo ?? 0
     });
     // NOTA LEGALE: Il box firma NON viene mai ripristinato da bozze pregresse.
     // Gli sposi devono sempre tracciare la propria firma fresca e consapevole prima dell'invio.
@@ -600,53 +631,37 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo, initialD
               readOnly 
               style={{ background: "#f8f9fa", border: "1.5px solid #d1d5db", cursor: "not-allowed", color: "#374151", fontWeight: 600 }} 
             />
+            <div
+              style={{
+                background: "#fff7ed",
+                border: "1px solid #f0c98a",
+                borderRadius: "8px",
+                padding: "0.5rem 0.75rem",
+                marginTop: "0.4rem",
+                fontSize: "0.85rem",
+                color: "#7c5a22",
+              }}
+            >
+              📅 {lang === "it" ? "Data concordata" : "Agreed date"}:{" "}
+              <strong>{formatItalianDate(formValues?.data_evento) || "—"}</strong>
+              {" · "}
+              {lang === "it" ? "Turno" : "Session"}:{" "}
+              <strong>{turnoLabel(formValues?.turno || "pranzo", lang)}</strong>
+            </div>
             <small style={{ color: "#6b7280", marginTop: "0.25rem", display: "block" }}>🔒 Data e orario evento concordati con la direzione (non modificabili)</small>
           </div>
 
-          <div className="form-group full" style={{ marginTop: "1rem", borderTop: "1px solid var(--border-color)", paddingTop: "1rem" }}>
-            <h3>{t.f_pagamenti_tit}</h3>
-            <small style={{ color: "#8a6a2f", fontWeight: 600 }}>Patti economici e scadenze concordate con la direzione de La Terra degli Aranci</small>
-          </div>
-          
-          <div className="form-group">
-            <label>{t.f_mezzo_anticipo}</label>
-            <input 
-              type="text" 
-              {...register("mezzo_anticipo", { required: true })} 
-              readOnly 
-              style={{ background: "#f8f9fa", border: "1.5px solid #d1d5db", cursor: "not-allowed", color: "#374151" }} 
-            />
-          </div>
-          <div className="form-group">
-            <label>{t.f_data_anticipo}</label>
-            <input 
-              type="date" 
-              {...register("data_anticipo", { required: true })} 
-              readOnly 
-              style={{ background: "#f8f9fa", border: "1.5px solid #d1d5db", cursor: "not-allowed", color: "#374151", fontWeight: 600 }} 
-            />
-            <small style={{ color: "#6b7280", marginTop: "0.25rem", display: "block" }}>🔒 Alla firma del contratto (caparra confirmatoria)</small>
-          </div>
-
-          <div className="form-group">
-            <label>{t.f_mezzo_saldo}</label>
-            <input 
-              type="text" 
-              {...register("mezzo_saldo", { required: true })} 
-              readOnly 
-              style={{ background: "#f8f9fa", border: "1.5px solid #d1d5db", cursor: "not-allowed", color: "#374151" }} 
-            />
-          </div>
-          <div className="form-group">
-            <label>{t.f_data_saldo}</label>
-            <input 
-              type="date" 
-              {...register("data_saldo", { required: true })} 
-              readOnly 
-              style={{ background: "#f8f9fa", border: "1.5px solid #d1d5db", cursor: "not-allowed", color: "#374151", fontWeight: 600 }} 
-            />
-            <small style={{ color: "#6b7280", marginTop: "0.25rem", display: "block" }}>🔒 All'evento (saldo canone location)</small>
-          </div>
+          <ContractPaymentsSection
+            lang={lang}
+            register={register}
+            prezzoTotale={prezzoTotale}
+            caparra={importoCaparra}
+            secondoAcconto={importoSecondoAcconto}
+            saldo={importoSaldo}
+            dataAnticipo={formValues?.data_anticipo || ""}
+            dataSecondoAcconto={formValues?.data_secondo_acconto || ""}
+            dataSaldo={formValues?.data_saldo || ""}
+          />
         </div>
 
         <SignaturePad label={t.sig_contratto} onEnd={setFirmaContratto} initialData={firmaContratto} />
