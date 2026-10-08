@@ -354,6 +354,9 @@ export default function AppuntamentiClient({ appointments }: AppuntamentiClientP
           <Link href="/admin/calendario" style={headerBtn}>
             📅 Calendario &amp; Opzioni
           </Link>
+          <Link href="/admin/contratti" style={headerBtn}>
+            ✍️ Nuovo Contratto Diretto
+          </Link>
           <button
             type="button"
             onClick={() => setModalOpen(true)}
@@ -678,6 +681,31 @@ function AppuntamentoCard({
       ? { background: "#fff7ed", color: "#c2410c", border: "1px solid #fed7aa" }
       : { background: isPast ? "#f0eee9" : "#fff", color: "#514d48", border: "1px solid #e0ddd9" };
 
+  // Ponte verso /admin/contratti: precompila il contratto diretto con i dati
+  // dell'appuntamento, così Roberto può emetterlo senza ripartire da zero.
+  const contractParams = new URLSearchParams();
+  contractParams.set("nome", displayName(a));
+  if (a.telefono) contractParams.set("telefono", a.telefono);
+  if (a.email) contractParams.set("email", a.email);
+  const dataEventoPresunta = String(a.dataEventoPresunta ?? "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dataEventoPresunta)) {
+    contractParams.set("data", dataEventoPresunta);
+  }
+  if (a.interesse === "esclusiva") {
+    contractParams.set("tipo_esclusiva", "esclusiva");
+  } else if (
+    a.interesse === "semi_esclusiva" ||
+    a.interesse === "sala_bianca" ||
+    a.interesse === "sala_tufo"
+  ) {
+    contractParams.set("tipo_esclusiva", "semi_esclusiva");
+  }
+  if (a.interesse === "sala_tufo") contractParams.set("formula", "sala_tufo");
+  else if (a.interesse === "sala_bianca") contractParams.set("formula", "sala_bianca");
+
+  const contractHref = `/admin/contratti?${contractParams.toString()}`;
+  const contractLabel = isWedding ? "✍️ Emetti Contratto Sposi" : "✍️ Emetti Contratto";
+
   return (
     <div
       style={{
@@ -918,7 +946,7 @@ function AppuntamentoCard({
         </div>
 
         <Link
-          href="/admin/calendario"
+          href={contractHref}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -933,7 +961,7 @@ function AppuntamentoCard({
             color: "#f5efe6",
           }}
         >
-          ⚡ Crea Preventivo / Opzione
+          {contractLabel}
         </Link>
 
         <button

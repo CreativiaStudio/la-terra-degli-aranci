@@ -16,10 +16,10 @@ interface NavItem {
  */
 const PILLARS: NavItem[] = [
   { href: "/admin", label: "Appuntamenti", icon: "📅" },
-  { href: "/admin/eventi", label: "Eventi", icon: "💍" },
   { href: "/admin/contratti", label: "Contratti", icon: "✍️" },
-  { href: "/admin/clienti", label: "Clienti & Club TDA", icon: "👥" },
+  { href: "/admin/eventi", label: "Eventi", icon: "💍" },
   { href: "/admin/cassa", label: "Cassa", icon: "💶" },
+  { href: "/admin/clienti", label: "Club TDA", icon: "👥" },
 ];
 
 const SETTINGS: NavItem[] = [

@@ -47,12 +47,46 @@ function formulaLabel(quote: EventQuote): string {
 export default async function EventiPage() {
   // Warm-up del DB locale: garantisce che lo store esista anche su runtime
   // serverless (fs in /tmp) prima delle letture di quotes e pagamenti.
-  getStore();
+  const store = getStore();
 
   const [quotes, payments] = await Promise.all([
     getQuotesFast(),
     Promise.resolve(getAllPaymentsLocal()),
   ]);
+
+  // Chiavi dei contratti già firmati/finalizzati (`signed_contracts` +
+  // `final_contracts`), normalizzate lowercase/trim. Come in
+  // `collectContractKeys` includiamo anche il prefisso a 8 caratteri (numero
+  // preventivo) per tollerare gli id troncati usati nel resto dell'ecosistema.
+  const signedQuoteIds = new Set<string>();
+  for (const contract of [
+    ...(store.signed_contracts ?? []),
+    ...(store.final_contracts ?? []),
+  ]) {
+    if (!contract) continue;
+    const record = contract as Record<string, unknown>;
+    for (const value of [record.quote_id, record.preventivo, record.quoteId]) {
+      if (!value) continue;
+      const key = String(value).trim().toLowerCase();
+      if (!key) continue;
+      signedQuoteIds.add(key);
+      signedQuoteIds.add(key.slice(0, 8));
+    }
+  }
+
+  /**
+   * Un contratto è firmato se lo status è 'firmato', se è stata registrata una
+   * firma (`signed_at` / `data_firma`) oppure se compare tra i contratti
+   * firmati/finalizzati dello store.
+   */
+  const isQuoteSigned = (q: EventQuote): boolean => {
+    if (String(q.status ?? "").trim().toLowerCase() === "firmato") return true;
+    if (q.signed_at || q.data_firma) return true;
+    const candidates = [q.id, q.preventivo, q.id ? String(q.id).slice(0, 8) : ""];
+    return candidates.some(
+      (value) => Boolean(value) && signedQuoteIds.has(String(value).trim().toLowerCase())
+    );
+  };
 
   // Indicizza i pagamenti per quote_id (match case-insensitive) per il ledger.
   const paymentsByQuote = new Map<string, Payment[]>();
@@ -64,14 +98,23 @@ export default async function EventiPage() {
     else paymentsByQuote.set(key, [payment]);
   }
 
+  // Imbuto di conversione: la vista Eventi mostra ESCLUSIVAMENTE i contratti
+  // confermati/firmati. Pendenti, preventivi, bozze e opzioni non firmate
+  // appartengono a /admin/contratti.
   const eventi: EventoRow[] = (quotes as EventQuote[])
-    .filter((q) => Boolean(q && q.id))
+    .filter((q) => {
+      if (!q || !q.id) return false;
+      const isSigned = isQuoteSigned(q);
+      if (isSigned) return true;
+      return SIGNED_STAGES.includes(deriveEventStage(q, { isSigned }).stage);
+    })
     .map((q): EventoRow => {
+      const isSigned = isQuoteSigned(q);
       const ledger = computeEventLedger(
         q,
         paymentsByQuote.get(String(q.id).toLowerCase()) ?? []
       );
-      const stage = deriveEventStage(q);
+      const stage = deriveEventStage(q, { isSigned });
 
       const turnoTime = getTurnoTime(q.turno ?? undefined);
       const turno: EventoRow["turno"] =
@@ -102,7 +145,7 @@ export default async function EventiPage() {
         stageKey: stage.stage,
         stageLabel: stage.label,
         stageColor: stage.badgeColor,
-        isSigned: SIGNED_STAGES.includes(stage.stage),
+        isSigned: isSigned || SIGNED_STAGES.includes(stage.stage),
         totaleCents: Math.round(prezzoTotale * 100),
         incassatoCents: ledger.incassato_cents,
         residuoCents: ledger.residuo_cents,
