@@ -55,3 +55,6 @@ verify_*.mjs
 # blackbox audit ledger (runtime, ritenzione 30gg + archivi mensili)
 /data/blackbox_log.json
 /data/blackbox_archive_*.json
+
+# contract vault (runtime, snapshot di blindatura multi-posizione)
+/data_backups/

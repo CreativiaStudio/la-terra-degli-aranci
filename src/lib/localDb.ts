@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { SERVICES_CATALOG, ServiceCatalogItem } from '@/lib/servicesCatalog';
 import { generateSignature } from '@/lib/crypto';
 import { SEMI_ESCLUSIVA_FORMULE } from '@/lib/contractMeta';
+import { saveContractToVault } from '@/lib/contractVault';
 import type { Payment } from '@/lib/eventLedger';
 
 /**
@@ -695,6 +696,8 @@ export function saveSignedContractLocal(payload: any) {
   }
 
   saveStore(store);
+  // Blindatura multi-posizione: snapshot atomico del contratto firmato nel vault.
+  saveContractToVault(entry.quote_id || entry.id, entry, 'signed_contract');
   return entry;
 }
 
@@ -1002,6 +1005,8 @@ export function saveFinalContractLocal(payload: any) {
   }
 
   saveStore(store);
+  // Blindatura multi-posizione: snapshot atomico del contratto finale nel vault.
+  saveContractToVault(entry.quote_id || entry.id, entry, 'final_contract');
   return entry;
 }
 

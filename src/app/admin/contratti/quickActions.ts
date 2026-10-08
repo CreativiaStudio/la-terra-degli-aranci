@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import { generateSignature } from "@/lib/crypto";
 import { checkSlotAvailability, normalizeEventDate } from "@/lib/slotAvailability";
 import { saveAdminQuickQuoteLocal, markQuickOptionConvertedLocal } from "@/lib/localDb";
+import { saveContractToVault } from "@/lib/contractVault";
 import { isoToItalian } from "@/lib/dateInput";
 import { detectSemiFormula, SEMI_ESCLUSIVA_FORMULE } from "@/lib/contractMeta";
 
@@ -191,7 +192,7 @@ export async function createQuickContract(data: QuickContractInput) {
     const normalizedDate = normalizeEventDate(data.dataEvento) || data.dataEvento;
 
     // 2. Cliente + preventivo formale
-    const { quoteId, quote } = saveAdminQuickQuoteLocal({
+    const { quoteId, quote, client } = saveAdminQuickQuoteLocal({
       cliente: {
         nome: data.nome,
         cognome: data.cognome,
@@ -227,6 +228,15 @@ export async function createQuickContract(data: QuickContractInput) {
       markQuickOptionConvertedLocal(data.opzioneDaConvertireId, quoteId);
       revalidatePath("/admin/calendario");
     }
+
+    // Blindatura multi-posizione: snapshot atomico del contratto appena generato.
+    saveContractToVault(quoteId, {
+      quote,
+      client,
+      canale: "accordo_diretto",
+      tipoEvento: data.tipoEvento,
+      generated_at: new Date().toISOString(),
+    }, "quick_action");
 
     // Invariante 2: il numero preventivo è il prefisso dell'id.
     const preventivo = quote.id.slice(0, 8);

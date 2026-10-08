@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AlertTriangle, Loader2, X } from "lucide-react";
@@ -22,6 +22,54 @@ type EsclusivaTier = "" | "100" | "70";
 
 const CAPARRA_STANDARD = 1500;
 const SECONDO_ACCONTO_STANDARD = 3000;
+
+/** Chiave localStorage dell'autosave continuo del form contratto rapido. */
+const DRAFT_KEY = "tda_contract_draft_v1";
+
+/** Snapshot dei campi del form, salvato/recuperato per non perdere bozze interrotte. */
+interface ContractDraft {
+  tipoEvento: TipoEvento;
+  tipoCliente: TipoCliente;
+  nome: string;
+  cognome: string;
+  telefono: string;
+  email: string;
+  partnerNome: string;
+  partnerCognome: string;
+  ragioneSociale: string;
+  partitaIva: string;
+  codiceFiscale: string;
+  sdi: string;
+  pec: string;
+  dataEvento: string;
+  turno: Turno;
+  tipoEsclusiva: TipoEsclusiva;
+  semiFormula: SemiFormulaKey | "";
+  esclusivaTier: EsclusivaTier;
+  ospitiInput: string;
+  prezzoInput: string;
+  caparraInput: string | null;
+  secondoInput: string | null;
+  updatedAt: string;
+}
+
+/** Legge una bozza da localStorage, restituendo `null` se assente/vuota/corrotta. */
+function readDraft(): ContractDraft | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<ContractDraft>;
+    if (!parsed || typeof parsed !== "object") return null;
+    const hasContent = Boolean(
+      parsed.nome || parsed.cognome || parsed.telefono || parsed.email || parsed.dataEvento || parsed.prezzoInput
+    );
+    if (!hasContent) return null;
+    return parsed as ContractDraft;
+  } catch {
+    return null;
+  }
+}
 
 const ANTHRACITE = "#1e1b18";
 const AMBER = "#e58c2c";
@@ -214,6 +262,89 @@ export default function QuickContractPanel() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<GeneratedContract | null>(null);
+  const [recoveredDraft, setRecoveredDraft] = useState<ContractDraft | null>(null);
+  const autosaveReadyRef = useRef(false);
+
+  // Recupero bozza: all'apertura del form, se esiste una bozza non vuota la
+  // propone all'utente aprendo il form (Ripristina / Scarta).
+  useEffect(() => {
+    const draft = readDraft();
+    if (draft) {
+      setRecoveredDraft(draft);
+      setIsOpen(true);
+    }
+  }, []);
+
+  // Autosave continuo dei campi: non sovrascrive mai una bozza in attesa di
+  // "Ripristina / Scarta" e non scrive nulla finché il form è vuoto.
+  useEffect(() => {
+    if (!autosaveReadyRef.current) {
+      autosaveReadyRef.current = true;
+      return;
+    }
+    if (recoveredDraft) return;
+    if (typeof window === "undefined") return;
+
+    const draft: ContractDraft = {
+      tipoEvento,
+      tipoCliente,
+      nome,
+      cognome,
+      telefono,
+      email,
+      partnerNome,
+      partnerCognome,
+      ragioneSociale,
+      partitaIva,
+      codiceFiscale,
+      sdi,
+      pec,
+      dataEvento,
+      turno,
+      tipoEsclusiva,
+      semiFormula,
+      esclusivaTier,
+      ospitiInput,
+      prezzoInput,
+      caparraInput,
+      secondoInput,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const hasContent = Boolean(
+      nome || cognome || telefono || email || dataEvento || prezzoInput
+    );
+    try {
+      if (hasContent) window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      else window.localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // localStorage non disponibile: l'autosave resta best-effort.
+    }
+  }, [
+    tipoEvento,
+    tipoCliente,
+    nome,
+    cognome,
+    telefono,
+    email,
+    partnerNome,
+    partnerCognome,
+    ragioneSociale,
+    partitaIva,
+    codiceFiscale,
+    sdi,
+    pec,
+    dataEvento,
+    turno,
+    tipoEsclusiva,
+    semiFormula,
+    esclusivaTier,
+    ospitiInput,
+    prezzoInput,
+    caparraInput,
+    secondoInput,
+    recoveredDraft,
+  ]);
 
   const isWedding = tipoEvento === "wedding";
   const isAzienda = tipoCliente === "azienda";
@@ -288,6 +419,53 @@ export default function QuickContractPanel() {
   const closePanel = () => {
     resetForm();
     setIsOpen(false);
+  };
+
+  /** Ripristina nei campi tutti i valori della bozza recuperata. */
+  const restoreDraft = () => {
+    const draft = recoveredDraft;
+    if (!draft) return;
+    if (draft.tipoEvento === "wedding" || draft.tipoEvento === "eventi") setTipoEvento(draft.tipoEvento);
+    if (draft.tipoCliente === "privato" || draft.tipoCliente === "azienda") setTipoCliente(draft.tipoCliente);
+    setNome(draft.nome ?? "");
+    setCognome(draft.cognome ?? "");
+    setTelefono(draft.telefono ?? "");
+    setEmail(draft.email ?? "");
+    setPartnerNome(draft.partnerNome ?? "");
+    setPartnerCognome(draft.partnerCognome ?? "");
+    setRagioneSociale(draft.ragioneSociale ?? "");
+    setPartitaIva(draft.partitaIva ?? "");
+    setCodiceFiscale(draft.codiceFiscale ?? "");
+    setSdi(draft.sdi ?? "");
+    setPec(draft.pec ?? "");
+    setDataEvento(draft.dataEvento ?? "");
+    if (draft.turno === "pranzo" || draft.turno === "cena") setTurno(draft.turno);
+    if (draft.tipoEsclusiva === "esclusiva" || draft.tipoEsclusiva === "semi_esclusiva") {
+      setTipoEsclusiva(draft.tipoEsclusiva);
+    }
+    if (draft.semiFormula === "sala_bianca" || draft.semiFormula === "sala_tufo") {
+      setSemiFormula(draft.semiFormula);
+    } else {
+      setSemiFormula("");
+    }
+    if (draft.esclusivaTier === "100" || draft.esclusivaTier === "70" || draft.esclusivaTier === "") {
+      setEsclusivaTier(draft.esclusivaTier);
+    }
+    setOspitiInput(draft.ospitiInput ?? "");
+    setPrezzoInput(draft.prezzoInput ?? "");
+    setCaparraInput(draft.caparraInput ?? null);
+    setSecondoInput(draft.secondoInput ?? null);
+    setRecoveredDraft(null);
+  };
+
+  /** Scarta la bozza recuperata e la rimuove da localStorage. */
+  const discardDraft = () => {
+    setRecoveredDraft(null);
+    try {
+      window.localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // ignore
+    }
   };
 
   const toggleButtonStyle: React.CSSProperties = isOpen
@@ -413,6 +591,14 @@ export default function QuickContractPanel() {
           ? `${referente} & ${partnerNome.trim()} ${partnerCognome.trim()}`
           : referente;
 
+      // Contratto generato con successo: la bozza non serve più.
+      try {
+        window.localStorage.removeItem(DRAFT_KEY);
+      } catch {
+        // ignore
+      }
+      setRecoveredDraft(null);
+
       setResult({
         absoluteUrl: res.absoluteUrl,
         qrCodeDataUrl: res.qrCodeDataUrl,
@@ -516,6 +702,69 @@ export default function QuickContractPanel() {
       </header>
 
       <div style={{ padding: "1.8rem", background: CREAM, display: "grid", gap: "1.8rem" }}>
+        {recoveredDraft && (
+          <div
+            role="status"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "1rem",
+              flexWrap: "wrap",
+              padding: "0.9rem 1.1rem",
+              borderRadius: "12px",
+              background: "#fffbeb",
+              border: `1px solid ${AMBER}`,
+              color: "#92400e",
+            }}
+          >
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.15rem" }}>
+              <strong style={{ fontSize: "0.98rem" }}>💾 Bozza non completata recuperata</strong>
+              <span style={{ fontSize: "0.86rem" }}>
+                {[recoveredDraft.nome, recoveredDraft.cognome].filter(Boolean).join(" ") || "Cliente senza nome"}
+                {recoveredDraft.partnerNome ? ` & ${recoveredDraft.partnerNome}` : ""}
+                {recoveredDraft.dataEvento ? ` · evento del ${recoveredDraft.dataEvento}` : ""}
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={restoreDraft}
+                style={{
+                  padding: "0.5rem 0.95rem",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: `linear-gradient(135deg, ${AMBER} 0%, #d17a22 100%)`,
+                  color: "#ffffff",
+                  fontFamily: "inherit",
+                  fontSize: "0.86rem",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                ↩️ Ripristina Bozza
+              </button>
+              <button
+                type="button"
+                onClick={discardDraft}
+                style={{
+                  padding: "0.5rem 0.95rem",
+                  borderRadius: "10px",
+                  border: `1px solid ${BORDER}`,
+                  background: "#ffffff",
+                  color: ANTHRACITE,
+                  fontFamily: "inherit",
+                  fontSize: "0.86rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                🗑️ Scarta Bozza
+              </button>
+            </div>
+          </div>
+        )}
+
         {opzioneId && (
           <div
             style={{
