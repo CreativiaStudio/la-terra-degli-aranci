@@ -551,7 +551,7 @@ export default function ClientPortalWrapper({
 
 
                 {/* --- ORGANIZZAZIONE EVENTO / WEDDING DIARY --- */}
-                {(!showTwoLevelMenu || activeCategory === "organizzazione") && !isHistorical && (isWedding || quote?.status === "firmato") && (
+                {(!showTwoLevelMenu || activeCategory === "organizzazione") && !isHistorical && (isWedding || quote?.status === "firmato" || isAreaLocked) && (
                   <button
                     onClick={() => setActiveTab("diary")}
                     style={{
