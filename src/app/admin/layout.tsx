@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import AdminNotificationCenter from "@/components/AdminNotificationCenter";
 
 interface NavItem {
   href: string;
@@ -268,6 +269,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           minWidth: 0,
         }}
       >
+        <AdminNotificationCenter />
         {children}
       </main>
     </div>
