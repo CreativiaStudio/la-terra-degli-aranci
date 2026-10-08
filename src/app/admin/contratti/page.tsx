@@ -3,7 +3,6 @@ import { getPendingContractsLocal } from "@/lib/localDb";
 import QuickContractPanel from "./QuickContractPanel";
 import PendingContractsList from "./PendingContractsList";
 import ContrattiClientList from "./ContrattiClientList";
-import Link from "next/link";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -30,12 +29,6 @@ export default async function ContrattiDashboard() {
 
   return (
     <div className="container">
-      <div style={{ marginBottom: "1.5rem" }}>
-        <Link href="/admin" style={{ color: "#666", textDecoration: "none", fontWeight: "600" }}>
-          ← Torna alla Dashboard Direzionale
-        </Link>
-      </div>
-
       <Suspense fallback={null}>
         <QuickContractPanel />
       </Suspense>

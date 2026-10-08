@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { AlertTriangle, Loader2, X } from "lucide-react";
 import ContractLinkShare from "@/components/ContractLinkShare";
 import { createQuickContract } from "@/app/admin/contratti/quickActions";
@@ -171,6 +172,12 @@ function AmountInput({
 export default function QuickContractPanel() {
   const searchParams = useSearchParams();
 
+  const hasPrefilledParams = Boolean(
+    searchParams.get("nome") || searchParams.get("telefono") || searchParams.get("email") || searchParams.get("data")
+  );
+  // Se arriva da un appuntamento precompilato parte aperto, altrimenti parte chiuso di default.
+  const [isOpen, setIsOpen] = useState(hasPrefilledParams);
+
   const [tipoEvento, setTipoEvento] = useState<TipoEvento>("wedding");
   const [tipoCliente, setTipoCliente] = useState<TipoCliente>("privato");
   const [nome, setNome] = useState(() => splitNomeCompleto(searchParams.get("nome") ?? "").nome);
@@ -278,6 +285,63 @@ export default function QuickContractPanel() {
     setResult(null);
   };
 
+  const closePanel = () => {
+    resetForm();
+    setIsOpen(false);
+  };
+
+  const toggleButtonStyle: React.CSSProperties = isOpen
+    ? {
+        padding: "0.85rem 1.6rem",
+        fontSize: "1.05rem",
+        fontWeight: 800,
+        fontFamily: "inherit",
+        borderRadius: "12px",
+        border: `1.5px solid ${BORDER}`,
+        background: "#f1efec",
+        color: ANTHRACITE,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+      }
+    : {
+        padding: "0.85rem 1.6rem",
+        fontSize: "1.05rem",
+        fontWeight: 800,
+        fontFamily: "inherit",
+        borderRadius: "12px",
+        border: "none",
+        background: `linear-gradient(135deg, ${AMBER} 0%, #d17a22 100%)`,
+        color: "#ffffff",
+        cursor: "pointer",
+        boxShadow: "0 10px 24px rgba(229,140,44,0.32)",
+        whiteSpace: "nowrap",
+      };
+
+  const topBar = (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        flexWrap: "wrap",
+        gap: "1rem",
+        marginBottom: "1.5rem",
+      }}
+    >
+      <Link href="/admin" style={{ color: "#666", textDecoration: "none", fontWeight: 600 }}>
+        ← Torna alla Dashboard Direzionale
+      </Link>
+      <button
+        type="button"
+        onClick={() => setIsOpen((value) => !value)}
+        aria-expanded={isOpen}
+        style={toggleButtonStyle}
+      >
+        {isOpen ? "▲ Chiudi Form Contratto" : "➕ Crea Nuovo Contratto"}
+      </button>
+    </div>
+  );
+
   const validate = (): string => {
     if (isAzienda && !ragioneSociale.trim()) return "Inserisci la Ragione Sociale dell'azienda.";
     if (!nome.trim() || !cognome.trim()) {
@@ -367,32 +431,38 @@ export default function QuickContractPanel() {
 
   if (result) {
     return (
-      <ContractLinkShare
-        url={result.absoluteUrl}
-        qrCodeDataUrl={result.qrCodeDataUrl}
-        preventivo={result.preventivo}
-        whatsappText={result.whatsappText}
-        intestatari={result.intestatari}
-        prezzo={result.prezzo}
-        onClose={resetForm}
-      />
+      <>
+        {topBar}
+        <ContractLinkShare
+          url={result.absoluteUrl}
+          qrCodeDataUrl={result.qrCodeDataUrl}
+          preventivo={result.preventivo}
+          whatsappText={result.whatsappText}
+          intestatari={result.intestatari}
+          prezzo={result.prezzo}
+          onClose={closePanel}
+        />
+      </>
     );
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      noValidate
-      aria-busy={isLoading}
-      style={{
-        background: "#ffffff",
-        borderRadius: "18px",
-        border: `1px solid ${BORDER}`,
-        boxShadow: "0 18px 50px rgba(30,27,24,0.08)",
-        overflow: "hidden",
-        marginBottom: "2rem",
-      }}
-    >
+    <>
+      {topBar}
+      {isOpen && (
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          aria-busy={isLoading}
+          style={{
+            background: "#ffffff",
+            borderRadius: "18px",
+            border: `1px solid ${BORDER}`,
+            boxShadow: "0 18px 50px rgba(30,27,24,0.08)",
+            overflow: "hidden",
+            marginBottom: "2rem",
+          }}
+        >
       <header
         style={{
           background: `linear-gradient(135deg, ${ANTHRACITE} 0%, #2e2924 100%)`,
@@ -400,23 +470,46 @@ export default function QuickContractPanel() {
           borderBottom: `3px solid ${GOLD}`,
         }}
       >
-        <div
-          style={{ fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", color: GOLD, fontWeight: 600 }}
-        >
-          Accordo diretto · Canale B
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
+          <div>
+            <div
+              style={{ fontSize: "0.7rem", letterSpacing: "0.18em", textTransform: "uppercase", color: GOLD, fontWeight: 600 }}
+            >
+              Accordo diretto · Canale B
+            </div>
+            <h1
+              style={{
+                margin: "0.15rem 0 0 0",
+                textAlign: "left",
+                fontFamily: "Georgia, 'Times New Roman', serif",
+                fontWeight: 400,
+                fontSize: "1.7rem",
+                color: "#ffffff",
+              }}
+            >
+              Contratto Rapido
+            </h1>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            aria-label="Chiudi form contratto rapido"
+            style={{
+              background: "rgba(255,255,255,0.1)",
+              border: "1px solid rgba(255,255,255,0.25)",
+              color: "#ffffff",
+              borderRadius: "10px",
+              padding: "0.45rem 0.8rem",
+              fontFamily: "inherit",
+              fontSize: "0.82rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            ✖ Chiudi Form
+          </button>
         </div>
-        <h1
-          style={{
-            margin: "0.15rem 0 0 0",
-            textAlign: "left",
-            fontFamily: "Georgia, 'Times New Roman', serif",
-            fontWeight: 400,
-            fontSize: "1.7rem",
-            color: "#ffffff",
-          }}
-        >
-          Contratto Rapido
-        </h1>
         <p style={{ margin: "0.3rem 0 0 0", color: "#bdb5aa", fontSize: "0.95rem" }}>
           Compila i dati concordati con gli sposi: il contratto, il link di firma e il QR Code si generano in un solo passaggio.
         </p>
@@ -808,6 +901,8 @@ export default function QuickContractPanel() {
       </div>
 
       <style>{`@keyframes qc-spin { to { transform: rotate(360deg); } }`}</style>
-    </form>
+        </form>
+      )}
+    </>
   );
 }
