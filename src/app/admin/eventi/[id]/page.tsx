@@ -74,7 +74,7 @@ export default async function EventRegiaPage({
   const changes = getQuoteChangesForQuoteLocal(quote.id);
   const confirmedChanges = changes.filter((c: any) => c.status === "confermato");
   const pendingChanges = changes.filter((c: any) => c.status === "pending");
-  const diary = getWeddingDiaryLocal(quote.client_id || quote.id);
+  const diary = getWeddingDiaryLocal(quote.id) || getWeddingDiaryLocal(quote.client_id || "");
 
   const today = new Date().toISOString().slice(0, 10);
   const ledger = computeEventLedger(quote, payments, confirmedChanges, pendingChanges, today);
