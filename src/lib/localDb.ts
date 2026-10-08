@@ -2252,4 +2252,171 @@ export function toggleTourServicePreferenceLocal(
   return { appointment, added, currentServices };
 }
 
+/* ------------------------------------------------------------------ */
+/* Scheda Cliente ad elevata profondità (Club TDA)                     */
+/* Relazione con la persona negli anni: ricevimenti + eventi location. */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Un'esperienza vissuta dal cliente negli eventi organizzati dalla location
+ * (San Valentino, Pasqua, serate a tema, concerti...). Il valore è storico e
+ * concorre al LTV complessivo della persona, non al singolo evento.
+ */
+export interface ClientExperience {
+  id: string;
+  titolo: string;
+  /** 'YYYY-MM-DD' */
+  data: string;
+  coperti: number;
+  /** Totale speso in euro (spesa del nucleo per quell'evento). */
+  totale_speso: number;
+  note?: string;
+  created_at: string;
+}
+
+/** Ricerca read-only del cliente nello store (anagrafica oppure snapshot quote). */
+function findClientSnapshotInStore(store: LocalStore, clientId: string): any | null {
+  const search = String(clientId || '').trim().toLowerCase();
+  if (!search) return null;
+
+  const direct = (store.clients || []).find(
+    (c: any) => c && String(c.id || '').toLowerCase() === search
+  );
+  if (direct) return direct;
+
+  const quotes = store.quotes || [];
+  const quote =
+    quotes.find((q: any) => q && String(q.client_id || '').toLowerCase() === search) ||
+    quotes.find((q: any) => q && q.clients && String(q.clients.id || '').toLowerCase() === search) ||
+    quotes.find((q: any) => q && String(q.id || '').toLowerCase() === search);
+
+  return (quote && quote.clients) || null;
+}
+
+/**
+ * Risolve il record cliente canonico dentro `store.clients`, materializzandolo
+ * da uno snapshot delle quote se necessario, e allinea gli snapshot `q.clients`
+ * delle quote collegate (`q.client_id === clientId`). Ritorna `null` se il
+ * cliente non esiste da nessuna parte.
+ */
+function resolveCanonicalClient(store: LocalStore, clientId: string): any | null {
+  const search = String(clientId || '').trim().toLowerCase();
+  if (!search) return null;
+
+  if (!Array.isArray(store.clients)) store.clients = [];
+  if (!Array.isArray(store.quotes)) store.quotes = [];
+
+  let client: any =
+    store.clients.find((c: any) => c && String(c.id || '').toLowerCase() === search) || null;
+
+  if (!client) {
+    const snapshot = findClientSnapshotInStore(store, clientId);
+    if (snapshot) {
+      client = { ...snapshot };
+      if (!client.id) client.id = String(clientId);
+      store.clients.push(client);
+    }
+  }
+
+  if (!client) return null;
+
+  const key = String(client.id || search).toLowerCase();
+  store.quotes.forEach((q: any) => {
+    if (!q) return;
+    const cid = String(q.client_id || '').toLowerCase();
+    const snapshotId = q.clients ? String(q.clients.id || '').toLowerCase() : '';
+    const linked =
+      (cid && (cid === key || cid === search)) ||
+      (snapshotId && (snapshotId === key || snapshotId === search));
+    if (linked) q.clients = client;
+  });
+
+  return client;
+}
+
+/**
+ * Trova il cliente per id esatto in `store.clients` e, in fallback, dallo
+ * snapshot `clients` presente nelle quote (per `client_id`, per id dello
+ * snapshot o, in ultima istanza, per id della quote stessa).
+ */
+export function getClientByIdLocal(clientId: string): any | null {
+  const store = getStore();
+  return findClientSnapshotInStore(store, clientId);
+}
+
+/**
+ * Aggiorna i campi del cliente in `store.clients` e allinea gli snapshot
+ * `q.clients` delle quote collegate (`q.client_id === clientId`).
+ * Ritorna il cliente aggiornato o `null` se non trovato.
+ */
+export function updateClientLocal(clientId: string, patch: Record<string, any>): any | null {
+  const store = getStore();
+  const client = resolveCanonicalClient(store, clientId);
+  if (!client || !patch || typeof patch !== 'object') return null;
+
+  Object.assign(client, patch);
+  client.updated_at = new Date().toISOString();
+
+  saveStore(store);
+  return client;
+}
+
+/**
+ * Aggiunge un'esperienza location alla storia del cliente, creando l'array
+ * `esperienze_location` se non esiste. Ritorna il cliente aggiornato.
+ */
+export function addClientExperienceLocal(
+  clientId: string,
+  experience: {
+    id?: string;
+    titolo: string;
+    data: string;
+    coperti: number;
+    totale_speso: number;
+    note?: string;
+    created_at?: string;
+  }
+): any | null {
+  const store = getStore();
+  const client = resolveCanonicalClient(store, clientId);
+  if (!client) return null;
+
+  const entry: ClientExperience = {
+    id: experience.id || crypto.randomUUID(),
+    titolo: String(experience.titolo || '').trim(),
+    data: String(experience.data || '').trim(),
+    coperti: Number.isFinite(Number(experience.coperti)) ? Number(experience.coperti) : 0,
+    totale_speso: Number.isFinite(Number(experience.totale_speso)) ? Number(experience.totale_speso) : 0,
+    created_at: experience.created_at || new Date().toISOString(),
+  };
+  if (experience.note != null && String(experience.note).trim() !== '') {
+    entry.note = String(experience.note).trim();
+  }
+
+  if (!Array.isArray(client.esperienze_location)) client.esperienze_location = [];
+  client.esperienze_location.push(entry);
+  client.updated_at = new Date().toISOString();
+
+  saveStore(store);
+  return client;
+}
+
+/**
+ * Rimuove l'esperienza con id `expId` dalla storia del cliente.
+ * Ritorna il cliente aggiornato o `null` se non trovato.
+ */
+export function deleteClientExperienceLocal(clientId: string, expId: string): any | null {
+  const store = getStore();
+  const client = resolveCanonicalClient(store, clientId);
+  if (!client) return null;
+
+  const target = String(expId || '').trim();
+  const list = Array.isArray(client.esperienze_location) ? client.esperienze_location : [];
+  client.esperienze_location = list.filter((e: any) => !e || String(e.id) !== target);
+  client.updated_at = new Date().toISOString();
+
+  saveStore(store);
+  return client;
+}
+
 

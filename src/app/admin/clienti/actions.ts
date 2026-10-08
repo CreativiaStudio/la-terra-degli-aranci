@@ -2,9 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 import {
+  addClientExperienceLocal,
   createClientEventQuoteLocal,
+  deleteClientExperienceLocal,
   getAllQuotesLocal,
   getStore,
+  updateClientLocal,
 } from '@/lib/localDb';
 import { checkVenueConflict } from '@/lib/eventStage';
 import { SEMI_ESCLUSIVA_FORMULE } from '@/lib/contractMeta';
@@ -118,6 +121,161 @@ export async function createEventForClientAction(
     return { success: true, quoteId: saved.quoteId, contractUrl };
   } catch (err: unknown) {
     console.error('Errore in createEventForClientAction:', err);
+    const message = err instanceof Error && err.message ? err.message : 'Errore inatteso';
+    return { success: false, error: message };
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Scheda Cliente CRM — aggiornamenti relazione negli anni             */
+/* ------------------------------------------------------------------ */
+
+export interface ClientMutationResult {
+  success: boolean;
+  error?: string;
+}
+
+/** Invalida le due viste della scheda cliente (rubrica + dettaglio). */
+function revalidateCliente(clientId: string): void {
+  revalidatePath('/admin/clienti');
+  revalidatePath('/admin/clienti/' + clientId);
+}
+
+/** Aggiorna i campi anagrafici/fiscali del cliente e gli snapshot collegati. */
+export async function updateClientAction(
+  clientId: string,
+  patch: Record<string, any>
+): Promise<ClientMutationResult> {
+  try {
+    const id = String(clientId || '').trim();
+    if (!id) return { success: false, error: 'Cliente non valido.' };
+    if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
+      return { success: false, error: 'Dati da salvare non validi.' };
+    }
+
+    const updated = updateClientLocal(id, patch);
+    if (!updated) return { success: false, error: 'Cliente non trovato in rubrica.' };
+
+    revalidateCliente(id);
+    return { success: true };
+  } catch (err: unknown) {
+    console.error('Errore in updateClientAction:', err);
+    const message = err instanceof Error && err.message ? err.message : 'Errore inatteso';
+    return { success: false, error: message };
+  }
+}
+
+export interface ClientExperienceInput {
+  titolo: string;
+  data: string;
+  coperti: number;
+  totale_speso: number;
+  note?: string;
+}
+
+/** Registra la partecipazione del cliente a un evento organizzato dalla location. */
+export async function addClientExperienceAction(
+  clientId: string,
+  exp: ClientExperienceInput
+): Promise<ClientMutationResult> {
+  try {
+    const id = String(clientId || '').trim();
+    if (!id) return { success: false, error: 'Cliente non valido.' };
+
+    const titolo = String(exp?.titolo || '').trim();
+    if (!titolo) {
+      return { success: false, error: "Indica il titolo dell'evento (es. San Valentino, Pasqua)." };
+    }
+
+    const data = String(exp?.data || '').trim();
+    if (!isValidDate(data)) {
+      return { success: false, error: 'Inserisci una data valida per l\'evento.' };
+    }
+
+    const coperti = Number(exp?.coperti);
+    const totaleSpeso = Number(exp?.totale_speso);
+
+    const updated = addClientExperienceLocal(id, {
+      titolo,
+      data,
+      coperti: Number.isFinite(coperti) ? coperti : 0,
+      totale_speso: Number.isFinite(totaleSpeso) ? totaleSpeso : 0,
+      note: exp?.note,
+    });
+    if (!updated) return { success: false, error: 'Cliente non trovato in rubrica.' };
+
+    revalidateCliente(id);
+    return { success: true };
+  } catch (err: unknown) {
+    console.error('Errore in addClientExperienceAction:', err);
+    const message = err instanceof Error && err.message ? err.message : 'Errore inatteso';
+    return { success: false, error: message };
+  }
+}
+
+/** Elimina un'esperienza location dalla storia del cliente. */
+export async function deleteClientExperienceAction(
+  clientId: string,
+  expId: string
+): Promise<ClientMutationResult> {
+  try {
+    const id = String(clientId || '').trim();
+    const experienceId = String(expId || '').trim();
+    if (!id || !experienceId) return { success: false, error: 'Riferimenti non validi.' };
+
+    const updated = deleteClientExperienceLocal(id, experienceId);
+    if (!updated) return { success: false, error: 'Cliente non trovato in rubrica.' };
+
+    revalidateCliente(id);
+    return { success: true };
+  } catch (err: unknown) {
+    console.error('Errore in deleteClientExperienceAction:', err);
+    const message = err instanceof Error && err.message ? err.message : 'Errore inatteso';
+    return { success: false, error: message };
+  }
+}
+
+export interface ClientPreferencesInput {
+  note_roberto?: string;
+  intolleranze?: string;
+  cibi_preferiti?: string;
+  vini_preferiti?: string;
+  spazi_del_cuore?: string;
+  anniversario?: string;
+}
+
+/** Campi ammessi sul record cliente per la "Memoria della Tenuta". */
+const CLIENT_PREFERENCE_KEYS: Array<keyof ClientPreferencesInput> = [
+  'note_roberto',
+  'intolleranze',
+  'cibi_preferiti',
+  'vini_preferiti',
+  'spazi_del_cuore',
+  'anniversario',
+];
+
+/** Salva le preferenze permanenti e le note confidenziali della persona. */
+export async function updateClientPreferencesAction(
+  clientId: string,
+  prefs: ClientPreferencesInput
+): Promise<ClientMutationResult> {
+  try {
+    const id = String(clientId || '').trim();
+    if (!id) return { success: false, error: 'Cliente non valido.' };
+
+    const patch: Record<string, string> = {};
+    for (const key of CLIENT_PREFERENCE_KEYS) {
+      const value = prefs?.[key];
+      if (value !== undefined) patch[key] = String(value ?? '').trim();
+    }
+
+    const updated = updateClientLocal(id, patch);
+    if (!updated) return { success: false, error: 'Cliente non trovato in rubrica.' };
+
+    revalidateCliente(id);
+    return { success: true };
+  } catch (err: unknown) {
+    console.error('Errore in updateClientPreferencesAction:', err);
     const message = err instanceof Error && err.message ? err.message : 'Errore inatteso';
     return { success: false, error: message };
   }

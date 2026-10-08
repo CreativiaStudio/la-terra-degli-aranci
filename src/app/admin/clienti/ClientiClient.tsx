@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { formatEuro } from "@/lib/contractPayments";
 import {
   createEventForClientAction,
@@ -214,9 +215,19 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
               filtered.map((c) => (
                 <tr key={c.id} style={{ borderBottom: "1px solid #f0eee9", verticalAlign: "top" }}>
                   <td style={{ padding: "0.9rem 0.7rem" }}>
-                    <strong style={{ fontSize: "0.95rem", color: "#1e1b18", display: "block" }}>
+                    <Link
+                      href={`/admin/clienti/${c.id}`}
+                      style={{
+                        fontSize: "0.95rem",
+                        color: "#1e1b18",
+                        display: "inline-block",
+                        fontWeight: 700,
+                        textDecoration: "none",
+                      }}
+                      title="Apri Scheda CRM"
+                    >
                       {c.nome} {c.cognome}
-                    </strong>
+                    </Link>
                     <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", marginTop: "0.35rem" }}>
                       {c.tags.length === 0 ? (
                         <span style={{ fontSize: "0.72rem", color: "#a8a29e" }}>—</span>
@@ -301,22 +312,39 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                   </td>
 
                   <td style={{ padding: "0.9rem 0.7rem", textAlign: "right", whiteSpace: "nowrap" }}>
-                    <button
-                      type="button"
-                      onClick={() => openModal(c.id)}
-                      style={{
-                        padding: "0.45rem 0.85rem",
-                        background: "#ffffff",
-                        color: "#1e1b18",
-                        border: "1px solid #e8e2d9",
-                        borderRadius: "7px",
-                        fontSize: "0.78rem",
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                    >
-                      ➕ Nuovo Evento
-                    </button>
+                    <div style={{ display: "inline-flex", gap: "0.4rem", alignItems: "center", justifyContent: "flex-end" }}>
+                      <Link
+                        href={`/admin/clienti/${c.id}`}
+                        style={{
+                          padding: "0.45rem 0.85rem",
+                          background: "#fff7ed",
+                          color: "#c2410c",
+                          border: "1px solid #ffedd5",
+                          borderRadius: "7px",
+                          fontSize: "0.78rem",
+                          fontWeight: 700,
+                          textDecoration: "none",
+                        }}
+                      >
+                        👤 Scheda CRM
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => openModal(c.id)}
+                        style={{
+                          padding: "0.45rem 0.85rem",
+                          background: "#ffffff",
+                          color: "#1e1b18",
+                          border: "1px solid #e8e2d9",
+                          borderRadius: "7px",
+                          fontSize: "0.78rem",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        ➕ Nuovo Evento
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

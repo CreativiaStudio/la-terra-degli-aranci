@@ -10,7 +10,46 @@
       "telefono": "+39 347 1122334",
       "codice_fiscale": "DSMVLR90A01F839K",
       "provenienza": "Napoli (Posillipo)",
-      "created_at": "2026-07-23T07:06:08.106Z"
+      "created_at": "2026-07-23T07:06:08.106Z",
+      "coniuge": "Laura Conti",
+      "indirizzo": "Via Posillipo 120, Napoli",
+      "memoria": {
+        "note_roberto": "Coppia splendida, affezionatissima alla tenuta dal loro matrimonio nel 2024. Laura adora i fiori d'arancio e la vista del tramonto dal Belvedere. Trattare sempre con la massima cura e attenzione sartoriale.",
+        "intolleranze": "Laura è intollerante ai crostacei crudi; il piccolo Edoardo no frutta a guscio.",
+        "cibi_preferiti": "Risotto ai limoni di Sorrento, paccheri di Gragnano con pescato del giorno, millefoglie chantilly.",
+        "vini_preferiti": "Greco di Tufo DOCG, Fiano di Avellino, Franciacorta Satèn.",
+        "spazi_del_cuore": "Terrazza Belvedere per il tramonto, Giardino d'Inverno per il taglio torta.",
+        "anniversario": "14 Giugno"
+      },
+      "esperienze_location": [
+        {
+          "id": "exp-valerio-1",
+          "titolo": "Cena Romantica di San Valentino tra gli Aranci",
+          "data": "2026-02-14",
+          "coperti": 2,
+          "totale_speso": 240,
+          "note": "Tavolo panoramico Belvedere riservato, bottiglia di Franciacorta Satèn.",
+          "created_at": "2026-02-10T11:00:00.000Z"
+        },
+        {
+          "id": "exp-valerio-2",
+          "titolo": "Pranzo di Pasqua in Famiglia nella Tenuta",
+          "data": "2026-04-05",
+          "coperti": 6,
+          "totale_speso": 510,
+          "note": "Tavolo allargato con genitori e piccolo Edoardo nel Giardino d'Inverno.",
+          "created_at": "2026-03-20T10:30:00.000Z"
+        },
+        {
+          "id": "exp-valerio-3",
+          "titolo": "Notte di San Lorenzo sotto gli Aranci & Jazz",
+          "data": "2025-08-10",
+          "coperti": 4,
+          "totale_speso": 280,
+          "note": "Coppia con amici del cuore, degustazione calici sotto le stelle.",
+          "created_at": "2025-08-01T09:00:00.000Z"
+        }
+      ]
     },
     {
       "id": "client-demo3",
@@ -35,7 +74,36 @@
       "codice_fiscale": "CPPGNL88C15F839T",
       "provenienza": "Napoli (Vomero)",
       "note": "Cliente storico VIP Club TDA con 2 eventi firmati (2023 e 2025).",
-      "created_at": "2022-10-10T00:00:00.000Z"
+      "created_at": "2022-10-10T00:00:00.000Z",
+      "coniuge": "Marika Russo",
+      "memoria": {
+        "note_roberto": "Primario chirurgo al Cardarelli, persona di grande cultura e riservatezza. Ama la tranquillità della Sala Tufo e l'abbinamento con grandi vini campani.",
+        "intolleranze": "Nessuna intolleranza.",
+        "cibi_preferiti": "Cucina della tradizione campana rivisitata, pescato fresco e dolci agli agrumi.",
+        "vini_preferiti": "Taurasi DOCG, Aglianico del Taburno Riserva.",
+        "spazi_del_cuore": "Sala Tufo e agrumeto centrale.",
+        "anniversario": "22 Settembre"
+      },
+      "esperienze_location": [
+        {
+          "id": "exp-gian-1",
+          "titolo": "Cena Gourmet di San Valentino",
+          "data": "2025-02-14",
+          "coperti": 2,
+          "totale_speso": 250,
+          "note": "Tavolo riservato Sala Tufo.",
+          "created_at": "2025-02-10T10:00:00.000Z"
+        },
+        {
+          "id": "exp-gian-2",
+          "titolo": "Pizza Gourmet & Jazz sotto le Stelle",
+          "data": "2025-07-15",
+          "coperti": 4,
+          "totale_speso": 220,
+          "note": "Con colleghi ospedale.",
+          "created_at": "2025-07-01T10:00:00.000Z"
+        }
+      ]
     },
     {
       "id": "0a462b53-e984-4902-9562-e9d0dd776af8",
@@ -59,7 +127,27 @@
       "telefono": "+39 347 8891234",
       "codice_fiscale": "CFF340737D-B2D6-",
       "provenienza": "Napoli",
-      "created_at": "2026-09-01T10:00:00.000Z"
+      "created_at": "2026-09-01T10:00:00.000Z",
+      "coniuge": "Giulia Romano",
+      "memoria": {
+        "note_roberto": "Sposi giovani e spumeggianti. Grande attenzione alla festa serale e al momento torta a bordo piscina.",
+        "intolleranze": "Giulia è intollerante al lattosio (menù dolci dedicato).",
+        "cibi_preferiti": "Finger food caldi, show cooking pasta fresca, buffet dolci della tradizione.",
+        "vini_preferiti": "Prosecco Valdobbiadene Superiore, Falanghina dei Campi Flegrei.",
+        "spazi_del_cuore": "Piscina e pergolato di agrumi.",
+        "anniversario": "17 Luglio"
+      },
+      "esperienze_location": [
+        {
+          "id": "exp-marco-1",
+          "titolo": "Cena di San Valentino pre-nozze",
+          "data": "2026-02-14",
+          "coperti": 2,
+          "totale_speso": 240,
+          "note": "Hanno festeggiato la scelta della location per il loro matrimonio del 2027.",
+          "created_at": "2026-02-10T10:00:00.000Z"
+        }
+      ]
     },
     {
       "id": "6db3038f-140d-40a4-b7de-e1dd06590dd2",
@@ -1055,6 +1143,452 @@
         "provenienza": "Napoli",
         "created_at": "2026-09-01T10:00:00.000Z"
       }
+    },
+    {
+      "id": "quote-valerio-wedding-2024",
+      "client_id": "client-demo1",
+      "tipo_evento": "wedding",
+      "tipo_cliente": "privato",
+      "data_evento": "2024-06-14",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "spazi_riservati": [
+        "esclusiva"
+      ],
+      "formula_opzione": "esclusiva",
+      "numero_ospiti": 120,
+      "status": "firmato",
+      "data_firma": "2023-11-15T10:00:00.000Z",
+      "prezzo": 16500,
+      "totale": 16500,
+      "totale_calcolato": 16500,
+      "note": "Matrimonio memorabile di Valerio & Laura.",
+      "items": [
+        {
+          "id": 1,
+          "descrizione": "Canone Struttura Esclusiva",
+          "quantita": 1,
+          "prezzo_unitario": 3500,
+          "totale": 3500,
+          "splitKey": "ss100"
+        },
+        {
+          "id": 2,
+          "descrizione": "Banchetto Nuziale Gourmet (120 ospiti)",
+          "quantita": 120,
+          "prezzo_unitario": 100,
+          "totale": 12000,
+          "splitKey": "ib100"
+        },
+        {
+          "id": 3,
+          "descrizione": "Open Bar Premium & Sigari",
+          "quantita": 1,
+          "prezzo_unitario": 1000,
+          "totale": 1000,
+          "splitKey": "ib100"
+        }
+      ],
+      "created_at": "2023-10-01T10:00:00.000Z",
+      "clients": {
+        "id": "client-demo1",
+        "nome": "Valerio",
+        "cognome": "De Simone",
+        "sposera_nome": "Laura",
+        "sposera_cognome": "Conti",
+        "email": "valerio.desimone@gmail.com",
+        "telefono": "+39 347 1122334",
+        "codice_fiscale": "DSMVLR90A01F839K",
+        "provenienza": "Napoli (Posillipo)",
+        "created_at": "2026-07-23T07:06:08.106Z",
+        "coniuge": "Laura Conti",
+        "indirizzo": "Via Posillipo 120, Napoli",
+        "memoria": {
+          "note_roberto": "Coppia splendida, affezionatissima alla tenuta dal loro matrimonio nel 2024. Laura adora i fiori d'arancio e la vista del tramonto dal Belvedere. Trattare sempre con la massima cura e attenzione sartoriale.",
+          "intolleranze": "Laura è intollerante ai crostacei crudi; il piccolo Edoardo no frutta a guscio.",
+          "cibi_preferiti": "Risotto ai limoni di Sorrento, paccheri di Gragnano con pescato del giorno, millefoglie chantilly.",
+          "vini_preferiti": "Greco di Tufo DOCG, Fiano di Avellino, Franciacorta Satèn.",
+          "spazi_del_cuore": "Terrazza Belvedere per il tramonto, Giardino d'Inverno per il taglio torta.",
+          "anniversario": "14 Giugno"
+        },
+        "esperienze_location": [
+          {
+            "id": "exp-valerio-1",
+            "titolo": "Cena Romantica di San Valentino tra gli Aranci",
+            "data": "2026-02-14",
+            "coperti": 2,
+            "totale_speso": 240,
+            "note": "Tavolo panoramico Belvedere riservato, bottiglia di Franciacorta Satèn.",
+            "created_at": "2026-02-10T11:00:00.000Z"
+          },
+          {
+            "id": "exp-valerio-2",
+            "titolo": "Pranzo di Pasqua in Famiglia nella Tenuta",
+            "data": "2026-04-05",
+            "coperti": 6,
+            "totale_speso": 510,
+            "note": "Tavolo allargato con genitori e piccolo Edoardo nel Giardino d'Inverno.",
+            "created_at": "2026-03-20T10:30:00.000Z"
+          },
+          {
+            "id": "exp-valerio-3",
+            "titolo": "Notte di San Lorenzo sotto gli Aranci & Jazz",
+            "data": "2025-08-10",
+            "coperti": 4,
+            "totale_speso": 280,
+            "note": "Coppia con amici del cuore, degustazione calici sotto le stelle.",
+            "created_at": "2025-08-01T09:00:00.000Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-valerio-battesimo-2025",
+      "client_id": "client-demo1",
+      "tipo_evento": "eventi",
+      "tipo_cliente": "privato",
+      "data_evento": "2025-05-10",
+      "turno": "pranzo",
+      "tipo_esclusiva": "semi_esclusiva",
+      "spazi_riservati": [
+        "sala_bianca",
+        "giardino_d_inverno"
+      ],
+      "formula_opzione": "sala_bianca",
+      "numero_ospiti": 60,
+      "status": "firmato",
+      "data_firma": "2025-01-20T10:00:00.000Z",
+      "prezzo": 5400,
+      "totale": 5400,
+      "totale_calcolato": 5400,
+      "note": "Battesimo del piccolo Edoardo.",
+      "items": [
+        {
+          "id": 1,
+          "descrizione": "Locazione Sala Bianca & Giardino",
+          "quantita": 1,
+          "prezzo_unitario": 1500,
+          "totale": 1500,
+          "splitKey": "ss100"
+        },
+        {
+          "id": 2,
+          "descrizione": "Menù Degustazione Battesimo (60 ospiti)",
+          "quantita": 60,
+          "prezzo_unitario": 65,
+          "totale": 3900,
+          "splitKey": "ib100"
+        }
+      ],
+      "created_at": "2025-01-10T10:00:00.000Z",
+      "clients": {
+        "id": "client-demo1",
+        "nome": "Valerio",
+        "cognome": "De Simone",
+        "sposera_nome": "Laura",
+        "sposera_cognome": "Conti",
+        "email": "valerio.desimone@gmail.com",
+        "telefono": "+39 347 1122334",
+        "codice_fiscale": "DSMVLR90A01F839K",
+        "provenienza": "Napoli (Posillipo)",
+        "created_at": "2026-07-23T07:06:08.106Z",
+        "coniuge": "Laura Conti",
+        "indirizzo": "Via Posillipo 120, Napoli",
+        "memoria": {
+          "note_roberto": "Coppia splendida, affezionatissima alla tenuta dal loro matrimonio nel 2024. Laura adora i fiori d'arancio e la vista del tramonto dal Belvedere. Trattare sempre con la massima cura e attenzione sartoriale.",
+          "intolleranze": "Laura è intollerante ai crostacei crudi; il piccolo Edoardo no frutta a guscio.",
+          "cibi_preferiti": "Risotto ai limoni di Sorrento, paccheri di Gragnano con pescato del giorno, millefoglie chantilly.",
+          "vini_preferiti": "Greco di Tufo DOCG, Fiano di Avellino, Franciacorta Satèn.",
+          "spazi_del_cuore": "Terrazza Belvedere per il tramonto, Giardino d'Inverno per il taglio torta.",
+          "anniversario": "14 Giugno"
+        },
+        "esperienze_location": [
+          {
+            "id": "exp-valerio-1",
+            "titolo": "Cena Romantica di San Valentino tra gli Aranci",
+            "data": "2026-02-14",
+            "coperti": 2,
+            "totale_speso": 240,
+            "note": "Tavolo panoramico Belvedere riservato, bottiglia di Franciacorta Satèn.",
+            "created_at": "2026-02-10T11:00:00.000Z"
+          },
+          {
+            "id": "exp-valerio-2",
+            "titolo": "Pranzo di Pasqua in Famiglia nella Tenuta",
+            "data": "2026-04-05",
+            "coperti": 6,
+            "totale_speso": 510,
+            "note": "Tavolo allargato con genitori e piccolo Edoardo nel Giardino d'Inverno.",
+            "created_at": "2026-03-20T10:30:00.000Z"
+          },
+          {
+            "id": "exp-valerio-3",
+            "titolo": "Notte di San Lorenzo sotto gli Aranci & Jazz",
+            "data": "2025-08-10",
+            "coperti": 4,
+            "totale_speso": 280,
+            "note": "Coppia con amici del cuore, degustazione calici sotto le stelle.",
+            "created_at": "2025-08-01T09:00:00.000Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-valerio-compleanno-2027",
+      "client_id": "client-demo1",
+      "tipo_evento": "eventi",
+      "tipo_cliente": "privato",
+      "data_evento": "2027-07-25",
+      "turno": "cena",
+      "tipo_esclusiva": "semi_esclusiva",
+      "spazi_riservati": [
+        "sala_tufo"
+      ],
+      "formula_opzione": "sala_tufo",
+      "numero_ospiti": 45,
+      "status": "firmato",
+      "data_firma": "2026-09-01T10:00:00.000Z",
+      "prezzo": 4200,
+      "totale": 4200,
+      "totale_calcolato": 4200,
+      "note": "Festa a sorpresa per il 30° Compleanno di Laura con DJ set in agrumeto.",
+      "items": [
+        {
+          "id": 1,
+          "descrizione": "Sala Tufo & Agrumeto Cena",
+          "quantita": 1,
+          "prezzo_unitario": 1200,
+          "totale": 1200,
+          "splitKey": "ss100"
+        },
+        {
+          "id": 2,
+          "descrizione": "Apericena Gourmet & Finger Food (45 ospiti)",
+          "quantita": 45,
+          "prezzo_unitario": 60,
+          "totale": 2700,
+          "splitKey": "ib100"
+        },
+        {
+          "id": 3,
+          "descrizione": "Torta Sartoriale & Sweet Table",
+          "quantita": 1,
+          "prezzo_unitario": 300,
+          "totale": 300,
+          "splitKey": "ss100"
+        }
+      ],
+      "created_at": "2026-08-20T10:00:00.000Z",
+      "clients": {
+        "id": "client-demo1",
+        "nome": "Valerio",
+        "cognome": "De Simone",
+        "sposera_nome": "Laura",
+        "sposera_cognome": "Conti",
+        "email": "valerio.desimone@gmail.com",
+        "telefono": "+39 347 1122334",
+        "codice_fiscale": "DSMVLR90A01F839K",
+        "provenienza": "Napoli (Posillipo)",
+        "created_at": "2026-07-23T07:06:08.106Z",
+        "coniuge": "Laura Conti",
+        "indirizzo": "Via Posillipo 120, Napoli",
+        "memoria": {
+          "note_roberto": "Coppia splendida, affezionatissima alla tenuta dal loro matrimonio nel 2024. Laura adora i fiori d'arancio e la vista del tramonto dal Belvedere. Trattare sempre con la massima cura e attenzione sartoriale.",
+          "intolleranze": "Laura è intollerante ai crostacei crudi; il piccolo Edoardo no frutta a guscio.",
+          "cibi_preferiti": "Risotto ai limoni di Sorrento, paccheri di Gragnano con pescato del giorno, millefoglie chantilly.",
+          "vini_preferiti": "Greco di Tufo DOCG, Fiano di Avellino, Franciacorta Satèn.",
+          "spazi_del_cuore": "Terrazza Belvedere per il tramonto, Giardino d'Inverno per il taglio torta.",
+          "anniversario": "14 Giugno"
+        },
+        "esperienze_location": [
+          {
+            "id": "exp-valerio-1",
+            "titolo": "Cena Romantica di San Valentino tra gli Aranci",
+            "data": "2026-02-14",
+            "coperti": 2,
+            "totale_speso": 240,
+            "note": "Tavolo panoramico Belvedere riservato, bottiglia di Franciacorta Satèn.",
+            "created_at": "2026-02-10T11:00:00.000Z"
+          },
+          {
+            "id": "exp-valerio-2",
+            "titolo": "Pranzo di Pasqua in Famiglia nella Tenuta",
+            "data": "2026-04-05",
+            "coperti": 6,
+            "totale_speso": 510,
+            "note": "Tavolo allargato con genitori e piccolo Edoardo nel Giardino d'Inverno.",
+            "created_at": "2026-03-20T10:30:00.000Z"
+          },
+          {
+            "id": "exp-valerio-3",
+            "titolo": "Notte di San Lorenzo sotto gli Aranci & Jazz",
+            "data": "2025-08-10",
+            "coperti": 4,
+            "totale_speso": 280,
+            "note": "Coppia con amici del cuore, degustazione calici sotto le stelle.",
+            "created_at": "2025-08-01T09:00:00.000Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-gianluigi-wedding-2023",
+      "client_id": "client-demo4",
+      "tipo_evento": "wedding",
+      "tipo_cliente": "privato",
+      "data_evento": "2023-09-22",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "spazi_riservati": [
+        "esclusiva"
+      ],
+      "formula_opzione": "esclusiva",
+      "numero_ospiti": 110,
+      "status": "firmato",
+      "data_firma": "2023-03-10T10:00:00.000Z",
+      "prezzo": 17500,
+      "totale": 17500,
+      "totale_calcolato": 17500,
+      "items": [
+        {
+          "id": 1,
+          "descrizione": "Esclusiva Tenuta",
+          "quantita": 1,
+          "prezzo_unitario": 3500,
+          "totale": 3500,
+          "splitKey": "ss100"
+        },
+        {
+          "id": 2,
+          "descrizione": "Banchetto Nuziale (110 ospiti)",
+          "quantita": 110,
+          "prezzo_unitario": 120,
+          "totale": 13200,
+          "splitKey": "ib100"
+        },
+        {
+          "id": 3,
+          "descrizione": "Allestimenti Floreali & Luci",
+          "quantita": 1,
+          "prezzo_unitario": 800,
+          "totale": 800,
+          "splitKey": "ss100"
+        }
+      ],
+      "created_at": "2023-01-15T10:00:00.000Z",
+      "clients": {
+        "id": "client-demo4",
+        "nome": "Dott. Gianluigi",
+        "cognome": "Coppola",
+        "sposera_nome": "Marika",
+        "sposera_cognome": "Russo",
+        "email": "gianluigi.coppola@sanita.it",
+        "telefono": "+39 335 8899001",
+        "codice_fiscale": "CPPGNL88C15F839T",
+        "provenienza": "Napoli (Vomero)",
+        "note": "Cliente storico VIP Club TDA con 2 eventi firmati (2023 e 2025).",
+        "created_at": "2022-10-10T00:00:00.000Z",
+        "coniuge": "Marika Russo",
+        "memoria": {
+          "note_roberto": "Primario chirurgo al Cardarelli, persona di grande cultura e riservatezza. Ama la tranquillità della Sala Tufo e l'abbinamento con grandi vini campani.",
+          "intolleranze": "Nessuna intolleranza.",
+          "cibi_preferiti": "Cucina della tradizione campana rivisitata, pescato fresco e dolci agli agrumi.",
+          "vini_preferiti": "Taurasi DOCG, Aglianico del Taburno Riserva.",
+          "spazi_del_cuore": "Sala Tufo e agrumeto centrale.",
+          "anniversario": "22 Settembre"
+        },
+        "esperienze_location": [
+          {
+            "id": "exp-gian-1",
+            "titolo": "Cena Gourmet di San Valentino",
+            "data": "2025-02-14",
+            "coperti": 2,
+            "totale_speso": 250,
+            "note": "Tavolo riservato Sala Tufo.",
+            "created_at": "2025-02-10T10:00:00.000Z"
+          },
+          {
+            "id": "exp-gian-2",
+            "titolo": "Pizza Gourmet & Jazz sotto le Stelle",
+            "data": "2025-07-15",
+            "coperti": 4,
+            "totale_speso": 220,
+            "note": "Con colleghi ospedale.",
+            "created_at": "2025-07-01T10:00:00.000Z"
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-marco-promessa-2026",
+      "client_id": "b82a0f22-dd90-4c73-ac66-ddf212f17a7c",
+      "tipo_evento": "eventi",
+      "tipo_cliente": "privato",
+      "data_evento": "2026-04-18",
+      "turno": "pranzo",
+      "tipo_esclusiva": "semi_esclusiva",
+      "spazi_riservati": [
+        "sala_tufo"
+      ],
+      "formula_opzione": "sala_tufo",
+      "numero_ospiti": 50,
+      "status": "firmato",
+      "data_firma": "2026-01-15T10:00:00.000Z",
+      "prezzo": 3800,
+      "totale": 3800,
+      "totale_calcolato": 3800,
+      "note": "Festa di promessa di matrimonio con aperitivo in agrumeto.",
+      "items": [
+        {
+          "id": 1,
+          "descrizione": "Sala Tufo Pranzo",
+          "quantita": 1,
+          "prezzo_unitario": 1300,
+          "totale": 1300,
+          "splitKey": "ss100"
+        },
+        {
+          "id": 2,
+          "descrizione": "Aperitivo & Pranzo Promessa (50 ospiti)",
+          "quantita": 50,
+          "prezzo_unitario": 50,
+          "totale": 2500,
+          "splitKey": "ib100"
+        }
+      ],
+      "created_at": "2026-01-10T10:00:00.000Z",
+      "clients": {
+        "id": "b82a0f22-dd90-4c73-ac66-ddf212f17a7c",
+        "nome": "Marco",
+        "cognome": "Esposito",
+        "sposera_nome": "Sofia",
+        "sposera_cognome": "De Luca",
+        "email": "marco.esposito@gmail.com",
+        "telefono": "+39 347 8891234",
+        "codice_fiscale": "CFF340737D-B2D6-",
+        "provenienza": "Napoli",
+        "created_at": "2026-09-01T10:00:00.000Z",
+        "coniuge": "Giulia Romano",
+        "memoria": {
+          "note_roberto": "Sposi giovani e spumeggianti. Grande attenzione alla festa serale e al momento torta a bordo piscina.",
+          "intolleranze": "Giulia è intollerante al lattosio (menù dolci dedicato).",
+          "cibi_preferiti": "Finger food caldi, show cooking pasta fresca, buffet dolci della tradizione.",
+          "vini_preferiti": "Prosecco Valdobbiadene Superiore, Falanghina dei Campi Flegrei.",
+          "spazi_del_cuore": "Piscina e pergolato di agrumi.",
+          "anniversario": "17 Luglio"
+        },
+        "esperienze_location": [
+          {
+            "id": "exp-marco-1",
+            "titolo": "Cena di San Valentino pre-nozze",
+            "data": "2026-02-14",
+            "coperti": 2,
+            "totale_speso": 240,
+            "note": "Hanno festeggiato la scelta della location per il loro matrimonio del 2027.",
+            "created_at": "2026-02-10T10:00:00.000Z"
+          }
+        ]
+      }
     }
   ],
   "signed_contracts": [
@@ -1200,6 +1734,32 @@
         "provenienza": "Napoli",
         "created_at": "2026-09-01T10:00:00.000Z"
       }
+    },
+    {
+      "id": "sc-val-1",
+      "quote_id": "quote-valerio-wedding-2024",
+      "firmato_il": "2023-11-15T10:00:00.000Z",
+      "pdf_url": "/contratti/wedding/valerio-desimone-2024.pdf"
+    },
+    {
+      "id": "sc-val-2",
+      "quote_id": "quote-valerio-battesimo-2025",
+      "firmato_il": "2025-01-20T10:00:00.000Z"
+    },
+    {
+      "id": "sc-val-3",
+      "quote_id": "quote-valerio-compleanno-2027",
+      "firmato_il": "2026-09-01T10:00:00.000Z"
+    },
+    {
+      "id": "sc-gian-1",
+      "quote_id": "quote-gianluigi-wedding-2023",
+      "firmato_il": "2023-03-10T10:00:00.000Z"
+    },
+    {
+      "id": "sc-marco-promessa",
+      "quote_id": "quote-marco-promessa-2026",
+      "firmato_il": "2026-01-15T10:00:00.000Z"
     }
   ],
   "wedding_diaries": [
@@ -4269,6 +4829,116 @@
       "stato": "valido",
       "registrato_da": "Roberto Sola (Direzione)",
       "created_at": "2027-01-31T10:00:00.000Z"
+    },
+    {
+      "id": "pay-val-1",
+      "quote_id": "quote-valerio-wedding-2024",
+      "importo_cents": 150000,
+      "data_incasso": "2023-11-15",
+      "metodo": "bonifico",
+      "causale": "Caparra confirmatoria matrimonio",
+      "recipient": "santo_stefano",
+      "created_at": "2023-11-15T10:00:00.000Z"
+    },
+    {
+      "id": "pay-val-2",
+      "quote_id": "quote-valerio-wedding-2024",
+      "importo_cents": 300000,
+      "data_incasso": "2024-02-10",
+      "metodo": "bonifico",
+      "causale": "Secondo acconto matrimonio",
+      "recipient": "iovino",
+      "created_at": "2024-02-10T10:00:00.000Z"
+    },
+    {
+      "id": "pay-val-3",
+      "quote_id": "quote-valerio-wedding-2024",
+      "importo_cents": 1200000,
+      "data_incasso": "2024-06-15",
+      "metodo": "bonifico",
+      "causale": "Saldo matrimonio Valerio & Laura",
+      "recipient": "iovino",
+      "created_at": "2024-06-15T10:00:00.000Z"
+    },
+    {
+      "id": "pay-val-4",
+      "quote_id": "quote-valerio-battesimo-2025",
+      "importo_cents": 150000,
+      "data_incasso": "2025-01-20",
+      "metodo": "bonifico",
+      "causale": "Caparra battesimo Edoardo",
+      "recipient": "santo_stefano",
+      "created_at": "2025-01-20T10:00:00.000Z"
+    },
+    {
+      "id": "pay-val-5",
+      "quote_id": "quote-valerio-battesimo-2025",
+      "importo_cents": 390000,
+      "data_incasso": "2025-05-11",
+      "metodo": "bonifico",
+      "causale": "Saldo battesimo Edoardo",
+      "recipient": "iovino",
+      "created_at": "2025-05-11T10:00:00.000Z"
+    },
+    {
+      "id": "pay-val-6",
+      "quote_id": "quote-valerio-compleanno-2027",
+      "importo_cents": 150000,
+      "data_incasso": "2026-09-01",
+      "metodo": "carta",
+      "causale": "Caparra festa 30° Laura",
+      "recipient": "santo_stefano",
+      "created_at": "2026-09-01T10:00:00.000Z"
+    },
+    {
+      "id": "pay-gian-1",
+      "quote_id": "quote-gianluigi-wedding-2023",
+      "importo_cents": 150000,
+      "data_incasso": "2023-03-10",
+      "metodo": "bonifico",
+      "causale": "Caparra nozze Coppola",
+      "recipient": "santo_stefano",
+      "created_at": "2023-03-10T10:00:00.000Z"
+    },
+    {
+      "id": "pay-gian-2",
+      "quote_id": "quote-gianluigi-wedding-2023",
+      "importo_cents": 300000,
+      "data_incasso": "2023-06-15",
+      "metodo": "bonifico",
+      "causale": "Secondo acconto nozze Coppola",
+      "recipient": "iovino",
+      "created_at": "2023-06-15T10:00:00.000Z"
+    },
+    {
+      "id": "pay-gian-3",
+      "quote_id": "quote-gianluigi-wedding-2023",
+      "importo_cents": 1300000,
+      "data_incasso": "2023-09-23",
+      "metodo": "bonifico",
+      "causale": "Saldo nozze Dott. Coppola",
+      "recipient": "iovino",
+      "created_at": "2023-09-23T10:00:00.000Z"
+    },
+    {
+      "id": "pay-marco-1",
+      "quote_id": "quote-marco-promessa-2026",
+      "importo_cents": 150000,
+      "data_incasso": "2026-01-15",
+      "metodo": "bonifico",
+      "causale": "Caparra promessa Marco & Giulia",
+      "recipient": "santo_stefano",
+      "created_at": "2026-01-15T10:00:00.000Z"
+    },
+    {
+      "id": "pay-marco-2",
+      "quote_id": "quote-marco-promessa-2026",
+      "importo_cents": 230000,
+      "data_incasso": "2026-04-19",
+      "metodo": "bonifico",
+      "causale": "Saldo festa promessa",
+      "recipient": "iovino",
+      "created_at": "2026-04-19T10:00:00.000Z"
     }
   ],
   "appointments": [
