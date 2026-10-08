@@ -84,7 +84,7 @@ export default async function CassaPage({
 }) {
   const params = await searchParams;
   const tabRaw = String(params?.tab || "incassi");
-  const validTabs: CassaTab[] = ["incassi", "scadenze", "societa", "simulatore"];
+  const validTabs: CassaTab[] = ["incassi", "scadenze", "societa"];
   const initialTab: CassaTab = (validTabs as string[]).includes(tabRaw) ? (tabRaw as CassaTab) : "incassi";
 
   const [quotes, payments] = await Promise.all([getQuotesFast(), Promise.resolve(getAllPaymentsLocal())]);

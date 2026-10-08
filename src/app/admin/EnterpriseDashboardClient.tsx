@@ -399,10 +399,10 @@ export default function EnterpriseDashboardClient({ quotes, signedPdfs = [] }: E
           </p>
           <div style={{ marginTop: "0.8rem" }}>
             <Link
-              href="/admin/simulatore"
+              href="/admin/cassa?tab=societa"
               style={{ fontSize: "0.82rem", color: "#86198f", fontWeight: 700, textDecoration: "none" }}
             >
-              Consulta Ripartizione Fiscale Dettagliata →
+              Consulta Ripartizione Fiscale Società →
             </Link>
           </div>
         </div>

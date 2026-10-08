@@ -639,6 +639,26 @@ function AppuntamentoCard({
   const isTomorrow = a.dataAppuntamento === tomorrowIso;
   const isPast = Boolean(a.dataAppuntamento && a.dataAppuntamento < todayIso);
 
+  const prefServices =
+    a.preferenze?.preferenzeServizi && a.preferenze.preferenzeServizi.length > 0
+      ? a.preferenze.preferenzeServizi
+      : a.preferenze?.serviziInteresse ?? [];
+  const prefDates = Array.isArray(a.preferenze?.dateCandidate)
+    ? a.preferenze!.dateCandidate!.filter(Boolean)
+    : [];
+  const prefDietary = String(a.preferenze?.celiaciNote || "").trim();
+  const prefStyle = String(a.preferenze?.stileMood || "").trim();
+  const hasSyncedPrefs = Boolean(
+    prefServices.length > 0 ||
+      prefDates.length > 0 ||
+      prefDietary ||
+      prefStyle ||
+      a.preferenze?.tipoCerimonia ||
+      a.preferenze?.musicaNote ||
+      a.preferenze?.noteGenerali ||
+      (a.preferenze?.spaziSelezionati && a.preferenze.spaziSelezionati.length > 0)
+  );
+
   const tourServices =
     a.preferenze?.preferenzeServizi && a.preferenze.preferenzeServizi.length > 0
       ? a.preferenze.preferenzeServizi
@@ -710,6 +730,30 @@ function AppuntamentoCard({
         {isWedding && partner && (
           <div style={{ fontSize: "0.85rem", color: "#6a6764" }}>
             💞 {fullName(a)} &amp; {partner}
+          </div>
+        )}
+
+        {hasSyncedPrefs && (
+          <div
+            style={{
+              marginTop: "0.55rem",
+              display: "inline-flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: "0.5rem",
+              background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)",
+              border: "1px solid #a7f3d0",
+              borderRadius: "10px",
+              padding: "0.4rem 0.65rem",
+              fontSize: "0.74rem",
+              fontWeight: 800,
+              color: "#166534",
+            }}
+          >
+            <span>✨ Preferenze Sincronizzate (Sposi + Segreteria)</span>
+            <span style={{ color: "#047857", fontWeight: 700 }}>
+              💎 {prefServices.length} servizi · 📆 {prefDates.length} date · 🍽️ {prefDietary ? "note alimentari" : "nessuna nota"}
+            </span>
           </div>
         )}
 

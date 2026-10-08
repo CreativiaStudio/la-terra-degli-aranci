@@ -1,4 +1,5 @@
-import SimulatorePage, { metadata as simulatoreMetadata } from "../simulatore/page";
+import { redirect } from "next/navigation";
 
-export const metadata = simulatoreMetadata;
-export default SimulatorePage;
+export default function SplitPage() {
+  redirect("/admin/cassa?tab=societa");
+}

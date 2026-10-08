@@ -3,14 +3,13 @@
 import React, { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatEuro } from "@/lib/contractPayments";
-import SimulatoreClient from "@/app/admin/simulatore/SimulatoreClient";
 import { recordPaymentAction } from "./paymentActions";
 
 /* ------------------------------------------------------------------ */
 /* Tipi condivisi con il Server Component                              */
 /* ------------------------------------------------------------------ */
 
-export type CassaTab = "incassi" | "scadenze" | "societa" | "simulatore";
+export type CassaTab = "incassi" | "scadenze" | "societa";
 
 export interface CassaRateRow {
   key: string;
@@ -102,7 +101,6 @@ const TABS: Array<{ id: CassaTab; label: string; icon: string }> = [
   { id: "incassi", label: "Registro Incassi", icon: "💰" },
   { id: "scadenze", label: "Scadenze & Rate", icon: "📅" },
   { id: "societa", label: "Ripartizione Società", icon: "🏛️" },
-  { id: "simulatore", label: "Simulazione Fiscale", icon: "🧮" },
 ];
 
 const COMPANY_LABELS: Record<string, string> = {
@@ -353,7 +351,7 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
           💶 Cassa Unificata TDA
         </h1>
         <p style={{ margin: 0, color: "#777" }}>
-          Registro incassi reali, rate contrattuali, ripartizione Santo Stefano / Iovino e simulatore fiscale in un unico cruscotto.
+          Registro incassi reali, scadenze rate contrattuali e ripartizione analitica Santo Stefano / Iovino per singolo evento e globale.
         </p>
       </div>
 
@@ -930,23 +928,7 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
         </div>
       )}
 
-      {/* ----------------------------- SIMULATORE ----------------------------- */}
-      {tab === "simulatore" && (
-        <div>
-          <div className="premium-card" style={{ padding: "1.3rem 1.6rem", marginBottom: "1.5rem", borderLeft: "4px solid #e58c2c" }}>
-            <span style={{ fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "2px", color: "#e58c2c", fontWeight: 800 }}>
-              SIMULAZIONE FISCALE & PREVENTIVATORE
-            </span>
-            <h2 style={{ margin: "0.3rem 0 0 0", color: "#1e1b18", fontSize: "1.4rem" }}>
-              🧮 Simulazione Fiscale & Preventivatore
-            </h2>
-            <p style={{ margin: "0.3rem 0 0 0", color: "#777", fontSize: "0.9rem" }}>
-              Lo stesso motore ufficiale di preventivazione e split societario, integrato direttamente nel cruscotto di Cassa.
-            </p>
-          </div>
-          <SimulatoreClient />
-        </div>
-      )}
+
 
       {/* MODALE REGISTRA INCASSO */}
       {incassoOpen && (

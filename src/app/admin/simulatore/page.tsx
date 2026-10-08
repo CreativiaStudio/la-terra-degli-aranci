@@ -1,10 +1,5 @@
-import React from "react";
-import SimulatoreClient from "./SimulatoreClient";
-
-export const metadata = {
-  title: "Simulatore Fiscale & Eventi | La Terra degli Aranci",
-};
+import { redirect } from "next/navigation";
 
 export default function SimulatorePage() {
-  return <SimulatoreClient />;
+  redirect("/admin/cassa?tab=societa");
 }

@@ -55,7 +55,7 @@ export async function saveServiceItemAction(item: ServiceCatalogItem): Promise<{
     }
 
     revalidatePath('/admin/catalogo');
-    revalidatePath('/admin/simulatore');
+    revalidatePath('/admin/cassa');
     revalidatePath('/admin');
 
     return {

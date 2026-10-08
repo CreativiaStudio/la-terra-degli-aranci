@@ -343,12 +343,175 @@ export interface WeddingDiaryPayload {
   [key: string]: any;
 }
 
+/* ------------------------------------------------------------------ */
+/* Sincronizzazione Wedding Diary <-> Appuntamento (bidirezionale)     */
+/* ------------------------------------------------------------------ */
+
+/** Normalizza una stringa per confronti (minuscole, senza accenti/spazi extra). */
+function diaryNorm(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+/** Solo le cifre di un telefono, per un matching robusto tra formati diversi. */
+function diaryPhoneDigits(value: unknown): string {
+  return String(value ?? "").replace(/\D/g, "");
+}
+
+/**
+ * Converte un valore eterogeneo (array oppure stringa separata da virgole) in un
+ * array di stringhe pulite. Usato per normalizzare le risposte del Diary e i
+ * campi legacy in un'unica rappresentazione.
+ */
+function diaryToStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((v) => String(v ?? "").trim()).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value.split(/,|\n|;/).map((v) => v.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+/** Restituisce il primo valore "valorizzato" (non vuoto) tra quelli forniti. */
+function diaryFirst(...values: unknown[]): unknown {
+  for (const value of values) {
+    if (value === undefined || value === null) continue;
+    if (typeof value === "string" && value.trim() === "") continue;
+    if (Array.isArray(value) && value.length === 0) continue;
+    return value;
+  }
+  return undefined;
+}
+
+/** Deduplica (case-insensitive) preservando l'ordine di arrivo. */
+function diaryUnique(values: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  values.forEach((value) => {
+    const key = value.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(value);
+  });
+  return out;
+}
+
+/**
+ * Sincronizzazione bidirezionale Sposi -> Segreteria.
+ *
+ * Quando il Wedding Diary viene salvato (dall'Area Clienti o dalla segreteria),
+ * allinea le `preferenze` dell'appuntamento collegato con le risposte appena
+ * espresse, così Roberto e la segreteria vedono in tempo reale le scelte della
+ * coppia (anche in fase di opzione / pre-firma). L'appuntamento è individuato
+ * tramite `client_id` -> record cliente, poi per email normalizzata, telefono o
+ * nome + cognome. Se non esiste alcun appuntamento collegato, non fa nulla.
+ */
+function syncAppointmentPreferencesFromDiary(store: LocalStore, entry: any): void {
+  if (!Array.isArray(store.appointments) || store.appointments.length === 0) return;
+  if (!entry || typeof entry !== "object") return;
+
+  const answers = entry.answers && typeof entry.answers === "object" ? entry.answers : {};
+  const client = (store.clients || []).find((c: any) => c && c.id === entry.client_id) || null;
+
+  // Risposte canoniche del form + chiavi legacy scritte dalla segreteria.
+  const style = diaryFirst(
+    answers.style_mood,
+    answers.style,
+    answers.Stile_evento,
+    entry.style_mood,
+    entry.style
+  );
+  const spaces = diaryToStringArray(diaryFirst(answers.preferred_spaces, entry.preferred_spaces));
+  const ceremony = diaryFirst(answers.ceremony_type, entry.ceremony_type);
+  const music = diaryFirst(
+    answers.music_preference,
+    answers.music_preferences,
+    answers.Note_che_ci_rappresentano,
+    entry.music_preferences,
+    entry.music_preference
+  );
+  const dietary = diaryFirst(answers.dietary_notes, entry.dietary_notes);
+  const notes = diaryFirst(answers.general_notes, answers.notes, entry.notes);
+  const rawDates = diaryFirst(
+    answers.target_dates,
+    answers.la_nostra_data_perfetta,
+    entry.target_dates
+  );
+  const diaryServices = diaryUnique([
+    ...diaryToStringArray(answers.tour_service_preferences),
+    ...diaryToStringArray(answers.open_bar_cocktails),
+    ...diaryToStringArray(answers.matrimonio_su_misura),
+    ...diaryToStringArray(answers.accogliere_accompagnare),
+    ...diaryToStringArray(answers.prima_dopo_matrimonio),
+    ...diaryToStringArray(entry.tour_service_preferences),
+  ]);
+  const diaryDates = diaryToStringArray(rawDates);
+
+  const hasAnything =
+    [style, ceremony, music, dietary, notes].some((v) => v !== undefined) ||
+    spaces.length > 0 ||
+    diaryServices.length > 0 ||
+    diaryDates.length > 0;
+  if (!hasAnything) return;
+
+  // Individua l'appuntamento collegato: prima per contatto/identità del cliente.
+  const email = diaryNorm(diaryFirst(entry.email, client?.email));
+  const phone = diaryPhoneDigits(diaryFirst(entry.telefono, client?.telefono));
+  const nome = diaryNorm(diaryFirst(client?.nome, entry.nome));
+  const cognome = diaryNorm(diaryFirst(client?.cognome, entry.cognome));
+
+  const appointment = store.appointments.find((a) => {
+    if (!a) return false;
+    const aEmail = diaryNorm(a.email);
+    const aPhone = diaryPhoneDigits(a.telefono);
+    if (email && aEmail && aEmail === email) return true;
+    if (phone && aPhone && aPhone === phone) return true;
+    if (nome && cognome && diaryNorm(a.nome) === nome && diaryNorm(a.cognome) === cognome) return true;
+    return false;
+  });
+  if (!appointment) return;
+
+  const existing: Partial<AppointmentPreferences> = appointment.preferenze || {};
+  const nextServices = diaryServices.length > 0
+    ? diaryUnique([...(existing.serviziInteresse || []), ...diaryServices])
+    : (existing.serviziInteresse || []);
+  const nextTour = diaryServices.length > 0
+    ? diaryUnique([...(existing.preferenzeServizi || []), ...diaryServices])
+    : (existing.preferenzeServizi || []);
+  const nextDates = diaryDates.length > 0 ? diaryDates : (existing.dateCandidate || []);
+
+  appointment.preferenze = {
+    ...existing,
+    stileMood: style !== undefined ? String(style) : existing.stileMood ?? "",
+    spaziSelezionati: spaces.length > 0 ? spaces : (existing.spaziSelezionati || []),
+    tipoCerimonia: ceremony !== undefined ? String(ceremony) : existing.tipoCerimonia ?? "",
+    serviziInteresse: nextServices,
+    preferenzeServizi: nextTour,
+    dateCandidate: nextDates,
+    mesePreferenza: existing.mesePreferenza ?? "",
+    musicaNote: music !== undefined ? String(music) : existing.musicaNote ?? "",
+    celiaciNote: dietary !== undefined ? String(dietary) : existing.celiaciNote ?? "",
+    noteGenerali: notes !== undefined ? String(notes) : existing.noteGenerali ?? "",
+    updated_at: new Date().toISOString(),
+  };
+
+  // Come nel flusso segreteria, allinea il periodo evento presunto.
+  if (nextDates.length > 0) {
+    appointment.dataEventoPresunta = nextDates.map(formatIsoToItalian).join(", ");
+  }
+}
+
 /**
  * Salvataggio NON distruttivo del Wedding Diary.
  * - aggiorna solo le chiavi esplicitamente presenti nel payload;
  * - fonde (shallow merge) l'oggetto `answers`, così un autosave parziale
  *   non cancella mai le risposte già memorizzate;
- * - preserva l'`id` esistente della scheda.
+ * - preserva l'`id` esistente della scheda;
+ * - propaga le risposte all'appuntamento/visita collegata (sync bidirezionale).
  */
 export function saveWeddingDiaryLocal(data: WeddingDiaryPayload) {
   const store = getStore();
@@ -391,6 +554,10 @@ export function saveWeddingDiaryLocal(data: WeddingDiaryPayload) {
   } else {
     store.wedding_diaries.push(entry);
   }
+
+  // Sincronizzazione bidirezionale: propaga le risposte all'appuntamento/visita
+  // collegata, così la segreteria e Roberto le vedono in tempo reale.
+  syncAppointmentPreferencesFromDiary(store, entry);
 
   saveStore(store);
   return entry;
@@ -1902,20 +2069,29 @@ export function updateAppointmentPreferencesLocal(
 
   saveStore(store);
 
-  // Sincronizza le date candidate nel Wedding Diary della coppia, così le
-  // ritrova già indicate nella propria Area Riservata.
-  if (preservedDates.length > 0) {
-    try {
-      const client = findOrCreateClientForAppointmentLocal(appointment);
-      const targetDates = preservedDates.join(', ');
-      saveWeddingDiaryLocal({
-        client_id: client.id,
+  // Sincronizza TUTTE le preferenze nel Wedding Diary della coppia, così le
+  // ritrova già compilate nella propria Area Riservata (sync bidirezionale).
+  try {
+    const client = findOrCreateClientForAppointmentLocal(appointment);
+    const targetDates = preservedDates.join(', ');
+    const tourServices = appointment.preferenze.preferenzeServizi || [];
+    saveWeddingDiaryLocal({
+      client_id: client.id,
+      target_dates: targetDates,
+      answers: {
+        style_mood: appointment.preferenze.stileMood,
+        preferred_spaces: appointment.preferenze.spaziSelezionati,
+        ceremony_type: appointment.preferenze.tipoCerimonia,
+        music_preference: appointment.preferenze.musicaNote,
+        dietary_notes: appointment.preferenze.celiaciNote,
+        general_notes: appointment.preferenze.noteGenerali,
         target_dates: targetDates,
-        answers: { target_dates: targetDates },
-      });
-    } catch {
-      // Il salvataggio dell'appuntamento resta comunque valido.
-    }
+        tour_service_preferences: tourServices.join(', '),
+        open_bar_cocktails: (appointment.preferenze.serviziInteresse || []).join(', '),
+      },
+    });
+  } catch {
+    // Il salvataggio dell'appuntamento resta comunque valido.
   }
 
   return appointment;
@@ -2055,11 +2231,19 @@ export function toggleTourServicePreferenceLocal(
   appointment.preferenze = base;
   saveStore(store);
 
-  // Sincronizza il Wedding Diary della coppia (trova o crea il cliente).
+  // Sincronizza il Wedding Diary della coppia (trova o crea il cliente) con
+  // TUTTI i campi delle preferenze, così il portale sposi resta allineato.
   const client = findOrCreateClientForAppointmentLocal(appointment);
   saveWeddingDiaryLocal({
     client_id: client.id,
     answers: {
+      style_mood: base.stileMood,
+      preferred_spaces: base.spaziSelezionati,
+      ceremony_type: base.tipoCerimonia,
+      music_preference: base.musicaNote,
+      dietary_notes: base.celiaciNote,
+      general_notes: base.noteGenerali,
+      target_dates: (base.dateCandidate || []).join(", "),
       open_bar_cocktails: base.serviziInteresse.join(", "),
       tour_service_preferences: currentServices.join(", "),
     },

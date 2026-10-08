@@ -65,7 +65,9 @@ export default function ClientPortalWrapper({
   }, []);
 
   const isWedding = mode === "wedding" || quote?.tipo_evento === "wedding";
-  const showDiaryBanner = isWedding && !isHistorical && !isAreaLocked && activeTab !== "diary" && diaryProgress < 80;
+  // Il reminder del Wedding Diary è mostrato anche agli sposi in opzione
+  // (pre-firma): il Diary è già attivo e va compilato prima della visita.
+  const showDiaryBanner = isWedding && !isHistorical && activeTab !== "diary" && diaryProgress < 80;
 
   // I servizi si possono modificare solo su un contratto firmato, non storico, e fino a 10gg dall'evento
   const canEditServices = quote?.status === "firmato" && !isHistorical && !isAreaLocked && isWithinEditableWindow(quote?.data_evento);
@@ -317,30 +319,54 @@ export default function ClientPortalWrapper({
 
             <p style={{ color: "#4a3c31", fontSize: "1rem", lineHeight: 1.65, margin: "0 0 1.5rem 0", maxWidth: "760px" }}>
               {isEng
-                ? "Welcome to La Terra degli Aranci! Your date is currently held as an option. As soon as the contract is digitally signed, all features of your Private Area will be activated (Wedding Diary, service selection and organisation with our team)."
-                : "Benvenuti a La Terra degli Aranci! La vostra data è attualmente bloccata in opzione. Non appena il contratto sarà firmato digitalmente, si attiveranno tutte le funzionalità della vostra Area Riservata (Wedding Diary, scelta servizi e organizzazione con il nostro team)."}
+                ? "Welcome to La Terra degli Aranci! Your date is currently held as an option. The Wedding Diary is already active: tell us your tastes, the spaces you love and your ideas even before the visit or the signature. Only after the contract is signed will the strictly accounting and operational sections unlock (final table plan and payment schedule)."
+                : "Benvenuti a La Terra degli Aranci! La vostra data è attualmente bloccata in opzione. Il Wedding Diary è già attivo e accessibile: raccontateci i vostri gusti, gli spazi che amate e le vostre idee già prima della visita o della firma contrattuale. Solo dopo la firma si sbloccheranno le sezioni strettamente contabili e operative (disposizione definitiva dei tavoli e piano acconti)."}
             </p>
 
-            <a
-              href={contractUrl || "#"}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.7rem",
-                background: "linear-gradient(135deg, #e58c2c 0%, #d17a22 100%)",
-                color: "#ffffff",
-                padding: "1.05rem 2rem",
-                borderRadius: "14px",
-                fontWeight: 700,
-                fontSize: "1.02rem",
-                textDecoration: "none",
-                boxShadow: "0 8px 20px rgba(229,140,44,0.4)",
-              }}
-            >
-              {isEng
-                ? "✍️ Sign the Contract to Unlock the Private Area"
-                : "✍️ Firma il Contratto per Sbloccare l'Area Riservata"}
-            </a>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.8rem", alignItems: "center" }}>
+              <a
+                href={contractUrl || "#"}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.7rem",
+                  background: "linear-gradient(135deg, #e58c2c 0%, #d17a22 100%)",
+                  color: "#ffffff",
+                  padding: "1.05rem 2rem",
+                  borderRadius: "14px",
+                  fontWeight: 700,
+                  fontSize: "1.02rem",
+                  textDecoration: "none",
+                  boxShadow: "0 8px 20px rgba(229,140,44,0.4)",
+                }}
+              >
+                {isEng
+                  ? "✍️ Sign the Contract"
+                  : "✍️ Firma il Contratto"}
+              </a>
+
+              <button
+                type="button"
+                onClick={() => { setActiveCategory("organizzazione"); setActiveTab("diary"); }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.7rem",
+                  background: "#ffffff",
+                  color: "#b8761f",
+                  padding: "1.05rem 2rem",
+                  borderRadius: "14px",
+                  fontWeight: 700,
+                  fontSize: "1.02rem",
+                  border: "2px solid #e58c2c",
+                  cursor: "pointer",
+                  boxShadow: "0 8px 20px rgba(229,140,44,0.15)",
+                  fontFamily: "inherit",
+                }}
+              >
+                📖 {isEng ? "Fill in the Wedding Diary (Preferences)" : "Compila il Wedding Diary (Preferenze)"}
+              </button>
+            </div>
           </div>
         )}
 
@@ -645,20 +671,49 @@ export default function ClientPortalWrapper({
         )}
 
         {activeTab === "diary" && isWedding && (
-          isAreaLocked ? lockedSectionNotice : (
-          <WeddingDiaryForm
-            clientId={quote?.client_id || ""}
-            quoteId={quote?.id}
-            initialData={initialDiary}
-            lang={lang}
-            isReadOnly={isHistorical}
-            onProgressChange={handleDiaryProgress}
-          />
-          )
+          <>
+            {isAreaLocked && (
+              <div
+                style={{
+                  display: "flex",
+                  gap: "1rem",
+                  alignItems: "flex-start",
+                  background: "linear-gradient(135deg, #fff8ee 0%, #fdf1e0 100%)",
+                  border: "1px solid #f3d9b4",
+                  borderLeft: "4px solid #e58c2c",
+                  borderRadius: "16px",
+                  padding: "1.4rem 1.6rem",
+                  marginBottom: "1.5rem",
+                  boxShadow: "0 8px 24px rgba(229,140,44,0.1)",
+                }}
+              >
+                <span style={{ fontSize: "1.7rem", lineHeight: 1 }} aria-hidden="true">🌟</span>
+                <div>
+                  <h3 style={{ margin: "0 0 0.4rem 0", color: "#9a5a10", fontSize: "1.08rem" }}>
+                    {isEng
+                      ? "Pre-Visit & Pre-Signature Wedding Diary"
+                      : "Wedding Diary Pre-Visita & Pre-Firma"}
+                  </h3>
+                  <p style={{ margin: 0, color: "#5a4a35", fontSize: "0.95rem", lineHeight: 1.65 }}>
+                    {isEng
+                      ? "Express your wishes, style and ideas for your event here. Your notes are shared in real time with our office and Roberto Sola, so we can welcome you at our best and build the perfect proposal for you."
+                      : "Esprimete qui i vostri desideri, lo stile e le idee per il vostro evento. Le vostre indicazioni saranno trasmesse in tempo reale alla nostra segreteria e a Roberto Sola per accogliervi al meglio e costruire la proposta perfetta per voi."}
+                  </p>
+                </div>
+              </div>
+            )}
+            <WeddingDiaryForm
+              clientId={quote?.client_id || ""}
+              quoteId={quote?.id}
+              initialData={initialDiary}
+              lang={lang}
+              isReadOnly={isHistorical}
+              onProgressChange={handleDiaryProgress}
+            />
+          </>
         )}
 
         {activeTab === "diary" && !isWedding && (
-          isAreaLocked ? lockedSectionNotice : (
           <PrivateEventDossier
             clientId={quote?.client_id || ""}
             quoteId={quote?.id}
@@ -666,7 +721,6 @@ export default function ClientPortalWrapper({
             lang={lang}
             isReadOnly={isHistorical}
           />
-          )
         )}
 
         {activeTab === "eventi-club" && (

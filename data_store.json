@@ -1214,17 +1214,22 @@
       "client_id": "b82a0f22-dd90-4c73-ac66-ddf212f17a7c",
       "quote_id": "2ea7faa3-ef17-4d28-b067-6b33a1f12e80",
       "answers": {
-        "music_preference": "Band Swing & Bossa Nova per buffet aperitivo in Agrumeto, poi DJ Set",
-        "style_mood": "Elegante botanico con dettagli agrumi e ceramiche vietresi",
+        "music_preference": "",
+        "style_mood": "",
         "first_dance": "'A te' - Lorenzo Jovanotti",
         "cake_cutting": "Millefoglie espressa con frutti di bosco e fontane luminose",
-        "dietary_notes": "5 celiaci certificati, 2 vegani, 1 allergia grave ai crostacei",
-        "general_notes": "Gli sposi desiderano ingresso trionfale in giardino con brindisi sotto gli aranci.",
-        "ceremony_type": "Rito Simbolico nel Giardino delle Promesse",
-        "guest_count_estimate": "140",
-        "open_bar_cocktails": "Gin Mare, Vodka Belvedere, Mojito all'Arancio"
+        "dietary_notes": "",
+        "general_notes": "",
+        "ceremony_type": "Cerimonia in Chiesa",
+        "guest_count_estimate": "120",
+        "open_bar_cocktails": "Rito Civile in Villa nel Giardino delle Promesse, Tensostruttura Panoramica Giardino",
+        "preferred_spaces": [
+          "Sala Tufo"
+        ],
+        "tour_service_preferences": "Rito Civile in Villa nel Giardino delle Promesse, Tensostruttura Panoramica Giardino, Sala Tufo",
+        "target_dates": ""
       },
-      "updated_at": "2026-10-05T18:00:00.000Z"
+      "updated_at": "2026-10-08T10:48:53.527Z"
     },
     {
       "id": "417b7e8a-72a6-4aa9-999b-474b21a05273",
@@ -4285,7 +4290,29 @@
       "stato": "confermato",
       "note": "Coppia in cerca di location esclusiva. Interessati al giardino degli agrumi e alla villa per il ricevimento.",
       "created_at": "2026-10-08T07:34:23.905Z",
-      "id": "apt-d707ec5e"
+      "id": "apt-d707ec5e",
+      "preferenze": {
+        "stileMood": "",
+        "spaziSelezionati": [
+          "Sala Tufo"
+        ],
+        "tipoCerimonia": "Cerimonia in Chiesa",
+        "serviziInteresse": [
+          "Rito Civile in Villa nel Giardino delle Promesse",
+          "Tensostruttura Panoramica Giardino"
+        ],
+        "preferenzeServizi": [
+          "Rito Civile in Villa nel Giardino delle Promesse",
+          "Tensostruttura Panoramica Giardino",
+          "Sala Tufo"
+        ],
+        "dateCandidate": [],
+        "mesePreferenza": "2027-12",
+        "musicaNote": "",
+        "celiaciNote": "",
+        "noteGenerali": "",
+        "updated_at": "2026-10-08T10:48:53.513Z"
+      }
     },
     {
       "tipo": "privato",

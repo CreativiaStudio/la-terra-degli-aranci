@@ -38,9 +38,9 @@ export default function QuickActionsBar() {
           <span>💰</span> Controllo Cassa & Eventi
         </Link>
 
-        {/* 2. Simulatore Fiscale */}
-        <Link href="/admin/simulatore" style={{ ...btnStyle, background: "#fff7ed", color: "#c2410c", border: "1px solid #fed7aa" }}>
-          <span>🧮</span> Simulatore Fiscale
+        {/* 2. Ripartizione Società */}
+        <Link href="/admin/cassa?tab=societa" style={{ ...btnStyle, background: "#fff7ed", color: "#c2410c", border: "1px solid #fed7aa" }}>
+          <span>🏛️</span> Ripartizione Società
         </Link>
 
         {/* 3. Approvazione Blog WordPress */}

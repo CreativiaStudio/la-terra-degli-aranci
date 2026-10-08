@@ -54,47 +54,80 @@ export default function WeddingDiaryClient({ quotes = [], diaries = [] }: Weddin
         : "Coppia Sposi TDA";
 
       const hasDiary = !!diary;
+      const ans =
+        diary?.answers && typeof diary.answers === "object" ? diary.answers : {};
+
+      const preferredSpaces = Array.isArray(diary?.preferred_spaces) && diary.preferred_spaces.length > 0
+        ? diary.preferred_spaces
+        : Array.isArray(ans.preferred_spaces) && ans.preferred_spaces.length > 0
+          ? ans.preferred_spaces
+          : ["Giardino Agavi", "Sala Tufo", "Terrazza Panoramica"];
 
       list.push({
         id: diary?.id || `quote-${q.id}`,
         quoteId: q.id,
         coupleNames: clientName || "Roberto Sola & Partner",
         eventDate: q.data_evento || "In definizione",
-        guestsCount: q.numero_ospiti || 100,
+        guestsCount: q.numero_ospiti || ans.guest_count_estimate || 100,
         status: q.status || "bozza",
         palette: diary?.palette || (q.tipo_evento === "wedding" ? "Arancio Warm, Verde Agrumeto, Crema Lusso" : "Neutro Elegante"),
-        style: diary?.style || (q.tipo_evento === "wedding" ? "Gourmet Moderno con Show Cooking & Confettata Chic" : "Ricevimento Classico Villa TDA"),
-        dietaryNotes: diary?.dietary_notes || "Nessuna intolleranza segnalata al momento",
-        preferredSpaces: Array.isArray(diary?.preferred_spaces) && diary.preferred_spaces.length > 0
-          ? diary.preferred_spaces
-          : ["Giardino Agavi", "Sala Tufo", "Terrazza Panoramica"],
-        musicPreferences: diary?.music_preferences || "Musica dal vivo durante aperitivo, DJ set dopocena",
-        notes: diary?.notes || "",
+        style:
+          diary?.style ||
+          ans.style_mood ||
+          ans.style ||
+          ans.Stile_evento ||
+          (q.tipo_evento === "wedding" ? "Gourmet Moderno con Show Cooking & Confettata Chic" : "Ricevimento Classico Villa TDA"),
+        dietaryNotes: diary?.dietary_notes || ans.dietary_notes || "Nessuna intolleranza segnalata al momento",
+        preferredSpaces,
+        musicPreferences:
+          diary?.music_preferences ||
+          ans.music_preference ||
+          ans.Note_che_ci_rappresentano ||
+          "Musica dal vivo durante aperitivo, DJ set dopocena",
+        notes: diary?.notes || ans.general_notes || ans.notes || "",
         updatedAt: diary?.updated_at,
-        hasAiUpdate: hasDiary && !!(diary.palette || diary.style || diary.dietary_notes || diary.preferred_spaces?.length)
+        hasAiUpdate: hasDiary && !!(
+          diary.palette ||
+          diary.style ||
+          diary.dietary_notes ||
+          diary.preferred_spaces?.length ||
+          Object.keys(ans).length > 0
+        )
       });
     });
 
     // 2. Add standalone diaries if any (e.g. from AI concierge without quote yet)
     diaries.forEach((d) => {
-      if (!usedDiaryIds.has(d.id)) {
-        list.push({
-          id: d.id,
-          quoteId: d.quote_id,
-          coupleNames: `Cliente ID: ${d.client_id?.slice(0, 8) || "Ospite TDA"}`,
-          eventDate: "Data da confermare",
-          guestsCount: "TBD",
-          status: "lead_concierge",
-          palette: d.palette || "Non specificata",
-          style: d.style || "Preferenze raccolte tramite AI Concierge",
-          dietaryNotes: d.dietary_notes || "Nessuna nota comunicata",
-          preferredSpaces: Array.isArray(d.preferred_spaces) ? d.preferred_spaces : [],
-          musicPreferences: d.music_preferences,
-          notes: d.notes,
-          updatedAt: d.updated_at,
-          hasAiUpdate: true
-        });
-      }
+      if (usedDiaryIds.has(d.id)) return;
+      const ans = d?.answers && typeof d.answers === "object" ? d.answers : {};
+      const hasAns = Object.keys(ans).length > 0;
+      const hasLegacy = Boolean(
+        d.palette || d.style || d.dietary_notes || d.music_preferences ||
+        (Array.isArray(d.preferred_spaces) && d.preferred_spaces.length > 0) || d.notes
+      );
+      // Ignora le schede vuote (nessuna preferenza raccolta).
+      if (!hasAns && !hasLegacy) return;
+
+      list.push({
+        id: d.id,
+        quoteId: d.quote_id,
+        coupleNames: `Cliente ID: ${d.client_id?.slice(0, 8) || "Ospite TDA"}`,
+        eventDate: "Data da confermare",
+        guestsCount: ans.guest_count_estimate || "TBD",
+        status: "lead_concierge",
+        palette: d.palette || "Non specificata",
+        style: d.style || ans.style_mood || ans.style || ans.Stile_evento || "Preferenze raccolte tramite Wedding Diary / AI Concierge",
+        dietaryNotes: d.dietary_notes || ans.dietary_notes || "Nessuna nota comunicata",
+        preferredSpaces: Array.isArray(d.preferred_spaces) && d.preferred_spaces.length > 0
+          ? d.preferred_spaces
+          : Array.isArray(ans.preferred_spaces)
+            ? ans.preferred_spaces
+            : [],
+        musicPreferences: d.music_preferences || ans.music_preference || ans.Note_che_ci_rappresentano,
+        notes: d.notes || ans.general_notes || ans.notes,
+        updatedAt: d.updated_at,
+        hasAiUpdate: true
+      });
     });
 
     // Fallback demonstration entries if list is empty
