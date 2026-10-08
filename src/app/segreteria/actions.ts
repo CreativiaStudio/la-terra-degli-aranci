@@ -4,7 +4,17 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 
-import { saveLeadQuoteLocal } from "@/lib/localDb";
+import { revalidatePath } from "next/cache";
+
+import {
+  saveLeadQuoteLocal,
+  getAppointmentLocal,
+  updateAppointmentPreferencesLocal,
+  updateAppointmentStatusLocal,
+  findOrCreateClientForAppointmentLocal,
+  saveWeddingDiaryLocal,
+  type Appointment,
+} from "@/lib/localDb";
 import { logActivity, logError } from "@/lib/blackbox";
 
 export interface LeadVisitData {
@@ -106,6 +116,167 @@ export async function saveLeadVisitSheet(data: LeadVisitData): Promise<SaveLeadR
     return {
       success: false,
       message: "Errore durante il salvataggio della scheda. Riprova.",
+    };
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Preferenze Visita (Tablet Segreteria)                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Preferenze raccolte dalla segreteria durante la visita in tenuta.
+ * Corrispondono 1:1 ai campi mostrati nella modale touch-friendly.
+ */
+export interface AppointmentPreferencesInput {
+  stileMood: string;
+  spaziSelezionati: string[];
+  tipoCerimonia: string;
+  serviziInteresse: string[];
+  musicaNote: string;
+  celiaciNote: string;
+  noteGenerali: string;
+}
+
+export interface SaveAppointmentPreferencesResponse {
+  success: boolean;
+  message: string;
+}
+
+/** Normalizza in modo difensivo le preferenze ricevute dal client. */
+function normalizeAppointmentPreferences(
+  preferences: Partial<AppointmentPreferencesInput> | null | undefined
+): AppointmentPreferencesInput {
+  const asString = (value: unknown): string => String(value ?? "").trim();
+  const asArray = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((v) => typeof v === "string" && v.trim().length > 0) : [];
+
+  return {
+    stileMood: asString(preferences?.stileMood),
+    spaziSelezionati: asArray(preferences?.spaziSelezionati),
+    tipoCerimonia: asString(preferences?.tipoCerimonia),
+    serviziInteresse: asArray(preferences?.serviziInteresse),
+    musicaNote: asString(preferences?.musicaNote),
+    celiaciNote: asString(preferences?.celiaciNote),
+    noteGenerali: asString(preferences?.noteGenerali),
+  };
+}
+
+/**
+ * Salva le preferenze raccolte dalla Segreteria durante la visita:
+ * 1. aggiorna l'appuntamento con il campo `preferenze`;
+ * 2. trova/crea il cliente collegato e scrive le risposte canoniche nel
+ *    Wedding Diary, così la coppia le ritrova già compilate nell'Area Riservata;
+ * 3. traccia l'azione nella Scatola Nera.
+ */
+export async function saveAppointmentPreferencesAction(
+  appointmentId: string,
+  preferences: AppointmentPreferencesInput
+): Promise<SaveAppointmentPreferencesResponse> {
+  try {
+    if (!appointmentId) {
+      return { success: false, message: "Appuntamento non valido. Riprova." };
+    }
+
+    const appointment = getAppointmentLocal(appointmentId);
+    if (!appointment) {
+      return {
+        success: false,
+        message: "Appuntamento non trovato. Aggiorna la pagina e riprova.",
+      };
+    }
+
+    const normalized = normalizeAppointmentPreferences(preferences);
+
+    // 1) Aggiorna l'appuntamento con le preferenze della visita.
+    updateAppointmentPreferencesLocal(appointmentId, normalized);
+
+    // 2) Sincronizza il Wedding Diary della coppia (trova o crea il cliente).
+    const client = findOrCreateClientForAppointmentLocal(appointment);
+
+    saveWeddingDiaryLocal({
+      client_id: client.id,
+      answers: {
+        style_mood: normalized.stileMood,
+        preferred_spaces: normalized.spaziSelezionati,
+        ceremony_type: normalized.tipoCerimonia,
+        open_bar_cocktails: normalized.serviziInteresse.join(", "),
+        music_preference: normalized.musicaNote,
+        dietary_notes: normalized.celiaciNote,
+        general_notes: normalized.noteGenerali,
+        guest_count_estimate: String(appointment.ospitiPrevisti || ""),
+      },
+    });
+
+    const sposi =
+      [appointment.nome, appointment.cognome].filter(Boolean).join(" ").trim() ||
+      [appointment.nome, appointment.partnerNome].filter(Boolean).join(" ").trim() ||
+      "cliente";
+
+    // 3) Scatola Nera.
+    logActivity({
+      category: "LEAD_VISITA",
+      actor: "Tablet Segreteria (iPad)",
+      action: "PREFERENZE_VISITA_REGISTRATE",
+      message: "Preferenze visita registrate dalla Segreteria",
+      metadata: {
+        appointmentId,
+        clientId: client.id,
+        sposi,
+        tipo: appointment.tipo,
+        tipo_cerimonia: normalized.tipoCerimonia,
+        spazi: normalized.spaziSelezionati,
+        servizi: normalized.serviziInteresse,
+      },
+    });
+
+    revalidatePath("/segreteria");
+
+    return {
+      success: true,
+      message:
+        "Preferenze salvate! Gli sposi le troveranno già precompilate nella loro Area Riservata.",
+    };
+  } catch (error) {
+    console.error("Errore nel salvataggio preferenze visita:", error);
+    logError("LEAD_VISITA", "Tablet Segreteria (iPad)", "PREFERENZE_VISITA_ERRORE", error, {
+      appointmentId,
+    });
+    return {
+      success: false,
+      message: "Errore durante il salvataggio delle preferenze. Riprova.",
+    };
+  }
+}
+
+/** Aggiorna lo stato di un appuntamento (confermato / effettuato). */
+export async function updateAppointmentStatoAction(
+  id: string,
+  stato: Appointment["stato"]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!id) return { success: false, error: "Appuntamento non valido." };
+    const validi: Appointment["stato"][] = ["da_confermare", "confermato", "effettuato", "annullato"];
+    if (!validi.includes(stato)) return { success: false, error: "Stato non riconosciuto." };
+
+    const updated = updateAppointmentStatusLocal(id, stato);
+    if (!updated) return { success: false, error: "Appuntamento non trovato." };
+
+    logActivity({
+      category: "LEAD_VISITA",
+      actor: "Tablet Segreteria (iPad)",
+      action: "APPUNTAMENTO_STATO_AGGIORNATO",
+      message: `Appuntamento aggiornato a "${stato}"`,
+      metadata: { id, stato },
+    });
+
+    revalidatePath("/segreteria");
+    return { success: true };
+  } catch (error) {
+    console.error("Errore updateAppointmentStatoAction:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Errore durante l'aggiornamento dello stato.",
     };
   }
 }

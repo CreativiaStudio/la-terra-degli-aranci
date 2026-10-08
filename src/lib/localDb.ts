@@ -55,7 +55,32 @@ export interface Appointment {
   canale: 'sito_web' | 'telefono' | 'whatsapp' | 'instagram' | 'passaparola';
   stato: 'da_confermare' | 'confermato' | 'effettuato' | 'annullato';
   note?: string;
+  /** Preferenze raccolte dalla Segreteria durante la visita in tenuta. */
+  preferenze?: AppointmentPreferences;
   created_at: string;
+}
+
+/**
+ * Preferenze visita raccolte dalla Segreteria sul tablet durante il giro della
+ * tenuta. Vengono salvate sull'appuntamento e sincronizzate nel Wedding Diary
+ * della coppia, così le ritrova già precompilate nella propria Area Riservata.
+ */
+export interface AppointmentPreferences {
+  /** Stile & mood dell'evento (es. "Botanico Chic & Agrumi"). */
+  stileMood: string;
+  /** Spazi della tenuta selezionati durante il tour. */
+  spaziSelezionati: string[];
+  /** Tipo di cerimonia desiderata. */
+  tipoCerimonia: string;
+  /** Servizi/esperienze di interesse (senza prezzi). */
+  serviziInteresse: string[];
+  /** Note sulla musica / colonna sonora. */
+  musicaNote: string;
+  /** Celiaci, allergie o intolleranze segnalate. */
+  celiaciNote: string;
+  /** Impressioni generali della visita. */
+  noteGenerali: string;
+  updated_at?: string;
 }
 
 export interface LocalStore {
@@ -1805,6 +1830,103 @@ export function deleteAppointmentLocal(id: string): boolean {
   if (store.appointments.length === before) return false;
   saveStore(store);
   return true;
+}
+
+/** Recupera un singolo appuntamento per id (o `null` se non esiste). */
+export function getAppointmentLocal(id: string): Appointment | null {
+  const store = getStore();
+  if (!Array.isArray(store.appointments)) return null;
+  return store.appointments.find((a) => a && a.id === id) || null;
+}
+
+/**
+ * Aggiorna (o imposta) le preferenze visita di un appuntamento. Registra il
+ * timestamp di aggiornamento così la direzione sa quando sono state raccolte.
+ */
+export function updateAppointmentPreferencesLocal(
+  id: string,
+  preferenze: AppointmentPreferences
+): Appointment | null {
+  const store = getStore();
+  if (!Array.isArray(store.appointments)) return null;
+  const appointment = store.appointments.find((a) => a && a.id === id);
+  if (!appointment) return null;
+  appointment.preferenze = { ...preferenze, updated_at: new Date().toISOString() };
+  saveStore(store);
+  return appointment;
+}
+
+/**
+ * Trova (o crea) il record cliente collegato a un appuntamento, così le
+ * preferenze raccolte dalla segreteria possono essere sincronizzate nel
+ * Wedding Diary della coppia. Il matching usa email o telefono normalizzati;
+ * in assenza di contatti ripiega su nome + cognome.
+ */
+interface ClientLike {
+  id: string;
+  nome?: string;
+  cognome?: string;
+  email?: string;
+  telefono?: string;
+  sposera_nome?: string;
+  sposera_cognome?: string;
+  provenienza?: string;
+  created_at?: string;
+  [key: string]: unknown;
+}
+
+export function findOrCreateClientForAppointmentLocal(appointment: Appointment): ClientLike {
+  const store = getStore();
+  if (!Array.isArray(store.clients)) store.clients = [];
+
+  const email = String(appointment.email || '').trim().toLowerCase();
+  const phoneDigits = String(appointment.telefono || '').replace(/\D/g, '');
+  const nome = String(appointment.nome || '').trim();
+  const cognome = String(appointment.cognome || '').trim();
+
+  const matches = (c: ClientLike): boolean => {
+    const cEmail = String(c?.email || '').trim().toLowerCase();
+    const cPhone = String(c?.telefono || '').replace(/\D/g, '');
+    if (email && cEmail && cEmail === email) return true;
+    if (phoneDigits && cPhone && cPhone === phoneDigits) return true;
+    if (
+      !email &&
+      !phoneDigits &&
+      nome &&
+      String(c?.nome || '').trim().toLowerCase() === nome.toLowerCase() &&
+      String(c?.cognome || '').trim().toLowerCase() === cognome.toLowerCase()
+    ) {
+      return true;
+    }
+    return false;
+  };
+
+  let client: ClientLike | undefined = store.clients.find((c) => matches(c));
+
+  if (!client) {
+    client = {
+      id: crypto.randomUUID(),
+      nome,
+      cognome,
+      email: String(appointment.email || '').trim(),
+      telefono: String(appointment.telefono || '').trim(),
+      sposera_nome: appointment.partnerNome || '',
+      sposera_cognome: appointment.partnerCognome || '',
+      provenienza: 'Tablet Segreteria (Visita)',
+      created_at: new Date().toISOString(),
+    };
+    store.clients.unshift(client);
+  } else {
+    if (nome && !client.nome) client.nome = nome;
+    if (cognome && !client.cognome) client.cognome = cognome;
+    if (appointment.email && !client.email) client.email = String(appointment.email).trim();
+    if (appointment.telefono && !client.telefono) client.telefono = String(appointment.telefono).trim();
+    if (appointment.partnerNome && !client.sposera_nome) client.sposera_nome = appointment.partnerNome;
+    if (appointment.partnerCognome && !client.sposera_cognome) client.sposera_cognome = appointment.partnerCognome;
+  }
+
+  saveStore(store);
+  return client;
 }
 
 
