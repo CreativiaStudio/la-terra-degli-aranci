@@ -1,10 +1,11 @@
 import { getQuotesFast } from "@/lib/dataHelper";
 import { getAllPaymentsLocal, getStore } from "@/lib/localDb";
-import { computeEventLedger } from "@/lib/eventLedger";
+import { computeEventLedger, splitGross } from "@/lib/eventLedger";
 import { deriveEventStage } from "@/lib/eventStage";
 import CassaClient, {
   type CassaTab,
   type CassaEventoRow,
+  type CassaItemRow,
   type CassaPaymentRow,
   type CassaCompanySummary,
   type CassaEventOption,
@@ -38,6 +39,42 @@ function matchesSignedContract(record: any, quote: any): boolean {
   const id = String(quote?.id || "").toLowerCase();
   if (!id) return false;
   return qid === id || id.startsWith(qid) || qid.startsWith(id) || qid.startsWith(id.slice(0, 8));
+}
+
+/** Totale lordo di una riga servizio in centesimi (coerente con eventLedger). */
+function itemGrossCents(item: any): number {
+  const direct = Number(item?.totale);
+  if (Number.isFinite(direct) && direct !== 0) return Math.round(direct * 100);
+  const unitRaw = Number(item?.prezzo_unitario ?? item?.prezzoUnitario ?? 0);
+  const unit = Number.isFinite(unitRaw) ? unitRaw : 0;
+  const qtyRaw = Number(item?.quantita ?? 1);
+  const qty = Number.isFinite(qtyRaw) ? qtyRaw : 1;
+  return Math.round(unit * qty * 100);
+}
+
+/** Righe servizio di un evento con la relativa ripartizione Santo Stefano / Iovino. */
+function buildEventItems(quote: any, quoteId: string): CassaItemRow[] {
+  const rawItems: any[] = Array.isArray(quote?.items) ? quote.items : [];
+  return rawItems.map((it, idx) => {
+    const totale_cents = itemGrossCents(it);
+    const splitKey = String(it?.splitKey ?? it?.split_key ?? "");
+    const splitLabel = String(it?.splitLabel ?? it?.split_label ?? "");
+    const split = splitGross(totale_cents, splitKey, splitLabel);
+    const qtyRaw = Number(it?.quantita ?? 1);
+    const quantita = Number.isFinite(qtyRaw) ? qtyRaw : 1;
+    const unitRaw = Number(it?.prezzo_unitario ?? it?.prezzoUnitario ?? 0);
+    return {
+      id: it?.id ?? `${quoteId}-${idx}`,
+      descrizione: String(it?.descrizione ?? "Voce di spesa"),
+      quantita,
+      prezzo_unitario: Number.isFinite(unitRaw) ? unitRaw : 0,
+      totale_cents,
+      splitKey,
+      splitLabel,
+      spettanza_ss_cents: split.santo_stefano,
+      spettanza_iovino_cents: split.iovino,
+    };
+  });
 }
 
 export default async function CassaPage({
@@ -121,13 +158,17 @@ export default async function CassaPage({
       in_ritardo: r.in_ritardo,
     }));
 
+    const items = buildEventItems(q, String(q.id || ""));
+
     eventi.push({
       id: String(q.id || ""),
+      codice: `TDA-${String(q.id || "").slice(0, 8).toUpperCase()}`,
       sposi,
       tipo_evento: q.tipo_evento || "eventi",
       data_evento: dataEvento,
       turno: String(q.turno || q.turno_evento || ""),
       formula: formulaLabel(q),
+      ospiti: Number(q.numero_ospiti || 0),
       stage: stage.stage,
       stageLabel: stage.label,
       badgeColor: stage.badgeColor,
@@ -141,6 +182,7 @@ export default async function CassaPage({
         ? { da: ledger.conguaglio.da, a: ledger.conguaglio.a, importo_cents: ledger.conguaglio.importo_cents }
         : null,
       rate,
+      items,
     });
   }
 
