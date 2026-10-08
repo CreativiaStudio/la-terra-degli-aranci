@@ -31,6 +31,33 @@ function getDataFilePath(): string {
   return path.join(process.cwd(), 'data_store.json');
 }
 
+/**
+ * Appuntamento / Visita in Tenuta.
+ * Rappresenta una richiesta di appuntamento (telefonata o form del sito) per
+ * una visita guidata della location, sia per un matrimonio sia per un evento
+ * privato. Vive nel `data_store.json` locale (`appointments`).
+ */
+export interface Appointment {
+  id: string;
+  tipo: 'wedding' | 'privato';
+  nome: string;
+  cognome?: string;
+  partnerNome?: string;
+  partnerCognome?: string;
+  telefono: string;
+  email?: string;
+  dataOra: string; // ISO o 'YYYY-MM-DDTHH:mm'
+  dataAppuntamento: string; // 'YYYY-MM-DD'
+  orarioAppuntamento: string; // 'HH:mm'
+  dataEventoPresunta?: string; // es. 'Luglio 2027', 'Settembre 2027'
+  interesse: 'esclusiva' | 'semi_esclusiva' | 'sala_bianca' | 'sala_tufo' | 'da_definire';
+  ospitiPrevisti?: number;
+  canale: 'sito_web' | 'telefono' | 'whatsapp' | 'instagram' | 'passaparola';
+  stato: 'da_confermare' | 'confermato' | 'effettuato' | 'annullato';
+  note?: string;
+  created_at: string;
+}
+
 export interface LocalStore {
   clients: any[];
   quotes: any[];
@@ -53,6 +80,8 @@ export interface LocalStore {
    * il flusso di firma/congelamento acconti della pipeline esistente.
    */
   final_contracts?: any[];
+  /** Appuntamenti / Visite in Tenuta (agenda segreteria e direzione). */
+  appointments?: Appointment[];
 }
 
 export function getStore(): LocalStore {
@@ -68,7 +97,8 @@ export function getStore(): LocalStore {
       services_catalog: [...SERVICES_CATALOG],
       ticket_orders: [],
       blog_posts: [],
-      payments: []
+      payments: [],
+      appointments: buildDemoAppointments()
     };
     try {
       fs.writeFileSync(dataFile, JSON.stringify(initial, null, 2), 'utf8');
@@ -87,8 +117,16 @@ export function getStore(): LocalStore {
     if (!parsed.ticket_orders) parsed.ticket_orders = [];
     if (!parsed.blog_posts) parsed.blog_posts = [];
     if (!parsed.payments) parsed.payments = [];
+    const appointmentsMissing = !Array.isArray(parsed.appointments);
+    if (appointmentsMissing) parsed.appointments = buildDemoAppointments();
     if (!parsed.services_catalog || !Array.isArray(parsed.services_catalog) || parsed.services_catalog.length === 0) {
       parsed.services_catalog = [...SERVICES_CATALOG];
+      try {
+        fs.writeFileSync(dataFile, JSON.stringify(parsed, null, 2), 'utf8');
+      } catch {
+        // ignore
+      }
+    } else if (appointmentsMissing) {
       try {
         fs.writeFileSync(dataFile, JSON.stringify(parsed, null, 2), 'utf8');
       } catch {
@@ -106,7 +144,8 @@ export function getStore(): LocalStore {
       project_builder_sessions: [],
       services_catalog: [...SERVICES_CATALOG],
       ticket_orders: [],
-      payments: []
+      payments: [],
+      appointments: buildDemoAppointments()
     };
   }
 }
@@ -1514,6 +1553,258 @@ export function updateQuoteScheduleLocal(quoteId: string, schedule: QuoteSchedul
   quote.updated_at = new Date().toISOString();
   saveStore(store);
   return quote;
+}
+
+/* ------------------------------------------------------------------ */
+/* Appuntamenti & Visite in Tenuta                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Estrae `YYYY-MM-DD` e `HH:mm` da un valore data/ora. Accetta sia
+ * `'YYYY-MM-DDTHH:mm'` sia un ISO completo; in assenza di orario restituisce ''.
+ */
+function splitDataOra(value: unknown): { data: string; ora: string } {
+  const raw = String(value ?? '').trim();
+  if (!raw) return { data: '', ora: '' };
+  const match = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2}))?/.exec(raw);
+  if (!match) return { data: '', ora: '' };
+  return { data: match[1], ora: match[2] || '' };
+}
+
+/**
+ * Genera 8 appuntamenti dimostrativi realistici (agenda segreteria): un mix di
+ * wedding e eventi privati, con 3 visite già fissate per OGGI e 2 per domani.
+ * Usato solo quando lo store non contiene ancora alcun appuntamento.
+ */
+function buildDemoAppointments(): Appointment[] {
+  const now = new Date().toISOString();
+  const rows: Array<Omit<Appointment, 'id'>> = [
+    {
+      tipo: 'wedding',
+      nome: 'Marco',
+      cognome: 'Esposito',
+      partnerNome: 'Sofia',
+      partnerCognome: 'De Luca',
+      telefono: '333 124 7789',
+      email: 'marco.esposito@gmail.com',
+      dataOra: '2026-10-08T11:30',
+      dataAppuntamento: '2026-10-08',
+      orarioAppuntamento: '11:30',
+      dataEventoPresunta: 'Luglio 2027',
+      interesse: 'esclusiva',
+      ospitiPrevisti: 120,
+      canale: 'sito_web',
+      stato: 'confermato',
+      note: 'Coppia in cerca di location esclusiva. Interessati al giardino degli agrumi e alla villa per il ricevimento.',
+      created_at: now,
+    },
+    {
+      tipo: 'privato',
+      nome: 'Giulia',
+      cognome: 'De Angelis',
+      telefono: '340 552 1180',
+      email: 'g.deangelis@azienda.it',
+      dataOra: '2026-10-08T16:00',
+      dataAppuntamento: '2026-10-08',
+      orarioAppuntamento: '16:00',
+      dataEventoPresunta: 'Dicembre 2026',
+      interesse: 'sala_bianca',
+      ospitiPrevisti: 80,
+      canale: 'telefono',
+      stato: 'da_confermare',
+      note: 'Evento aziendale di fine anno (convention + cena). Referente amministrazione. Richiede proiettore e palco.',
+      created_at: now,
+    },
+    {
+      tipo: 'wedding',
+      nome: 'Alessandro',
+      cognome: 'Russo',
+      partnerNome: 'Chiara',
+      partnerCognome: 'Greco',
+      telefono: '328 991 4477',
+      email: 'ale.russo@libero.it',
+      dataOra: '2026-10-08T18:00',
+      dataAppuntamento: '2026-10-08',
+      orarioAppuntamento: '18:00',
+      dataEventoPresunta: 'Settembre 2027',
+      interesse: 'sala_tufo',
+      ospitiPrevisti: 150,
+      canale: 'whatsapp',
+      stato: 'confermato',
+      note: 'Preferiscono la Sala Tufo per la cerimonia civile. Verificare disponibilità weekend di settembre.',
+      created_at: now,
+    },
+    {
+      tipo: 'privato',
+      nome: 'Paolo',
+      cognome: 'Ferrara',
+      telefono: '347 220 9081',
+      email: 'paolo.ferrara50@gmail.com',
+      dataOra: '2026-10-09T10:00',
+      dataAppuntamento: '2026-10-09',
+      orarioAppuntamento: '10:00',
+      dataEventoPresunta: 'Aprile 2027',
+      interesse: 'semi_esclusiva',
+      ospitiPrevisti: 60,
+      canale: 'passaparola',
+      stato: 'da_confermare',
+      note: 'Cinquantesimo compleanno a sorpresa organizzato dalla moglie. Sopralluogo per allestimento.',
+      created_at: now,
+    },
+    {
+      tipo: 'wedding',
+      nome: 'Luca',
+      cognome: 'Bianchi',
+      partnerNome: 'Martina',
+      partnerCognome: 'Conti',
+      telefono: '335 776 2234',
+      email: 'lucaemartina2027@gmail.com',
+      dataOra: '2026-10-09T17:30',
+      dataAppuntamento: '2026-10-09',
+      orarioAppuntamento: '17:30',
+      dataEventoPresunta: 'Giugno 2027',
+      interesse: 'esclusiva',
+      ospitiPrevisti: 100,
+      canale: 'instagram',
+      stato: 'confermato',
+      note: 'Arrivano da fuori regione. Chiedono info su alloggio per gli invitati e navetta.',
+      created_at: now,
+    },
+    {
+      tipo: 'privato',
+      nome: 'Anna',
+      cognome: 'Romano',
+      telefono: '338 014 5522',
+      email: 'anna.romano@outlook.it',
+      dataOra: '2026-10-12T15:00',
+      dataAppuntamento: '2026-10-12',
+      orarioAppuntamento: '15:00',
+      dataEventoPresunta: 'Maggio 2027',
+      interesse: 'sala_bianca',
+      ospitiPrevisti: 45,
+      canale: 'telefono',
+      stato: 'da_confermare',
+      note: 'Battesimo della nipote. Vuole vedere la Sala Bianca allestita per un pranzo di famiglia.',
+      created_at: now,
+    },
+    {
+      tipo: 'wedding',
+      nome: 'Francesco',
+      cognome: 'Marino',
+      partnerNome: 'Elena',
+      partnerCognome: 'Vitale',
+      telefono: '366 340 7712',
+      email: 'francesco.marino@icloud.com',
+      dataOra: '2026-10-15T12:00',
+      dataAppuntamento: '2026-10-15',
+      orarioAppuntamento: '12:00',
+      dataEventoPresunta: 'Maggio 2027',
+      interesse: 'semi_esclusiva',
+      ospitiPrevisti: 130,
+      canale: 'sito_web',
+      stato: 'da_confermare',
+      note: 'Richiesta dal form del sito. Interessati a pacchetto semi-esclusivo con banqueting incluso.',
+      created_at: now,
+    },
+    {
+      tipo: 'wedding',
+      nome: 'Davide',
+      cognome: 'Sanna',
+      partnerNome: 'Irene',
+      partnerCognome: 'Costa',
+      telefono: '349 887 3310',
+      email: 'davide.sanna@gmail.com',
+      dataOra: '2026-10-05T16:30',
+      dataAppuntamento: '2026-10-05',
+      orarioAppuntamento: '16:30',
+      dataEventoPresunta: 'Luglio 2027',
+      interesse: 'esclusiva',
+      ospitiPrevisti: 110,
+      canale: 'passaparola',
+      stato: 'effettuato',
+      note: 'Visita effettuata: molto interessati, inviato preventivo esclusiva da ricontattare entro la settimana.',
+      created_at: now,
+    },
+  ];
+
+  return rows.map((row) => ({
+    ...row,
+    id: `apt-${crypto.randomUUID().slice(0, 8)}`,
+  }));
+}
+
+/** Elenco completo degli appuntamenti, ordinato dal più imminente al più lontano. */
+export function getAllAppointmentsLocal(): Appointment[] {
+  const store = getStore();
+  const list = Array.isArray(store.appointments) ? store.appointments : [];
+  return list.slice().sort((a, b) => {
+    const byDate = String(a.dataAppuntamento || '').localeCompare(String(b.dataAppuntamento || ''));
+    if (byDate !== 0) return byDate;
+    return String(a.orarioAppuntamento || '').localeCompare(String(b.orarioAppuntamento || ''));
+  });
+}
+
+/**
+ * Crea un nuovo appuntamento. I campi mancanti vengono normalizzati con default
+ * sicuri e, se `dataOra` è presente ma data/orario no, vengono derivati da essa.
+ */
+export function createAppointmentLocal(data: Partial<Appointment>): Appointment {
+  const store = getStore();
+  if (!Array.isArray(store.appointments)) store.appointments = [];
+
+  const dataOra = String(data.dataOra || '').trim();
+  const split = splitDataOra(dataOra);
+  const dataAppuntamento = String(data.dataAppuntamento || split.data || '').trim();
+  const orarioAppuntamento = String(data.orarioAppuntamento || split.ora || '').trim();
+
+  const entry: Appointment = {
+    id: data.id || `apt-${crypto.randomUUID().slice(0, 8)}`,
+    tipo: data.tipo === 'privato' ? 'privato' : 'wedding',
+    nome: String(data.nome || '').trim(),
+    cognome: data.cognome ? String(data.cognome).trim() : undefined,
+    partnerNome: data.partnerNome ? String(data.partnerNome).trim() : undefined,
+    partnerCognome: data.partnerCognome ? String(data.partnerCognome).trim() : undefined,
+    telefono: String(data.telefono || '').trim(),
+    email: data.email ? String(data.email).trim() : undefined,
+    dataOra: dataOra || (dataAppuntamento && orarioAppuntamento ? `${dataAppuntamento}T${orarioAppuntamento}` : dataAppuntamento),
+    dataAppuntamento,
+    orarioAppuntamento,
+    dataEventoPresunta: data.dataEventoPresunta ? String(data.dataEventoPresunta).trim() : undefined,
+    interesse: data.interesse || 'da_definire',
+    ospitiPrevisti: Number.isFinite(Number(data.ospitiPrevisti)) && Number(data.ospitiPrevisti) > 0
+      ? Number(data.ospitiPrevisti)
+      : undefined,
+    canale: data.canale || 'telefono',
+    stato: data.stato || 'da_confermare',
+    note: data.note ? String(data.note).trim() : undefined,
+    created_at: data.created_at || new Date().toISOString(),
+  };
+
+  store.appointments.push(entry);
+  saveStore(store);
+  return entry;
+}
+
+/** Aggiorna lo stato di un appuntamento. `true` se trovato e aggiornato. */
+export function updateAppointmentStatusLocal(id: string, stato: Appointment['stato']): boolean {
+  const store = getStore();
+  if (!Array.isArray(store.appointments)) return false;
+  const appointment = store.appointments.find((a) => a && a.id === id);
+  if (!appointment) return false;
+  appointment.stato = stato;
+  saveStore(store);
+  return true;
+}
+
+/** Elimina un appuntamento per id. `true` se trovato e rimosso. */
+export function deleteAppointmentLocal(id: string): boolean {
+  const store = getStore();
+  if (!Array.isArray(store.appointments)) return false;
+  const before = store.appointments.length;
+  store.appointments = store.appointments.filter((a) => !(a && a.id === id));
+  if (store.appointments.length === before) return false;
+  saveStore(store);
+  return true;
 }
 
 

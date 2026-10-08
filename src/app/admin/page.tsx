@@ -1,23 +1,14 @@
-import { getQuotesFast } from "@/lib/dataHelper";
-import { listPdfsInR2 } from "@/lib/r2";
-import EnterpriseDashboardClient from "./EnterpriseDashboardClient";
+import { getAllAppointmentsLocal } from "@/lib/localDb";
+import AppuntamentiClient from "./AppuntamentiClient";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
 export default async function AdminDashboardPage() {
-  const [quotes, signedPdfs] = await Promise.all([
-    getQuotesFast(),
-    Promise.all([
-      listPdfsInR2("contratti/wedding/"),
-      listPdfsInR2("contratti/eventi/")
-    ]).then(([w, e]) => [...(w || []), ...(e || [])]).catch(() => [])
-  ]);
+  // Warm-up del DB locale: garantisce che lo store (e il seed dimostrativo
+  // degli appuntamenti) esista anche su runtime serverless prima della lettura.
+  const appointments = getAllAppointmentsLocal();
 
-  return (
-    <div className="container" style={{ maxWidth: "1200px" }}>
-      <EnterpriseDashboardClient quotes={quotes} signedPdfs={signedPdfs} />
-    </div>
-  );
+  return <AppuntamentiClient appointments={appointments} />;
 }
