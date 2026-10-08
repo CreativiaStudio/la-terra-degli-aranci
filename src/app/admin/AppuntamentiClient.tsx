@@ -310,8 +310,6 @@ export default function AppuntamentiClient({ appointments }: AppuntamentiClientP
     showFeedback("ok", "Appuntamento registrato in agenda.");
   };
 
-  const todayOnly = periodo === "oggi";
-
   return (
     <div style={{ maxWidth: "1250px", margin: "0 auto", fontFamily: "'Outfit', sans-serif" }}>
       {/* Testata */}
@@ -407,43 +405,6 @@ export default function AppuntamentiClient({ appointments }: AppuntamentiClientP
 
       {/* Filtri */}
       <div style={{ ...cardStyle, padding: "1.1rem 1.3rem", marginBottom: "1.2rem", display: "grid", gap: "1rem" }}>
-        {/* Bottone quotidiano prominente */}
-        <button
-          type="button"
-          onClick={() => setPeriodo(todayOnly ? "tutti" : "oggi")}
-          aria-pressed={todayOnly}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "0.6rem",
-            padding: "0.9rem 1.2rem",
-            borderRadius: "12px",
-            cursor: "pointer",
-            fontFamily: "inherit",
-            fontWeight: 800,
-            fontSize: "1rem",
-            transition: "all 0.15s ease",
-            border: todayOnly ? "2px solid #c2410c" : "2px solid #e58c2c",
-            background: todayOnly ? "linear-gradient(135deg, #e58c2c 0%, #c9791f 100%)" : "#fff7ed",
-            color: todayOnly ? "#fff" : "#c2410c",
-            boxShadow: todayOnly ? "0 6px 18px rgba(229,140,44,0.35)" : "none",
-          }}
-        >
-          ☀️ {todayOnly ? "Tabella di Oggi attiva — mostra tutta l'agenda" : "Mostra solo Appuntamenti di Oggi"}
-          <span
-            style={{
-              background: todayOnly ? "rgba(255,255,255,0.25)" : "#e58c2c",
-              color: "#fff",
-              borderRadius: "999px",
-              padding: "0.05rem 0.6rem",
-              fontSize: "0.82rem",
-            }}
-          >
-            {kpi.oggi}
-          </span>
-        </button>
-
         <input
           type="search"
           value={query}
