@@ -70,6 +70,13 @@ function formatDataBreve(iso: string): string {
   return `${GIORNI[dow]} ${m[3]}/${m[2]}`;
 }
 
+/** Etichetta di una data candidata: '17/07/2027'. */
+function formatDataCandidata(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return iso;
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
 function whatsappNumber(raw: string): string {
   let digits = String(raw || "").replace(/[^\d+]/g, "");
   if (digits.startsWith("+")) digits = digits.slice(1);
@@ -632,6 +639,15 @@ function AppuntamentoCard({
   const isTomorrow = a.dataAppuntamento === tomorrowIso;
   const isPast = Boolean(a.dataAppuntamento && a.dataAppuntamento < todayIso);
 
+  const tourServices =
+    a.preferenze?.preferenzeServizi && a.preferenze.preferenzeServizi.length > 0
+      ? a.preferenze.preferenzeServizi
+      : a.preferenze?.serviziInteresse ?? [];
+
+  const dateCandidates = Array.isArray(a.preferenze?.dateCandidate)
+    ? a.preferenze!.dateCandidate!.filter(Boolean)
+    : [];
+
   const waMessage = encodeURIComponent(
     `Gentile ${fullName(a)}, le confermiamo il suo appuntamento presso La Terra degli Aranci per ${formatDataBreve(a.dataAppuntamento)} alle ${a.orarioAppuntamento || "--:--"}. La aspettiamo! Per qualsiasi necessità può rispondere a questo messaggio.`
   );
@@ -754,6 +770,72 @@ function AppuntamentoCard({
         {a.note && (
           <div style={{ color: "#6a6764", fontSize: "0.82rem", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
             📝 {a.note}
+          </div>
+        )}
+        {dateCandidates.length > 0 && (
+          <div
+            style={{
+              marginTop: "0.35rem",
+              background: "#eff6ff",
+              border: "1px solid #bfdbfe",
+              borderRadius: "10px",
+              padding: "0.55rem 0.65rem",
+            }}
+          >
+            <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#1d4ed8", marginBottom: "0.35rem" }}>
+              📆 Date Candidate Sposi ({dateCandidates.length}):
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem" }}>
+              {dateCandidates.map((d) => (
+                <span
+                  key={d}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #93c5fd",
+                    color: "#1d4ed8",
+                    borderRadius: "999px",
+                    padding: "0.15rem 0.55rem",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  {formatDataCandidata(d)}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        {tourServices.length > 0 && (
+          <div
+            style={{
+              marginTop: "0.35rem",
+              background: "#f0fdf4",
+              border: "1px solid #bbf7d0",
+              borderRadius: "10px",
+              padding: "0.55rem 0.65rem",
+            }}
+          >
+            <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#166534", marginBottom: "0.35rem" }}>
+              💎 Servizi d&apos;Interesse Sposi ({tourServices.length} scelti durante la visita):
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem" }}>
+              {tourServices.map((s) => (
+                <span
+                  key={s}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #86efac",
+                    color: "#166534",
+                    borderRadius: "999px",
+                    padding: "0.15rem 0.55rem",
+                    fontSize: "0.72rem",
+                    fontWeight: 700,
+                  }}
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
           </div>
         )}
       </div>

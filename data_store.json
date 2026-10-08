@@ -4300,7 +4300,7 @@
       "interesse": "sala_bianca",
       "ospitiPrevisti": 80,
       "canale": "telefono",
-      "stato": "da_confermare",
+      "stato": "confermato",
       "note": "Evento aziendale di fine anno (convention + cena). Referente amministrazione. Richiede proiettore e palco.",
       "created_at": "2026-10-08T07:34:23.905Z",
       "id": "apt-5f103b0f"

@@ -12,6 +12,7 @@ import {
   updateAppointmentPreferencesLocal,
   updateAppointmentStatusLocal,
   findOrCreateClientForAppointmentLocal,
+  toggleTourServicePreferenceLocal,
   saveWeddingDiaryLocal,
   type Appointment,
 } from "@/lib/localDb";
@@ -133,6 +134,11 @@ export interface AppointmentPreferencesInput {
   spaziSelezionati: string[];
   tipoCerimonia: string;
   serviziInteresse: string[];
+  preferenzeServizi?: string[];
+  /** Date candidate di preferenza della coppia (fino a 4 date ISO 'YYYY-MM-DD'). */
+  dateCandidate?: string[];
+  /** Mese di riferimento per il controllo disponibilità (es. '2027-07'). */
+  mesePreferenza?: string;
   musicaNote: string;
   celiaciNote: string;
   noteGenerali: string;
@@ -156,6 +162,9 @@ function normalizeAppointmentPreferences(
     spaziSelezionati: asArray(preferences?.spaziSelezionati),
     tipoCerimonia: asString(preferences?.tipoCerimonia),
     serviziInteresse: asArray(preferences?.serviziInteresse),
+    preferenzeServizi: asArray(preferences?.preferenzeServizi),
+    dateCandidate: asArray(preferences?.dateCandidate),
+    mesePreferenza: asString(preferences?.mesePreferenza),
     musicaNote: asString(preferences?.musicaNote),
     celiaciNote: asString(preferences?.celiaciNote),
     noteGenerali: asString(preferences?.noteGenerali),
@@ -201,6 +210,8 @@ export async function saveAppointmentPreferencesAction(
         preferred_spaces: normalized.spaziSelezionati,
         ceremony_type: normalized.tipoCerimonia,
         open_bar_cocktails: normalized.serviziInteresse.join(", "),
+        tour_service_preferences: (normalized.preferenzeServizi || []).join(", "),
+        target_dates: (normalized.dateCandidate || []).join(", "),
         music_preference: normalized.musicaNote,
         dietary_notes: normalized.celiaciNote,
         general_notes: normalized.noteGenerali,
@@ -227,6 +238,7 @@ export async function saveAppointmentPreferencesAction(
         tipo_cerimonia: normalized.tipoCerimonia,
         spazi: normalized.spaziSelezionati,
         servizi: normalized.serviziInteresse,
+        date_candidate: normalized.dateCandidate,
       },
     });
 
@@ -277,6 +289,81 @@ export async function updateAppointmentStatoAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Errore durante l'aggiornamento dello stato.",
+    };
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Tour Fotografico Servizi — preferenze servizio per visita          */
+/* ------------------------------------------------------------------ */
+
+export interface ToggleTourServiceResponse {
+  success: boolean;
+  /** `true` se il servizio è stato appena aggiunto, `false` se rimosso. */
+  active: boolean;
+  /** Elenco aggiornato dei servizi preferiti per quella visita. */
+  allServices: string[];
+  message?: string;
+}
+
+/**
+ * Toggle 1-click di un servizio/spazio del Tour Fotografico per una visita.
+ * Aggiorna l'appuntamento, sincronizza il Wedding Diary della coppia e
+ * revalida sia la segreteria sia la dashboard direzione.
+ */
+export async function toggleAppointmentTourServiceAction(
+  appointmentId: string,
+  serviceTitle: string
+): Promise<ToggleTourServiceResponse> {
+  try {
+    if (!appointmentId || !serviceTitle) {
+      return { success: false, active: false, allServices: [], message: "Dati mancanti. Riprova." };
+    }
+
+    const result = toggleTourServicePreferenceLocal(appointmentId, serviceTitle);
+    if (!result) {
+      return {
+        success: false,
+        active: false,
+        allServices: [],
+        message: "Appuntamento non trovato. Aggiorna la pagina e riprova.",
+      };
+    }
+
+    const { appointment, added, currentServices } = result;
+    const sposi =
+      [appointment.nome, appointment.cognome].filter(Boolean).join(" ").trim() ||
+      [appointment.nome, appointment.partnerNome].filter(Boolean).join(" ").trim() ||
+      "cliente";
+
+    logActivity({
+      category: "LEAD_VISITA",
+      actor: "Tablet Segreteria (iPad)",
+      action: added ? "TOUR_SERVIZIO_ASSEGNATO" : "TOUR_SERVIZIO_RIMOSSO",
+      message: `"${serviceTitle}" ${added ? "assegnato" : "rimosso"} per ${sposi}`,
+      metadata: {
+        appointmentId,
+        sposi,
+        servizio: serviceTitle,
+        servizi_totali: currentServices,
+      },
+    });
+
+    revalidatePath("/segreteria");
+    revalidatePath("/admin");
+
+    return { success: true, active: added, allServices: currentServices };
+  } catch (error) {
+    console.error("Errore toggleAppointmentTourServiceAction:", error);
+    logError("LEAD_VISITA", "Tablet Segreteria (iPad)", "TOUR_SERVIZIO_ERRORE", error, {
+      appointmentId,
+      serviceTitle,
+    });
+    return {
+      success: false,
+      active: false,
+      allServices: [],
+      message: "Errore durante l'aggiornamento della preferenza. Riprova.",
     };
   }
 }

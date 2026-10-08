@@ -74,6 +74,12 @@ export interface AppointmentPreferences {
   tipoCerimonia: string;
   /** Servizi/esperienze di interesse (senza prezzi). */
   serviziInteresse: string[];
+  /** Preferenze servizi espresse durante il Tour Fotografico Servizi. */
+  preferenzeServizi?: string[];
+  /** Date candidate di preferenza della coppia (fino a 4 date ISO 'YYYY-MM-DD'). */
+  dateCandidate?: string[];
+  /** Mese di riferimento per il controllo disponibilità (es. '2027-07' o 'Luglio 2027'). */
+  mesePreferenza?: string;
   /** Note sulla musica / colonna sonora. */
   musicaNote: string;
   /** Celiaci, allergie o intolleranze segnalate. */
@@ -1597,6 +1603,16 @@ function splitDataOra(value: unknown): { data: string; ora: string } {
 }
 
 /**
+ * Converte una data ISO `YYYY-MM-DD` in etichetta leggibile `gg/mm/aaaa`.
+ * Se il valore non è una data ISO, lo restituisce invariato.
+ */
+function formatIsoToItalian(value: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || '').trim());
+  if (!m) return String(value || '').trim();
+  return `${m[3]}/${m[2]}/${m[1]}`;
+}
+
+/**
  * Genera 8 appuntamenti dimostrativi realistici (agenda segreteria): un mix di
  * wedding e eventi privati, con 3 visite già fissate per OGGI e 2 per domani.
  * Usato solo quando lo store non contiene ancora alcun appuntamento.
@@ -1851,8 +1867,57 @@ export function updateAppointmentPreferencesLocal(
   if (!Array.isArray(store.appointments)) return null;
   const appointment = store.appointments.find((a) => a && a.id === id);
   if (!appointment) return null;
-  appointment.preferenze = { ...preferenze, updated_at: new Date().toISOString() };
+  const existing = appointment.preferenze;
+  // Preserva `preferenzeServizi` dal payload se fornito, altrimenti dall'oggetto
+  // esistente: un autosave parziale non deve mai cancellare i servizi del tour.
+  const preservedServices = Array.isArray(preferenze?.preferenzeServizi)
+    ? preferenze.preferenzeServizi
+    : Array.isArray(existing?.preferenzeServizi)
+      ? existing.preferenzeServizi
+      : [];
+  // Stessa logica di preservazione per le date candidate e il mese di riferimento.
+  const preservedDates = Array.isArray(preferenze?.dateCandidate)
+    ? preferenze.dateCandidate
+    : Array.isArray(existing?.dateCandidate)
+      ? existing.dateCandidate
+      : [];
+  const preservedMese =
+    typeof preferenze?.mesePreferenza === 'string'
+      ? preferenze.mesePreferenza
+      : existing?.mesePreferenza ?? '';
+
+  appointment.preferenze = {
+    ...preferenze,
+    preferenzeServizi: preservedServices,
+    dateCandidate: preservedDates,
+    mesePreferenza: preservedMese,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Se la coppia ha indicato date candidate, allinea il periodo evento presunto
+  // con un'etichetta leggibile (es. "17/07/2027, 24/07/2027").
+  if (preservedDates.length > 0) {
+    appointment.dataEventoPresunta = preservedDates.map(formatIsoToItalian).join(', ');
+  }
+
   saveStore(store);
+
+  // Sincronizza le date candidate nel Wedding Diary della coppia, così le
+  // ritrova già indicate nella propria Area Riservata.
+  if (preservedDates.length > 0) {
+    try {
+      const client = findOrCreateClientForAppointmentLocal(appointment);
+      const targetDates = preservedDates.join(', ');
+      saveWeddingDiaryLocal({
+        client_id: client.id,
+        target_dates: targetDates,
+        answers: { target_dates: targetDates },
+      });
+    } catch {
+      // Il salvataggio dell'appuntamento resta comunque valido.
+    }
+  }
+
   return appointment;
 }
 
@@ -1927,6 +1992,80 @@ export function findOrCreateClientForAppointmentLocal(appointment: Appointment):
 
   saveStore(store);
   return client;
+}
+
+/**
+ * Toggle di un servizio/spazio preferito durante il Tour Fotografico Servizi.
+ * - aggiunge/rimuove il titolo in `preferenze.preferenzeServizi`;
+ * - allinea `preferenze.serviziInteresse` (stesso stato aggiunto/rimosso);
+ * - sincronizza il Wedding Diary della coppia e traccia l'aggiornamento.
+ * Ritorna `null` se l'appuntamento o il titolo non sono validi.
+ */
+export function toggleTourServicePreferenceLocal(
+  appointmentId: string,
+  serviceTitle: string
+): { appointment: Appointment; added: boolean; currentServices: string[] } | null {
+  const store = getStore();
+  if (!Array.isArray(store.appointments)) return null;
+
+  const appointment = store.appointments.find((a) => a && a.id === appointmentId);
+  if (!appointment) return null;
+
+  const title = String(serviceTitle || "").trim();
+  if (!title) return null;
+
+  const existing = appointment.preferenze;
+  const base: AppointmentPreferences = {
+    stileMood: existing?.stileMood ?? "",
+    spaziSelezionati: Array.isArray(existing?.spaziSelezionati) ? [...existing.spaziSelezionati] : [],
+    tipoCerimonia: existing?.tipoCerimonia ?? "",
+    serviziInteresse: Array.isArray(existing?.serviziInteresse) ? [...existing.serviziInteresse] : [],
+    preferenzeServizi: Array.isArray(existing?.preferenzeServizi) ? [...existing.preferenzeServizi] : [],
+    dateCandidate: Array.isArray(existing?.dateCandidate) ? [...existing.dateCandidate] : [],
+    mesePreferenza: existing?.mesePreferenza ?? "",
+    musicaNote: existing?.musicaNote ?? "",
+    celiaciNote: existing?.celiaciNote ?? "",
+    noteGenerali: existing?.noteGenerali ?? "",
+  };
+
+  const currentTour = base.preferenzeServizi!;
+  const serviceIndex = currentTour.findIndex((s) => s.toLowerCase() === title.toLowerCase());
+
+  let added: boolean;
+  let currentServices: string[];
+  if (serviceIndex >= 0) {
+    currentServices = currentTour.filter((_, i) => i !== serviceIndex);
+    added = false;
+  } else {
+    currentServices = [...currentTour, title];
+    added = true;
+  }
+
+  base.preferenzeServizi = currentServices;
+
+  // Allinea `serviziInteresse` con lo stato del servizio nel tour.
+  const interestIndex = base.serviziInteresse.findIndex((s) => s.toLowerCase() === title.toLowerCase());
+  if (added) {
+    if (interestIndex < 0) base.serviziInteresse = [...base.serviziInteresse, title];
+  } else if (interestIndex >= 0) {
+    base.serviziInteresse = base.serviziInteresse.filter((_, i) => i !== interestIndex);
+  }
+
+  base.updated_at = new Date().toISOString();
+  appointment.preferenze = base;
+  saveStore(store);
+
+  // Sincronizza il Wedding Diary della coppia (trova o crea il cliente).
+  const client = findOrCreateClientForAppointmentLocal(appointment);
+  saveWeddingDiaryLocal({
+    client_id: client.id,
+    answers: {
+      open_bar_cocktails: base.serviziInteresse.join(", "),
+      tour_service_preferences: currentServices.join(", "),
+    },
+  });
+
+  return { appointment, added, currentServices };
 }
 
 
