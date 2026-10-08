@@ -23,6 +23,45 @@ function formulaLabel(quote: any): string {
   return "—";
 }
 
+/**
+ * Deriva un titolo leggibile per l'evento partendo dal tipo e dalle descrizioni.
+ * Il wedding è esplicito; per gli altri tipi analizziamo note/items/testo libero.
+ */
+function deriveEventTitle(quote: any): string {
+  if (quote?.tipo_evento === "wedding") return "Matrimonio";
+
+  const itemsText = Array.isArray(quote?.items)
+    ? quote.items
+        .map((it: any) =>
+          typeof it === "string" ? it : `${it?.nome || ""} ${it?.titolo || ""} ${it?.descrizione || ""}`
+        )
+        .join(" ")
+    : quote?.items
+      ? JSON.stringify(quote.items)
+      : "";
+
+  const haystack = [
+    quote?.note,
+    quote?.notes,
+    quote?.descrizione,
+    quote?.titolo,
+    quote?.tipo_evento,
+    itemsText,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (haystack.includes("battesimo")) return "Battesimo";
+  if (haystack.includes("comunione")) return "Comunione";
+  if (haystack.includes("compleanno") || haystack.includes("18")) return "Compleanno";
+  if (haystack.includes("promessa")) return "Promessa";
+  if (haystack.includes("laurea")) return "Laurea";
+  if (haystack.includes("meeting") || haystack.includes("aziendal")) return "Aziendale";
+  if (haystack.includes("anniversario")) return "Anniversario";
+  return "Evento Privato";
+}
+
 /** Un contratto è "firmato" se la quote lo dichiara o esiste un record firmato. */
 function matchesSignedContract(record: any, quote: any): boolean {
   const qid = String(record?.quote_id || record?.preventivo || record?.quoteId || "").toLowerCase();
@@ -117,7 +156,7 @@ export default async function ClientiPage() {
       const stage = deriveEventStage(q, { today, isSigned });
       eventi.push({
         id: String(q.id || ""),
-        titolo: q.tipo_evento === "wedding" ? "Matrimonio" : "Evento Privato",
+        titolo: deriveEventTitle(q),
         data: data || null,
         formula: formulaLabel(q),
         stage: stage.stage,

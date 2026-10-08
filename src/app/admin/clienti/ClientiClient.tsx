@@ -2,7 +2,6 @@
 
 import React, { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { formatEuro } from "@/lib/contractPayments";
 import {
   createEventForClientAction,
   type ClientiFormula,
@@ -54,6 +53,17 @@ function formatDate(value: string | null): string {
   return `${match[3]}/${match[2]}/${match[1]}`;
 }
 
+/** Riepilogo pulito dei tipi di evento (senza duplicati), es. "Matrimonio + Battesimo". */
+function getEventTypesSummary(eventi: ClienteEventoRow[]): string {
+  if (!eventi || eventi.length === 0) return "";
+  const tipi: string[] = [];
+  for (const ev of eventi) {
+    const titolo = String(ev?.titolo || "").trim();
+    if (titolo && !tipi.includes(titolo)) tipi.push(titolo);
+  }
+  return tipi.join(" + ");
+}
+
 export default function ClientiClient({ clienti }: ClientiClientProps) {
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -76,8 +86,7 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
   const totalClients = clienti.length;
   const clubMembers = clienti.filter((c) => c.isClub).length;
   const repeatClients = clienti.filter((c) => c.eventiCount > 1).length;
-  const ltvTotal = clienti.reduce((sum, c) => sum + c.ltvCents, 0);
-  const averageSpend = totalClients > 0 ? ltvTotal / totalClients / 100 : 0;
+  const loyaltyRate = totalClients > 0 ? Math.round((repeatClients / totalClients) * 100) : 0;
 
   const openModal = (clienteId?: string) => {
     setError("");
@@ -145,7 +154,7 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
           👥 Rubrica Clienti & Club TDA
         </h1>
         <p style={{ margin: 0, color: "#777" }}>
-          Anagrafica unificata, valore storico (LTV) e fidelizzazione degli ospiti che hanno scelto La Terra degli Aranci.
+          Anagrafica unificata e fidelizzazione degli ospiti che hanno scelto La Terra degli Aranci. Gli importi e il valore storico (LTV) sono disponibili nella scheda CRM di ogni cliente.
         </p>
       </div>
 
@@ -154,7 +163,7 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
         {kpiCard("Clienti Registrati", String(totalClients), "#e58c2c")}
         {kpiCard("Membri Club TDA", String(clubMembers), "#1e1b18")}
         {kpiCard("Eventi Ripetuti / Fidelizzati", String(repeatClients), "#16a34a")}
-        {kpiCard("Spesa Media per Cliente", formatEuro(averageSpend), "#0284c7")}
+        {kpiCard("Tasso Fidelizzazione", `${loyaltyRate}%`, "#0284c7")}
       </div>
 
       {/* Barra superiore */}
@@ -200,7 +209,7 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
               <th style={{ padding: "0.8rem 0.7rem" }}>Cliente</th>
               <th style={{ padding: "0.8rem 0.7rem" }}>Contatti</th>
               <th style={{ padding: "0.8rem 0.7rem" }}>Storico Eventi</th>
-              <th style={{ padding: "0.8rem 0.7rem", textAlign: "right" }}>LTV Storico</th>
+              <th style={{ padding: "0.8rem 0.7rem", textAlign: "right" }}>Eventi</th>
               <th style={{ padding: "0.8rem 0.7rem", textAlign: "right" }}>Azione</th>
             </tr>
           </thead>
@@ -305,9 +314,22 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                   </td>
 
                   <td style={{ padding: "0.9rem 0.7rem", textAlign: "right", whiteSpace: "nowrap" }}>
-                    <strong style={{ color: "#e58c2c", fontSize: "1rem" }}>{formatEuro(c.ltvCents / 100)}</strong>
-                    <small style={{ display: "block", color: "#a8a29e", fontSize: "0.72rem" }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "0.28rem 0.75rem",
+                        borderRadius: "999px",
+                        background: "#fff7ed",
+                        color: "#c2410c",
+                        border: "1px solid #ffedd5",
+                        fontSize: "0.82rem",
+                        fontWeight: 700,
+                      }}
+                    >
                       {c.eventiCount} {c.eventiCount === 1 ? "evento" : "eventi"}
+                    </span>
+                    <small style={{ display: "block", marginTop: "0.35rem", color: "#78716c", fontSize: "0.74rem", fontWeight: 600, whiteSpace: "normal" }}>
+                      {getEventTypesSummary(c.eventi) || "Nessun dettaglio"}
                     </small>
                   </td>
 
