@@ -3,6 +3,34 @@
 import React, { useMemo, useState } from "react";
 import type { Appointment } from "@/lib/localDb";
 
+interface PlannerTicketItem {
+  id?: string;
+  nome?: string;
+  categoria?: string;
+  prezzo_unitario?: number;
+  quantita?: number;
+  azione?: "aggiunta" | "rimozione" | "variazione";
+  note?: string;
+}
+
+interface PlannerTicket {
+  id: string;
+  quote_id?: string;
+  client_id?: string;
+  client_name?: string;
+  client_email?: string;
+  client_phone?: string;
+  event_date?: string;
+  tipo_evento?: string;
+  servizi?: PlannerTicketItem[];
+  note_sposi?: string;
+  status?: "nuovo" | "in_valutazione" | "approvato" | "rifiutato";
+  note_direzione?: string;
+  allegato_b_id?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 interface PlannerEvent {
   id: string;
   coppia: string;
@@ -14,6 +42,8 @@ interface PlannerEvent {
   statoAi: boolean;
   telefono: string;
   email: string;
+  /** Ticket Richiesta Servizi inviati dalla coppia per questo evento. */
+  tickets?: PlannerTicket[];
   dossier: {
     palette: { nome: string; colori: string[] };
     stile: string;
@@ -21,6 +51,10 @@ interface PlannerEvent {
     cronoprogramma: { ora: string; momento: string; luogo: string; note: string }[];
     musica: { rito: string; ingresso: string; balloSposi: string; torta: string; dj: string };
     fornitori: { ruolo: string; nome: string; telefono: string }[];
+    /** Voci e servizi inclusi a contratto (descrizioni delle righe `quote.items`). */
+    serviziContratto?: string[];
+    /** Note generali raccolte dalla coppia (Wedding Diary / quote). */
+    noteSposiGenerali?: string;
     notePlanner: string;
   };
 }
@@ -30,6 +64,7 @@ interface PlannerClientProps {
   diaries?: any[];
   quotes?: any[];
   clients?: any[];
+  tickets?: any[];
 }
 
 /** Normalizza per confronti (minuscole, senza accenti). */
@@ -72,6 +107,293 @@ function unique(values: string[]): string[] {
   return out;
 }
 
+/* ------------------------------------------------------------------ */
+/* Wedding/Event Planner — derivazione eventi REALI da quote & diary   */
+/* ------------------------------------------------------------------ */
+
+/** Etichette leggibili per le chiavi-formula degli spazi della tenuta. */
+const SPACE_LABELS: Record<string, string> = {
+  esclusiva: "Tenuta in Esclusiva Totale",
+  semi_esclusiva: "Semi-Esclusiva",
+  sala_bianca: "Sala Bianca",
+  sala_tufo: "Sala Tufo",
+  giardino_d_inverno: "Giardino d'Inverno",
+  agrumeto: "Agrumeto Storico",
+  agrumeto_storico: "Agrumeto Storico",
+  terrazza: "Terrazza Panoramica",
+  terrazza_panoramica: "Terrazza Panoramica",
+  terrazza_taglio_torta: "Terrazza Taglio Torta",
+};
+
+/** Metadati visivi per gli stati di un Ticket Richiesta Servizi. */
+const TICKET_STATUS_META: Record<string, { label: string; bg: string; color: string; border: string }> = {
+  nuovo: { label: "Nuovo", bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
+  in_valutazione: { label: "In Valutazione", bg: "#fef3c7", color: "#92400e", border: "#fcd34d" },
+  approvato: { label: "Approvato", bg: "#dcfce7", color: "#166534", border: "#86efac" },
+  rifiutato: { label: "Rifiutato", bg: "#fee2e2", color: "#991b1b", border: "#fecaca" },
+};
+
+/** Legge la nota operativa della planner salvata in localStorage per l'evento. */
+function readPlannerNoteLocal(id: string): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.localStorage.getItem(`planner_note_${id}`) || "";
+  } catch {
+    return "";
+  }
+}
+
+/** Persiste la nota operativa della planner in localStorage per l'evento. */
+function writePlannerNoteLocal(id: string, value: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(`planner_note_${id}`, value);
+  } catch {
+    // ignore (storage non disponibile)
+  }
+}
+
+/** Un evento reale è un contratto firmato/convertito o un'opzione attiva. */
+function isRealEvent(quote: any): boolean {
+  if (!quote || !quote.id || !quote.data_evento) return false;
+  const status = String(quote.status || "").toLowerCase();
+  const fase = String(quote.fase_contratto || "").toLowerCase();
+  const opzioneAttiva = quote.opzione ? quote.opzione.attiva !== false : false;
+  if (status === "firmato" || status === "convertito") return true;
+  if (status === "opzione" && (opzioneAttiva || fase === "opzione_rapida")) return true;
+  return false;
+}
+
+/** Ticket collegati a una quote, dal più recente al più vecchio. */
+function ticketsForQuote(tickets: any[], quoteId: string): PlannerTicket[] {
+  const id = String(quoteId ?? "").trim().toLowerCase();
+  if (!id) return [];
+  return tickets
+    .filter((t) => String(t?.quote_id ?? "").trim().toLowerCase() === id)
+    .map((t) => t as PlannerTicket)
+    .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+}
+
+/** Nome della coppia: nome cliente + partner, in mancanza il cognome. */
+function resolveCoppia(client: any, quote: any): string {
+  const nome = String(client?.nome ?? quote?.clients?.nome ?? "").trim();
+  const cognome = String(client?.cognome ?? quote?.clients?.cognome ?? "").trim();
+  const partner = firstDefined(
+    client?.sposera_nome,
+    client?.partner_nome,
+    client?.partnerNome,
+    client?.coniuge,
+    quote?.partner_nome
+  );
+  const partnerStr = typeof partner === "string" ? partner.trim() : "";
+  if (nome && partnerStr) return `${nome} & ${partnerStr}`;
+  return [nome, cognome].filter(Boolean).join(" ").trim() || "Coppia";
+}
+
+/** Spazi riservati della quote o dal diary, con etichette leggibili, o default tenuta. */
+function resolveSpazi(quote: any, answers: any): string[] {
+  const labelify = (value: string): string =>
+    SPACE_LABELS[norm(value)] || value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  const raw = toArray(
+    firstDefined(quote?.spazi_riservati, answers?.preferred_spaces, quote?.spazi_selezionati)
+  );
+  const mapped = unique(raw.map(labelify).filter(Boolean));
+  return mapped.length > 0 ? mapped : ["Tenuta in Esclusiva Totale"];
+}
+
+/** Palette cromatica dalle risposte reali del diary (o dichiarata nello stile). */
+function buildPalette(answers: any, stile: string): { nome: string; colori: string[] } {
+  const rawColori = firstDefined(
+    answers?.palette_colors,
+    answers?.colori,
+    answers?.color_palette,
+    answers?.palette
+  );
+  let colori: string[] = [];
+  if (Array.isArray(rawColori)) {
+    colori = rawColori.map((c) => String(c ?? "").trim()).filter(Boolean);
+  } else if (typeof rawColori === "string") {
+    colori = toArray(rawColori).filter((c) => /^#?[0-9a-fA-F]{3,8}$/.test(c));
+  }
+  const rawNome = firstDefined(answers?.palette_name, answers?.nome_palette);
+  const nome = String(rawNome || "").trim() || (stile ? "Palette dallo stile" : "Palette da definire");
+  return { nome, colori };
+}
+
+/** Intolleranze & celiaci estratti dalle note reali di diary, cliente e quote. */
+function parseIntolleranze(
+  answers: any,
+  client: any,
+  quote: any,
+  noteSposi: string
+): { celiaci: number; vegetariani: number; allergieNote: string } {
+  const parts = [
+    answers?.dietary_notes,
+    client?.memoria?.intolleranze,
+    quote?.note_visita_segreteria,
+    noteSposi,
+  ]
+    .map((v) => String(v ?? "").trim())
+    .filter(Boolean);
+  const text = unique(parts).join(" — ");
+  const cel = /(\d+)\s*celiac/i.exec(text) || /celiac[^\d]{0,15}(\d+)/i.exec(text);
+  const veg = /(\d+)\s*(?:vegetarian|vegan)/i.exec(text) || /(?:vegetarian|vegan)[^\d]{0,15}(\d+)/i.exec(text);
+  return {
+    celiaci: cel ? Number(cel[1]) || 0 : 0,
+    vegetariani: veg ? Number(veg[1]) || 0 : 0,
+    allergieNote: text || "Nessuna segnalazione",
+  };
+}
+
+/** Scelte musicali reali del diary (rito, ingresso, primo ballo, torta, dj). */
+function buildMusica(answers: any): { rito: string; ingresso: string; balloSposi: string; torta: string; dj: string } {
+  const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+  return {
+    rito:
+      str(firstDefined(answers?.music_ceremony, answers?.music_rito, answers?.music_preference)) ||
+      "Da definire",
+    ingresso:
+      str(firstDefined(answers?.music_entrance, answers?.ingresso_sposa, answers?.entry_music)) ||
+      "Da definire",
+    balloSposi: str(firstDefined(answers?.first_dance, answers?.ballo_sposi)) || "Da definire",
+    torta:
+      str(firstDefined(answers?.cake_cutting, answers?.music_cake, answers?.taglio_torta)) ||
+      "Da definire",
+    dj:
+      str(firstDefined(answers?.dj, answers?.dj_set, answers?.musica_dj, answers?.music_preference)) ||
+      "Da definire",
+  };
+}
+
+/** Scaletta oraria di default (integrabile dalle risposte del diary). */
+function buildCronoprogramma(
+  tipo: string,
+  turno: string,
+  rito: string
+): { ora: string; momento: string; luogo: string; note: string }[] {
+  if (tipo === "wedding") {
+    if (turno === "pranzo") {
+      return [
+        { ora: "11:30", momento: "Arrivo Ospiti & Welcome Drink", luogo: "Agrumeto Storico", note: "Aperitivo di benvenuto" },
+        { ora: "12:30", momento: "Cerimonia", luogo: "Giardino delle Promesse", note: rito || "Rito civile/simbolico" },
+        { ora: "13:30", momento: "Pranzo Nuziale", luogo: "Sala Bianca", note: "Banchetto Iovino Banqueting" },
+        { ora: "16:30", momento: "Taglio della Torta", luogo: "Terrazza Panoramica", note: "Buffet dolci" },
+        { ora: "17:30", momento: "After Party", luogo: "Lounge Agrumeto", note: "DJ set & open bar" },
+      ];
+    }
+    return [
+      { ora: "17:30", momento: "Arrivo Ospiti & Welcome Drink", luogo: "Agrumeto Storico", note: "Cocktail e finger food" },
+      { ora: "18:30", momento: "Cerimonia", luogo: "Giardino delle Promesse", note: rito || "Rito civile/simbolico" },
+      { ora: "20:00", momento: "Cena di Gala", luogo: "Sala Tufo", note: "Banchetto Iovino Banqueting" },
+      { ora: "22:30", momento: "Taglio della Torta", luogo: "Terrazza Panoramica", note: "Fontane luminose e buffet dolci" },
+      { ora: "23:00", momento: "After Party & DJ Set", luogo: "Lounge Agrumeto", note: "Open bar premium" },
+    ];
+  }
+  return [
+    { ora: "19:30", momento: "Accoglienza & Cocktail di Benvenuto", luogo: "Agrumeto", note: "Musica lounge" },
+    { ora: "21:00", momento: "Servizio Ristorazione", luogo: "Sala dedicata", note: "Banqueting Iovino" },
+    { ora: "22:30", momento: "Taglio Torta & Brindisi", luogo: "Terrazza Panoramica", note: "Spettacolo luci" },
+    { ora: "23:00", momento: "Festa & DJ Set", luogo: "Lounge Agrumeto", note: "Open bar" },
+  ];
+}
+
+/** Voci e servizi inclusi a contratto, dalle righe reali di `quote.items`. */
+function buildServiziContratto(quote: any): string[] {
+  const items = Array.isArray(quote?.items) ? quote.items : [];
+  return items
+    .map((it: any) => {
+      const desc = String(it?.descrizione || it?.nome || "").trim();
+      if (!desc) return "";
+      const qtyRaw = Number(it?.quantita);
+      const qty = Number.isFinite(qtyRaw) ? qtyRaw : 0;
+      return qty > 1 ? `${desc} (×${qty})` : desc;
+    })
+    .filter(Boolean);
+}
+
+/**
+ * Costruisce gli eventi REALI della planner combinando le quote (contratti
+ * firmati e opzioni attive) con i rispettivi clienti, i Wedding Diary e i
+ * Ticket Richiesta Servizi inviati dalla coppia.
+ */
+function buildRealEvents(quotes: any[], diaries: any[], clients: any[], tickets: any[]): PlannerEvent[] {
+  const clientById = new Map<string, any>();
+  clients.forEach((c) => {
+    if (c?.id) clientById.set(String(c.id), c);
+  });
+
+  const diaryByQuote = new Map<string, any>();
+  const diaryByClient = new Map<string, any>();
+  diaries.forEach((d) => {
+    if (!d) return;
+    if (d.quote_id) diaryByQuote.set(String(d.quote_id), d);
+    if (d.client_id) diaryByClient.set(String(d.client_id), d);
+  });
+
+  const events: PlannerEvent[] = [];
+  quotes.forEach((quote) => {
+    if (!isRealEvent(quote)) return;
+    const quoteId = String(quote.id);
+    const client = quote.clients || (quote.client_id ? clientById.get(String(quote.client_id)) : null) || null;
+    const diary =
+      diaryByQuote.get(quoteId) ||
+      (quote.client_id ? diaryByClient.get(String(quote.client_id)) : null) ||
+      null;
+    const answers = diary?.answers && typeof diary.answers === "object" ? diary.answers : {};
+
+    const tipo: PlannerEvent["tipo"] = quote.tipo_evento === "wedding" ? "wedding" : "privato";
+    const stile = String(
+      firstDefined(answers.style_mood, answers.style, answers.Stile_evento, quote.stile_mood, quote.style) ?? ""
+    );
+    const noteSposiGenerali = String(
+      firstDefined(answers.general_notes, answers.notes, quote.note_visita_segreteria) ?? ""
+    );
+    const rito = String(
+      firstDefined(answers.ceremony_type, quote.tipo_cerimonia, quote.formula_opzione) ?? ""
+    ).trim() || "Da definire";
+    const ospiti =
+      Number(firstDefined(answers.guest_count_estimate, quote.numero_ospiti)) || 100;
+    const turno = String(quote.turno || "").toLowerCase();
+    const diaryTimeline = Array.isArray(answers.cronoprogramma)
+      ? answers.cronoprogramma
+          .map((row: any) => ({
+            ora: String(row?.ora ?? "").trim(),
+            momento: String(row?.momento ?? row?.titolo ?? "").trim(),
+            luogo: String(row?.luogo ?? "").trim(),
+            note: String(row?.note ?? "").trim(),
+          }))
+          .filter((row: any) => row.ora || row.momento)
+      : [];
+
+    events.push({
+      id: quoteId,
+      coppia: resolveCoppia(client, quote),
+      tipo,
+      dataEvento: String(quote.data_evento || "").slice(0, 10),
+      ospiti,
+      spazi: resolveSpazi(quote, answers),
+      rito,
+      statoAi: true,
+      telefono: String(client?.telefono ?? quote?.telefono ?? ""),
+      email: String(client?.email ?? quote?.email ?? ""),
+      tickets: ticketsForQuote(tickets, quoteId),
+      dossier: {
+        palette: buildPalette(answers, stile),
+        stile: stile || "Stile da definire con la coppia",
+        intolleranze: parseIntolleranze(answers, client, quote, noteSposiGenerali),
+        cronoprogramma: diaryTimeline.length > 0 ? diaryTimeline : buildCronoprogramma(tipo, turno, rito),
+        musica: buildMusica(answers),
+        fornitori: [],
+        serviziContratto: buildServiziContratto(quote),
+        noteSposiGenerali,
+        notePlanner: readPlannerNoteLocal(quoteId),
+      },
+    });
+  });
+
+  return events.sort((a, b) => String(a.dataEvento).localeCompare(String(b.dataEvento)));
+}
+
 /**
  * Preferenze unificate di una coppia: fonde le risposte del Wedding Diary
  * (Portale Sposi) con le preferenze raccolte dalla Segreteria sull'appuntamento.
@@ -95,6 +417,7 @@ interface PrefsEntry {
   dateCandidates: string[];
   updatedAt: string;
   contatto: string;
+  ticketCount: number;
 }
 
 const INITIAL_EVENTS: PlannerEvent[] = [
@@ -273,8 +596,17 @@ export default function PlannerClient({
   diaries = [],
   quotes = [],
   clients = [],
+  tickets = [],
 }: PlannerClientProps) {
-  const [events, setEvents] = useState<PlannerEvent[]>(INITIAL_EVENTS);
+  // Eventi REALI: contratti firmati/convertiti e opzioni attive, arricchiti con
+  // clienti, Wedding Diary e Ticket Richiesta Servizi della coppia.
+  const realEvents = useMemo(
+    () => buildRealEvents(quotes, diaries, clients, tickets),
+    [quotes, diaries, clients, tickets]
+  );
+  const [events, setEvents] = useState<PlannerEvent[]>(
+    realEvents.length > 0 ? realEvents : INITIAL_EVENTS
+  );
   const [activeFilter, setActiveFilter] = useState<"tutti" | "meno6mesi" | "wedding" | "privato">("tutti");
   const [selectedEventForDossier, setSelectedEventForDossier] = useState<PlannerEvent | null>(null);
   const [editingNotes, setEditingNotes] = useState("");
@@ -296,6 +628,8 @@ export default function PlannerClient({
 
   const saveNotes = () => {
     if (!selectedEventForDossier) return;
+    // Persistenza per-evento: la Planner ritrova le sue note al rientro.
+    writePlannerNoteLocal(selectedEventForDossier.id, editingNotes);
     setEvents((prev) =>
       prev.map((e) =>
         e.id === selectedEventForDossier.id
@@ -401,6 +735,7 @@ export default function PlannerClient({
             (c?.nome || c?.cognome)
         );
       const status = String(quote?.status || "").toLowerCase();
+      const quoteTickets = quote ? ticketsForQuote(tickets, quote.id) : [];
       let statoLabel = "Visita / Pre-Firma";
       let statoColor = "#92400e";
       let statoBg = "#fef3c7";
@@ -437,6 +772,7 @@ export default function PlannerClient({
         dateCandidates,
         updatedAt: String(d?.updated_at || p?.updated_at || ""),
         contatto: String(c?.telefono || appt?.telefono || ""),
+        ticketCount: quoteTickets.length,
       };
     };
 
@@ -468,9 +804,12 @@ export default function PlannerClient({
     });
 
     return list;
-  }, [appointments, diaries, quotes, clients]);
+  }, [appointments, diaries, quotes, clients, tickets]);
 
   const opzionePrefsCount = prefsEntries.filter((e) => e.statoLabel.startsWith("In Opzione")).length;
+
+  // Ticket della coppia per l'evento attualmente aperto nel Dossier 360°.
+  const dossierTickets = selectedEventForDossier?.tickets ?? [];
 
   return (
     <div>
@@ -705,6 +1044,21 @@ export default function PlannerClient({
                         📆 {entry.dateCandidates.length} date candidate
                       </span>
                     )}
+                    {entry.ticketCount > 0 && (
+                      <span
+                        style={{
+                          background: "#fef3c7",
+                          color: "#92400e",
+                          border: "1px solid #fcd34d",
+                          borderRadius: "999px",
+                          padding: "0.2rem 0.65rem",
+                          fontSize: "0.72rem",
+                          fontWeight: 800,
+                        }}
+                      >
+                        🎫 {entry.ticketCount} {entry.ticketCount === 1 ? "Dubbio/Richiesta Sposi" : "Dubbi/Richieste Sposi"}
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ display: "grid", gap: "0.55rem", fontSize: "0.88rem" }}>
@@ -918,6 +1272,23 @@ export default function PlannerClient({
                       }}
                     >
                       🤖 Dossier AI Pre-Compilato
+                    </span>
+                  )}
+
+                  {(evt.tickets?.length ?? 0) > 0 && (
+                    <span
+                      style={{
+                        fontSize: "0.72rem",
+                        fontWeight: 800,
+                        padding: "2px 8px",
+                        borderRadius: "12px",
+                        background: "#fef3c7",
+                        color: "#92400e",
+                        border: "1px solid #fcd34d",
+                      }}
+                    >
+                      🎫 {evt.tickets!.length}{" "}
+                      {evt.tickets!.length === 1 ? "Dubbio/Richiesta Sposi" : "Dubbi/Richieste Sposi"}
                     </span>
                   )}
                 </div>
@@ -1147,6 +1518,341 @@ export default function PlannerClient({
 
             {/* Contenuto Modale */}
             <div style={{ padding: "2rem", display: "flex", flexDirection: "column", gap: "2rem" }}>
+              {/* SEZIONE CHIAVE: Storico Ticket, Dubbi & Richieste Sposi */}
+              <div
+                style={{
+                  border: "2px solid #fcd34d",
+                  background: "linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)",
+                  borderRadius: "14px",
+                  padding: "1.3rem 1.4rem",
+                }}
+              >
+                <h3
+                  style={{
+                    fontSize: "1.2rem",
+                    color: "#92400e",
+                    margin: "0 0 0.5rem 0",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <span>🎫</span>
+                  <span>Storico Ticket, Dubbi &amp; Richieste Sposi</span>
+                </h3>
+                <p style={{ margin: "0 0 0.9rem", color: "#78350f", fontSize: "0.88rem" }}>
+                  Tutti i ticket aperti dalla coppia su questo evento: servizi richiesti, dubbi e note,
+                  con l&apos;esito della direzione.
+                </p>
+
+                {dossierTickets.length === 0 ? (
+                  <div
+                    style={{
+                      background: "#ffffff",
+                      border: "1px dashed #fcd34d",
+                      borderRadius: "10px",
+                      padding: "0.9rem 1rem",
+                      color: "#92400e",
+                      fontSize: "0.9rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Nessun dubbio o ticket aggiuntivo aperto dalla coppia.
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem" }}>
+                    {dossierTickets.map((ticket, idx) => {
+                      const meta =
+                        TICKET_STATUS_META[String(ticket.status || "nuovo")] || TICKET_STATUS_META.nuovo;
+                      const servizi = Array.isArray(ticket.servizi) ? ticket.servizi : [];
+                      return (
+                        <div
+                          key={ticket.id || idx}
+                          style={{
+                            background: "#ffffff",
+                            border: "1px solid #fde68a",
+                            borderRadius: "12px",
+                            padding: "1rem 1.1rem",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              gap: "0.6rem",
+                              flexWrap: "wrap",
+                              marginBottom: "0.5rem",
+                            }}
+                          >
+                            <span style={{ fontSize: "0.8rem", color: "#78716c", fontWeight: 700 }}>
+                              {ticket.created_at
+                                ? `🗓️ ${new Date(ticket.created_at).toLocaleString("it-IT")}`
+                                : "🗓️ Data non disponibile"}
+                            </span>
+                            <span
+                              style={{
+                                background: meta.bg,
+                                color: meta.color,
+                                border: `1px solid ${meta.border}`,
+                                borderRadius: "999px",
+                                padding: "0.2rem 0.7rem",
+                                fontSize: "0.74rem",
+                                fontWeight: 800,
+                              }}
+                            >
+                              {meta.label}
+                            </span>
+                          </div>
+
+                          {servizi.length > 0 && (
+                            <div
+                              style={{
+                                marginBottom:
+                                  ticket.note_sposi || ticket.note_direzione ? "0.7rem" : 0,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: "0.72rem",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "1px",
+                                  color: "#9a948c",
+                                  fontWeight: 800,
+                                }}
+                              >
+                                Servizi richiesti ({servizi.length})
+                              </span>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  flexWrap: "wrap",
+                                  gap: "0.35rem",
+                                  marginTop: "0.35rem",
+                                }}
+                              >
+                                {servizi.map((s, i) => (
+                                  <span
+                                    key={s.id || i}
+                                    style={{
+                                      background: "#f8f6f2",
+                                      border: "1px solid #e7e2d9",
+                                      borderRadius: "8px",
+                                      padding: "0.2rem 0.6rem",
+                                      fontSize: "0.78rem",
+                                      color: "#44403c",
+                                    }}
+                                  >
+                                    {s.azione === "rimozione" ? "− " : s.azione === "variazione" ? "↻ " : "+ "}
+                                    {s.nome || "Servizio"}
+                                    {Number(s.quantita) > 1 ? ` ×${s.quantita}` : ""}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {ticket.note_sposi && (
+                            <div style={{ marginBottom: ticket.note_direzione ? "0.6rem" : 0 }}>
+                              <span
+                                style={{
+                                  fontSize: "0.72rem",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "1px",
+                                  color: "#9a948c",
+                                  fontWeight: 800,
+                                }}
+                              >
+                                Dubbio / Nota degli Sposi
+                              </span>
+                              <p
+                                style={{
+                                  margin: "0.25rem 0 0",
+                                  color: "#514d48",
+                                  fontSize: "0.9rem",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {ticket.note_sposi}
+                              </p>
+                            </div>
+                          )}
+
+                          {ticket.note_direzione && (
+                            <div
+                              style={{
+                                background: "#fdf8f1",
+                                border: "1px solid #efe7db",
+                                borderRadius: "8px",
+                                padding: "0.6rem 0.8rem",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: "0.72rem",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "1px",
+                                  color: "#9a948c",
+                                  fontWeight: 800,
+                                }}
+                              >
+                                Nota della Direzione
+                              </span>
+                              <p
+                                style={{
+                                  margin: "0.25rem 0 0",
+                                  color: "#514d48",
+                                  fontSize: "0.88rem",
+                                  whiteSpace: "pre-wrap",
+                                }}
+                              >
+                                {ticket.note_direzione}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    marginTop: "0.9rem",
+                    background: "rgba(255,255,255,0.75)",
+                    border: "1px solid #fde68a",
+                    borderRadius: "10px",
+                    padding: "0.8rem 1rem",
+                    color: "#78350f",
+                    fontSize: "0.86rem",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  💡 <strong>Insight per Elena (Wedding Planner):</strong> Conoscere i dubbi e le richieste
+                  pregresse della coppia (anche se rifiutate o variate dalla direzione) ti permette di
+                  anticipare le loro esigenze e curare l&apos;esperienza dell&apos;evento al millimetro.
+                </div>
+              </div>
+
+              {/* Wedding Diary & Preferenze complete */}
+              <div>
+                <h3
+                  style={{
+                    fontSize: "1.15rem",
+                    color: "#1e3a2f",
+                    margin: "0 0 0.8rem 0",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <span>📖</span>
+                  <span>Wedding Diary — Rito, Spazi &amp; Note degli Sposi</span>
+                </h3>
+                <div
+                  style={{
+                    background: "#fbf9f5",
+                    padding: "1.2rem",
+                    borderRadius: "12px",
+                    border: "1px solid #e7e2d9",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "0.7rem",
+                    fontSize: "0.92rem",
+                  }}
+                >
+                  <div>
+                    <strong style={{ color: "#514d48" }}>💍 Rito:</strong>{" "}
+                    <span style={{ color: "#44403c" }}>{selectedEventForDossier.rito}</span>
+                  </div>
+                  <div>
+                    <strong style={{ color: "#514d48" }}>🏛️ Spazi riservati:</strong>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.3rem", marginTop: "0.3rem" }}>
+                      {selectedEventForDossier.spazi.map((s, i) => (
+                        <span
+                          key={i}
+                          style={{
+                            background: "#f0f4f8",
+                            color: "#1c4f82",
+                            borderRadius: "6px",
+                            padding: "0.15rem 0.5rem",
+                            fontSize: "0.78rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <strong style={{ color: "#514d48" }}>📝 Note sposi:</strong>{" "}
+                    <span style={{ color: "#44403c" }}>
+                      {selectedEventForDossier.dossier.noteSposiGenerali &&
+                      selectedEventForDossier.dossier.noteSposiGenerali.trim()
+                        ? selectedEventForDossier.dossier.noteSposiGenerali
+                        : "Nessuna nota generale lasciata dalla coppia."}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Voci e servizi inclusi a contratto */}
+              <div>
+                <h3
+                  style={{
+                    fontSize: "1.15rem",
+                    color: "#1e3a2f",
+                    margin: "0 0 0.8rem 0",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <span>📦</span>
+                  <span>Voci e Servizi Inclusi a Contratto</span>
+                </h3>
+                {(selectedEventForDossier.dossier.serviziContratto ?? []).length === 0 ? (
+                  <div
+                    style={{
+                      background: "#fbf9f5",
+                      border: "1px dashed #d6cebf",
+                      borderRadius: "10px",
+                      padding: "0.9rem 1rem",
+                      color: "#78716c",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    Nessuna voce di servizio registrata nel contratto.
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                      gap: "0.6rem",
+                    }}
+                  >
+                    {(selectedEventForDossier.dossier.serviziContratto ?? []).map((s, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          background: "#f0fdf4",
+                          border: "1px solid #bbf7d0",
+                          borderRadius: "10px",
+                          padding: "0.7rem 0.9rem",
+                          color: "#166534",
+                          fontSize: "0.88rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        ✅ {s}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Sezione 1: Palette Colori & Stile */}
               <div>
                 <h3 style={{ fontSize: "1.15rem", color: "#1e3a2f", margin: "0 0 0.8rem 0", display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -1171,6 +1877,11 @@ export default function PlannerClient({
                           title={c}
                         />
                       ))}
+                      {selectedEventForDossier.dossier.palette.colori.length === 0 && (
+                        <small style={{ color: "#a8a29e", fontStyle: "italic" }}>
+                          Nessuna palette specificata nel Wedding Diary.
+                        </small>
+                      )}
                     </div>
                   </div>
                   <p style={{ margin: 0, color: "#44403c", fontSize: "0.95rem" }}>

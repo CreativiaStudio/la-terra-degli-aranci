@@ -12,7 +12,7 @@ import type {
   EventLedger,
   QuoteChange,
 } from "@/lib/eventLedger";
-import type { Quote } from "@/lib/localDb";
+import type { Quote, ServiceTicket } from "@/lib/localDb";
 import { getTurnoTime, checkVenueConflict } from "@/lib/eventStage";
 import type { EventStageInfo } from "@/lib/eventStage";
 import {
@@ -21,7 +21,7 @@ import {
   isDiaryFieldFilled,
 } from "@/app/cliente/components/weddingDiaryFields";
 import { recordPaymentAction, cancelPaymentAction } from "@/app/admin/cassa/paymentActions";
-import { rescheduleEventAction } from "./actions";
+import { rescheduleEventAction, updateServiceTicketStatusAction } from "./actions";
 
 /* ------------------------------------------------------------------ */
 /* Props & costanti                                                    */
@@ -31,6 +31,7 @@ interface EventRegiaClientProps {
   quote: Quote;
   payments: Payment[];
   changes: QuoteChange[];
+  tickets: ServiceTicket[];
   diary: Record<string, any> | null;
   ledger: EventLedger;
   stage: EventStageInfo;
@@ -42,15 +43,26 @@ interface EventRegiaClientProps {
   initialTab: TabKey;
 }
 
-type TabKey = "panoramica" | "servizi" | "cassa" | "diario" | "ospiti";
+type TabKey = "panoramica" | "servizi" | "ticket" | "cassa" | "diario" | "ospiti";
 
 const TABS: Array<{ key: TabKey; label: string; icon: string }> = [
   { key: "panoramica", label: "Panoramica", icon: "📋" },
   { key: "servizi", label: "Servizi", icon: "🍽️" },
+  { key: "ticket", label: "Richieste Sposi", icon: "🎫" },
   { key: "cassa", label: "Cassa", icon: "💶" },
   { key: "diario", label: "Diario", icon: "📖" },
   { key: "ospiti", label: "Ospiti", icon: "👥" },
 ];
+
+const TICKET_STATUS_META: Record<
+  ServiceTicket["status"],
+  { label: string; bg: string; color: string }
+> = {
+  nuovo: { label: "Nuovo", bg: "#e0e7ff", color: "#3730a3" },
+  in_valutazione: { label: "In valutazione", bg: "#fef9c3", color: "#854d0e" },
+  approvato: { label: "Approvato", bg: "#dcfce7", color: "#166534" },
+  rifiutato: { label: "Rifiutato", bg: "#fee2e2", color: "#b91c1c" },
+};
 
 const METODO_LABELS: Record<string, string> = {
   bonifico: "Bonifico",
@@ -105,6 +117,7 @@ export default function EventRegiaClient({
   quote,
   payments,
   changes,
+  tickets,
   diary,
   ledger,
   stage,
@@ -127,6 +140,11 @@ export default function EventRegiaClient({
       window.history.replaceState(null, "", url.toString());
     }
   };
+
+  const pendingTickets = tickets.filter(
+    (t) => t.status === "nuovo" || t.status === "in_valutazione"
+  );
+  const pendingTicketsCount = pendingTickets.length;
 
   const client = (quote as any).clients ?? {};
   const items: any[] = Array.isArray(quote.items) ? (quote.items as any[]) : [];
@@ -436,6 +454,10 @@ export default function EventRegiaClient({
       <nav style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "1.4rem" }}>
         {TABS.map((t) => {
           const active = tab === t.key;
+          const label =
+            t.key === "ticket" && pendingTicketsCount > 0
+              ? `${t.label} (${pendingTicketsCount})`
+              : t.label;
           return (
             <button
               key={t.key}
@@ -453,7 +475,7 @@ export default function EventRegiaClient({
                 fontFamily: "inherit",
               }}
             >
-              {t.icon} {t.label}
+              {t.icon} {label}
             </button>
           );
         })}
@@ -462,7 +484,18 @@ export default function EventRegiaClient({
       <main style={{ paddingBottom: "3rem" }}>
         {tab === "panoramica" && <PanoramicaTab quote={quote} client={client} changes={changes} payments={validPayments} />}
         {tab === "servizi" && (
-          <ServiziTab quote={quote} items={items} canoneCents={canoneCents} ledger={ledger} bozzaCents={bozzaCents} />
+          <ServiziTab
+            quote={quote}
+            items={items}
+            canoneCents={canoneCents}
+            ledger={ledger}
+            bozzaCents={bozzaCents}
+            pendingTicketsCount={pendingTicketsCount}
+            onGoToTickets={() => selectTab("ticket")}
+          />
+        )}
+        {tab === "ticket" && (
+          <TicketTab tickets={tickets} quoteId={String(quote.id ?? "")} onChanged={() => router.refresh()} />
         )}
         {tab === "cassa" && (
           <CassaTab
@@ -808,12 +841,16 @@ function ServiziTab({
   canoneCents,
   ledger,
   bozzaCents,
+  pendingTicketsCount,
+  onGoToTickets,
 }: {
   quote: Quote;
   items: any[];
   canoneCents: number;
   ledger: EventLedger;
   bozzaCents: number;
+  pendingTicketsCount: number;
+  onGoToTickets: () => void;
 }) {
   const scontoCents =
     (quote as any).sconto_cents != null
@@ -823,6 +860,31 @@ function ServiziTab({
 
   return (
     <div>
+      {pendingTicketsCount > 0 && (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0.8rem",
+            alignItems: "center",
+            justifyContent: "space-between",
+            background: "#eef2ff",
+            border: "1px solid #c7d2fe",
+            borderRadius: "12px",
+            padding: "0.9rem 1.1rem",
+            marginBottom: "1.2rem",
+          }}
+        >
+          <span style={{ color: "#3730a3", fontWeight: 700, fontSize: "0.9rem" }}>
+            🎫 {pendingTicketsCount} richiesta{pendingTicketsCount > 1 ? "e" : ""} di servizi in attesa
+            da parte degli sposi
+          </span>
+          <ActionButton primary onClick={onGoToTickets}>
+            Vai alle Richieste
+          </ActionButton>
+        </div>
+      )}
+
       <Panel title="Panoramica Servizi Contrattualizzati" icon="🍽️">
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}>
           <thead>
@@ -903,6 +965,327 @@ const splitPill: React.CSSProperties = {
   fontSize: "0.75rem",
   fontWeight: 700,
 };
+
+/* ------------------------------------------------------------------ */
+/* Tab: Ticket / Richieste Sposi                                       */
+/* ------------------------------------------------------------------ */
+
+function TicketTab({
+  tickets,
+  quoteId,
+  onChanged,
+}: {
+  tickets: ServiceTicket[];
+  quoteId: string;
+  onChanged: () => void;
+}) {
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [rejectTarget, setRejectTarget] = useState<ServiceTicket | null>(null);
+  const [rejectNote, setRejectNote] = useState("");
+
+  const applyStatus = async (
+    ticket: ServiceTicket,
+    status: ServiceTicket["status"],
+    noteDirezione?: string
+  ) => {
+    setBusyId(ticket.id);
+    setError("");
+    const res = await updateServiceTicketStatusAction({
+      ticketId: ticket.id,
+      status,
+      noteDirezione,
+      quoteId,
+    });
+    setBusyId(null);
+    if (!res.success) {
+      setError(res.error || "Errore durante l'aggiornamento della richiesta.");
+      return;
+    }
+    setRejectTarget(null);
+    setRejectNote("");
+    onChanged();
+  };
+
+  const handleReject = async () => {
+    if (!rejectTarget) return;
+    if (rejectNote.trim().length < 3) {
+      setError("Inserisci una motivazione (minimo 3 caratteri).");
+      return;
+    }
+    await applyStatus(rejectTarget, "rifiutato", rejectNote.trim());
+  };
+
+  const busy = busyId !== null;
+
+  return (
+    <div>
+      {error && (
+        <div
+          style={{
+            background: "#fef2f2",
+            border: "1px solid #fca5a5",
+            color: "#b91c1c",
+            padding: "0.7rem 1rem",
+            borderRadius: "8px",
+            marginBottom: "1rem",
+            fontSize: "0.88rem",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {tickets.length === 0 && (
+        <Panel title="Richieste Sposi" icon="🎫">
+          <p style={{ color: "#9a948c", margin: 0 }}>
+            Nessuna richiesta di servizi inviata dalla coppia.
+          </p>
+        </Panel>
+      )}
+
+      {tickets.map((ticket) => {
+        const meta =
+          TICKET_STATUS_META[ticket.status] ??
+          { label: ticket.status, bg: "#f3f4f6", color: "#4b5563" };
+        const isPending = ticket.status === "nuovo" || ticket.status === "in_valutazione";
+        const rowBusy = busyId === ticket.id;
+        const servizi = Array.isArray(ticket.servizi) ? ticket.servizi : [];
+
+        return (
+          <Panel
+            key={ticket.id}
+            title={`Richiesta del ${formatDate(ticket.created_at)}`}
+            icon="🎫"
+          >
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "0.8rem",
+                marginBottom: "1rem",
+              }}
+            >
+              <span
+                style={{
+                  background: meta.bg,
+                  color: meta.color,
+                  padding: "0.3rem 0.8rem",
+                  borderRadius: "999px",
+                  fontSize: "0.78rem",
+                  fontWeight: 800,
+                }}
+              >
+                {meta.label}
+              </span>
+              <span style={{ color: "#9a948c", fontSize: "0.78rem" }}>ID {ticket.id}</span>
+            </div>
+
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}>
+                <thead>
+                  <tr
+                    style={{
+                      textAlign: "left",
+                      color: "#9a948c",
+                      textTransform: "uppercase",
+                      fontSize: "0.72rem",
+                      letterSpacing: "0.5px",
+                    }}
+                  >
+                    <th style={{ padding: "0.5rem" }}>Servizio</th>
+                    <th style={{ padding: "0.5rem", textAlign: "right" }}>Qtà</th>
+                    <th style={{ padding: "0.5rem", textAlign: "right" }}>Prezzo</th>
+                    <th style={{ padding: "0.5rem" }}>Azione</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {servizi.map((item, i) => {
+                    const qty = Number(item.quantita ?? 1) || 0;
+                    const unit = Number(item.prezzo_unitario ?? 0) || 0;
+                    const azione =
+                      item.azione === "rimozione"
+                        ? { label: "Rimozione", bg: "#fee2e2", color: "#b91c1c" }
+                        : item.azione === "variazione"
+                          ? { label: "Variazione", bg: "#fef9c3", color: "#854d0e" }
+                          : { label: "Aggiunta", bg: "#dcfce7", color: "#166534" };
+                    return (
+                      <tr key={item.id ?? i} style={{ borderTop: "1px solid #f4f0ea" }}>
+                        <td style={{ padding: "0.6rem" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.7rem" }}>
+                            {item.immagine ? (
+                              <img
+                                src={item.immagine}
+                                alt={item.nome || "Servizio richiesto"}
+                                style={{
+                                  width: "44px",
+                                  height: "44px",
+                                  objectFit: "cover",
+                                  borderRadius: "8px",
+                                  border: "1px solid #efe7db",
+                                  flexShrink: 0,
+                                }}
+                              />
+                            ) : (
+                              <span
+                                style={{
+                                  width: "44px",
+                                  height: "44px",
+                                  borderRadius: "8px",
+                                  background: "#f6f2ec",
+                                  border: "1px solid #efe7db",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  fontSize: "1.2rem",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                🍽️
+                              </span>
+                            )}
+                            <span style={{ fontWeight: 600 }}>
+                              {item.nome || "Servizio"}
+                              {item.categoria ? (
+                                <span style={{ display: "block", color: "#9a948c", fontSize: "0.75rem", fontWeight: 500 }}>
+                                  {item.categoria}
+                                </span>
+                              ) : null}
+                            </span>
+                          </div>
+                        </td>
+                        <td style={{ padding: "0.6rem", textAlign: "right" }}>{qty}</td>
+                        <td style={{ padding: "0.6rem", textAlign: "right", fontWeight: 600 }}>
+                          {unit > 0 ? formatEuro(unit) : "—"}
+                        </td>
+                        <td style={{ padding: "0.6rem" }}>
+                          <span
+                            style={{
+                              background: azione.bg,
+                              color: azione.color,
+                              padding: "0.2rem 0.6rem",
+                              borderRadius: "999px",
+                              fontSize: "0.72rem",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {azione.label}
+                          </span>
+                          {item.note ? (
+                            <span style={{ display: "block", color: "#8a847c", fontSize: "0.75rem", marginTop: "0.25rem" }}>
+                              {item.note}
+                            </span>
+                          ) : null}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {servizi.length === 0 && (
+                    <tr>
+                      <td colSpan={4} style={{ padding: "0.9rem", color: "#9a948c", textAlign: "center" }}>
+                        Nessun servizio specificato nella richiesta.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {ticket.note_sposi && (
+              <div style={{ marginTop: "1rem" }}>
+                <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "1px", color: "#9a948c", fontWeight: 800 }}>
+                  Note degli Sposi
+                </span>
+                <p style={{ margin: "0.3rem 0 0", whiteSpace: "pre-wrap", color: "#514d48", fontSize: "0.9rem" }}>
+                  {ticket.note_sposi}
+                </p>
+              </div>
+            )}
+
+            {ticket.note_direzione && (
+              <div
+                style={{
+                  marginTop: "0.9rem",
+                  background: "#fdf8f1",
+                  border: "1px solid #efe7db",
+                  borderRadius: "8px",
+                  padding: "0.7rem 0.9rem",
+                }}
+              >
+                <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "1px", color: "#9a948c", fontWeight: 800 }}>
+                  Nota della Direzione
+                </span>
+                <p style={{ margin: "0.3rem 0 0", whiteSpace: "pre-wrap", color: "#514d48", fontSize: "0.9rem" }}>
+                  {ticket.note_direzione}
+                </p>
+              </div>
+            )}
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", marginTop: "1.2rem" }}>
+              <Link
+                href={`/admin/preventivi/${quoteId}/modifica-servizi?ticketId=${ticket.id}`}
+                style={{
+                  ...actionLinkStyle,
+                  border: "1px solid #e58c2c",
+                  background: "linear-gradient(90deg, #e58c2c 0%, #d47b1e 100%)",
+                  color: "#fff",
+                  fontWeight: 700,
+                }}
+              >
+                ⚡ Approva &amp; Genera Allegato B
+              </Link>
+              {ticket.status === "nuovo" && (
+                <ActionButton disabled={busy} onClick={() => applyStatus(ticket, "in_valutazione")}>
+                  🕓 {rowBusy ? "Salvataggio…" : "Segna In Valutazione"}
+                </ActionButton>
+              )}
+              {isPending && (
+                <ActionButton
+                  disabled={busy}
+                  onClick={() => {
+                    setError("");
+                    setRejectNote("");
+                    setRejectTarget(ticket);
+                  }}
+                >
+                  🚫 Rifiuta / Non Accoglibile
+                </ActionButton>
+              )}
+            </div>
+          </Panel>
+        );
+      })}
+
+      {rejectTarget && (
+        <Modal title="Rifiuta Richiesta Servizi" onClose={() => setRejectTarget(null)}>
+          <p style={{ color: "#6a6764", fontSize: "0.92rem" }}>
+            La richiesta verrà marcata come <strong>rifiutata</strong> e la motivazione sarà visibile
+            alla coppia.
+          </p>
+          <Field label="Motivazione del rifiuto (obbligatoria)">
+            <textarea
+              value={rejectNote}
+              onChange={(e) => setRejectNote(e.target.value)}
+              rows={3}
+              style={{ ...inputStyle, resize: "vertical" }}
+            />
+          </Field>
+          {error && <div style={{ color: "#d93838", fontSize: "0.85rem", marginTop: "0.4rem" }}>{error}</div>}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.6rem", marginTop: "1rem" }}>
+            <ActionButton type="button" onClick={() => setRejectTarget(null)}>
+              Annulla
+            </ActionButton>
+            <ActionButton primary type="button" disabled={busy} onClick={handleReject}>
+              {busy ? "Salvataggio…" : "Conferma Rifiuto"}
+            </ActionButton>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* Tab: Cassa                                                          */

@@ -1,5 +1,6 @@
 import {
   getAllAppointmentsLocal,
+  getAllServiceTicketsLocal,
   getAllWeddingDiariesLocal,
   getLocalStore,
 } from "@/lib/localDb";
@@ -16,6 +17,9 @@ export default async function PlannerPage() {
   const appointments = getAllAppointmentsLocal();
   const diaries = getAllWeddingDiariesLocal();
   const quotes = await getQuotesFast();
+  // Ticket Richiesta Servizi inviati dalle coppie dall'Area Riservata: la
+  // Wedding/Event Planner deve conoscerne dubbi e richieste pregresse.
+  const tickets = getAllServiceTicketsLocal();
 
   // Anagrafica minimale dei clienti, per risolvere i nomi delle coppie a partire
   // dal `client_id` dei wedding_diaries (senza esporre dati sensibili extra).
@@ -35,6 +39,7 @@ export default async function PlannerPage() {
       diaries={diaries}
       quotes={quotes}
       clients={clients}
+      tickets={tickets}
     />
   );
 }

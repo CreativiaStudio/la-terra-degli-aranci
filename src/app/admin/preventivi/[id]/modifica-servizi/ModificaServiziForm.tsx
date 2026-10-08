@@ -4,9 +4,36 @@ import { useState } from "react";
 import ServiceItemsEditor, { ServiceItem } from "@/components/ServiceItemsEditor";
 import { createQuoteChange } from "@/app/preventivi/modifica/actions";
 import CopyLinkButton from "@/app/admin/contratti/converti/CopyLinkButton";
+import type { ServiceTicket } from "@/lib/localDb";
+import { updateServiceTicketStatusAction } from "@/app/admin/eventi/[id]/actions";
 
-export default function ModificaServiziForm({ quote }: { quote: any }) {
-  const [items, setItems] = useState<ServiceItem[]>(quote.items || []);
+export default function ModificaServiziForm({
+  quote,
+  ticket = null,
+}: {
+  quote: any;
+  ticket?: ServiceTicket | null;
+}) {
+  const [items, setItems] = useState<ServiceItem[]>(() => {
+    const base: ServiceItem[] = [...(quote.items || [])];
+    const ticketServices = ticket?.servizi || [];
+    ticketServices.forEach((s, idx) => {
+      const descrizione = (s.nome || "").trim();
+      const alreadyPresent = base.some(
+        (item) =>
+          (item.descrizione || "").trim().toLowerCase() === descrizione.toLowerCase()
+      );
+      if (!alreadyPresent && descrizione) {
+        base.push({
+          id: `ticket-${ticket?.id || "unknown"}-${s.id || idx}`,
+          descrizione: s.nome,
+          prezzo_unitario: s.prezzo_unitario || 0,
+          quantita: s.quantita || 1,
+        });
+      }
+    });
+    return base;
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [link, setLink] = useState("");
@@ -21,6 +48,15 @@ export default function ModificaServiziForm({ quote }: { quote: any }) {
     setError("");
     const res = await createQuoteChange(quote.id, items, 'admin');
     if (res.success) {
+      if (ticket) {
+        await updateServiceTicketStatusAction({
+          ticketId: ticket.id,
+          status: 'approvato',
+          allegatoBId: res.changeId,
+          noteDirezione: 'Richiesta approvata con generazione Allegato B',
+          quoteId: quote.id,
+        });
+      }
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
       setLink(`${origin}/preventivi/modifica/${res.changeId}?sig=${res.sig}`);
     } else {
@@ -37,6 +73,11 @@ export default function ModificaServiziForm({ quote }: { quote: any }) {
           Invia questo link al cliente: dovrà firmare digitalmente per rendere effettiva
           la modifica ed aggiornare il totale del contratto.
         </p>
+        {ticket && (
+          <div style={{ margin: "1rem 0", padding: "0.8rem 1rem", background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#166534", borderRadius: "8px", fontWeight: 600, fontSize: "0.95rem" }}>
+            ✅ Ticket Richiesta Sposi approvato ed associato all&apos;Allegato B.
+          </div>
+        )}
         <CopyLinkButton link={link} />
       </div>
     );
@@ -44,6 +85,20 @@ export default function ModificaServiziForm({ quote }: { quote: any }) {
 
   return (
     <div className="premium-card" style={{ padding: "2rem" }}>
+      {ticket && (
+        <div
+          style={{
+            marginBottom: "1.5rem",
+            padding: "1rem 1.2rem",
+            borderRadius: "10px",
+            background: "#eef6ff",
+            border: "1px solid #b6d8f5",
+            color: "#1a4e7a",
+          }}
+        >
+          🎫 Modifica originata dalla Richiesta Sposi di {ticket.client_name}: {ticket.servizi.length} voci richieste. Note sposi: &quot;{ticket.note_sposi}&quot;
+        </div>
+      )}
       <h2 style={{ marginTop: 0, color: "#e58c2c" }}>Componi la Modifica</h2>
       <ServiceItemsEditor items={items} numeroOspiti={quote.numero_ospiti || 100} onChange={setItems} />
 

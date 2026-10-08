@@ -5,6 +5,7 @@ import {
   getPaymentsForQuoteLocal,
   getQuoteChangesForQuoteLocal,
   getQuoteLocal,
+  getServiceTicketsForQuoteLocal,
   getWeddingDiaryLocal,
 } from "@/lib/localDb";
 import { computeEventLedger } from "@/lib/eventLedger";
@@ -40,10 +41,11 @@ export default async function EventRegiaPage({
 }) {
   const { id } = await params;
   const { tab } = await searchParams;
-  const validTabs = ["panoramica", "servizi", "cassa", "diario", "ospiti"];
+  const validTabs = ["panoramica", "servizi", "ticket", "cassa", "diario", "ospiti"];
   const initialTab = (validTabs.includes(String(tab)) ? String(tab) : "panoramica") as
     | "panoramica"
     | "servizi"
+    | "ticket"
     | "cassa"
     | "diario"
     | "ospiti";
@@ -72,6 +74,7 @@ export default async function EventRegiaPage({
 
   const payments = getPaymentsForQuoteLocal(quote.id);
   const changes = getQuoteChangesForQuoteLocal(quote.id);
+  const tickets = getServiceTicketsForQuoteLocal(quote.id);
   const confirmedChanges = changes.filter((c: any) => c.status === "confermato");
   const pendingChanges = changes.filter((c: any) => c.status === "pending");
   const diary = getWeddingDiaryLocal(quote.id) || getWeddingDiaryLocal(quote.client_id || "");
@@ -106,6 +109,7 @@ export default async function EventRegiaPage({
       quote={quote}
       payments={payments}
       changes={changes}
+      tickets={tickets}
       diary={diary}
       ledger={ledger}
       stage={stage}

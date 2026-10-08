@@ -1,6 +1,17 @@
 "use server";
 
-import { saveWeddingDiaryLocal, getWeddingDiaryLocal } from "@/lib/localDb";
+import { revalidatePath } from "next/cache";
+import {
+  saveWeddingDiaryLocal,
+  getWeddingDiaryLocal,
+  getQuoteLocal,
+  getLocalStore,
+  createServiceTicketLocal,
+  getServiceTicketsForQuoteLocal,
+  type ServiceTicket,
+  type ServiceTicketItem,
+} from "@/lib/localDb";
+import { dispatchServiceTicketNotification } from "@/lib/notificationDispatcher";
 
 /**
  * Payload del Wedding Diary.
@@ -55,4 +66,72 @@ export async function getWeddingDiaryAction(clientId: string) {
   } catch (error: any) {
     return { success: false, data: null };
   }
+}
+
+export interface SubmitServiceTicketPayload {
+  quoteId: string;
+  servizi: ServiceTicketItem[];
+  noteSposi?: string;
+}
+
+export type SubmitServiceTicketResult =
+  | { success: true; ticket: ServiceTicket }
+  | { success: false; error: string };
+
+/**
+ * Invia un Ticket Richiesta Servizi dall'Area Clienti: collega i servizi
+ * richiesti/rimossi alla quote, notifica la Direzione in background e
+ * revalida l'area cliente.
+ */
+export async function submitServiceTicketAction(
+  payload: SubmitServiceTicketPayload
+): Promise<SubmitServiceTicketResult> {
+  try {
+    const quoteId = String(payload?.quoteId || "").trim();
+    if (!quoteId) return { success: false, error: "quoteId mancante" };
+
+    const store = getLocalStore();
+    const quote =
+      getQuoteLocal(quoteId) ||
+      (store.quotes || []).find((q: any) => String(q?.id) === quoteId) ||
+      null;
+    if (!quote) return { success: false, error: "Preventivo non trovato" };
+
+    const client =
+      (quote as any)?.clients ||
+      (store.clients || []).find((c: any) => c?.id === (quote as any)?.client_id) ||
+      null;
+
+    const clientName =
+      [client?.nome, client?.cognome].filter(Boolean).join(" ").trim() ||
+      (quote as any)?.client_name ||
+      "Cliente";
+
+    const ticket = createServiceTicketLocal({
+      quote_id: quoteId,
+      client_id: (quote as any)?.client_id || client?.id,
+      client_name: clientName,
+      client_email: client?.email || (quote as any)?.email || undefined,
+      client_phone: client?.telefono || (quote as any)?.telefono || undefined,
+      event_date: (quote as any)?.data_evento,
+      tipo_evento: (quote as any)?.tipo_evento,
+      servizi: Array.isArray(payload?.servizi) ? payload.servizi : [],
+      note_sposi: payload?.noteSposi,
+      status: "nuovo",
+    });
+
+    dispatchServiceTicketNotification(ticket).catch((err) =>
+      console.error("Errore notifica ticket servizi:", err)
+    );
+
+    revalidatePath("/cliente");
+    return { success: true, ticket };
+  } catch (error: any) {
+    return { success: false, error: error?.message || "Errore durante l'invio del ticket" };
+  }
+}
+
+/** Ticket Richiesta Servizi collegati a una quote. */
+export async function getServiceTicketsForQuoteAction(quoteId: string) {
+  return getServiceTicketsForQuoteLocal(quoteId);
 }

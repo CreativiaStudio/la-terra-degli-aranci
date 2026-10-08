@@ -5,6 +5,7 @@ import {
   getAllQuotesLocal,
   getQuoteLocal,
   updateQuoteScheduleLocal,
+  updateServiceTicketStatusLocal,
 } from '@/lib/localDb';
 import { SEMI_ESCLUSIVA_FORMULE } from '@/lib/contractMeta';
 import { checkVenueConflict } from '@/lib/eventStage';
@@ -76,6 +77,46 @@ export async function rescheduleEventAction(
     return { success: true };
   } catch (err: unknown) {
     console.error('Errore in rescheduleEventAction:', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Errore inatteso' };
+  }
+}
+
+export interface UpdateServiceTicketStatusInput {
+  ticketId: string;
+  status: 'nuovo' | 'in_valutazione' | 'approvato' | 'rifiutato';
+  noteDirezione?: string;
+  allegatoBId?: string;
+  quoteId?: string;
+}
+
+export type UpdateServiceTicketStatusResult =
+  | { success: true; ticket: NonNullable<ReturnType<typeof updateServiceTicketStatusLocal>> }
+  | { success: false; error: string };
+
+/** Aggiorna lo stato di valutazione di un Ticket Richiesta Servizi. */
+export async function updateServiceTicketStatusAction(
+  input: UpdateServiceTicketStatusInput
+): Promise<UpdateServiceTicketStatusResult> {
+  try {
+    const ticketId = String(input?.ticketId || '').trim();
+    if (!ticketId) return { success: false, error: 'Ticket non specificato' };
+
+    const ticket = updateServiceTicketStatusLocal(
+      ticketId,
+      input.status,
+      input.noteDirezione,
+      input.allegatoBId
+    );
+    if (!ticket) return { success: false, error: 'Ticket non trovato' };
+
+    if (input.quoteId) {
+      revalidatePath('/admin/eventi/');
+      revalidatePath('/admin/eventi');
+    }
+
+    return { success: true, ticket };
+  } catch (err: unknown) {
+    console.error('Errore in updateServiceTicketStatusAction:', err);
     return { success: false, error: err instanceof Error ? err.message : 'Errore inatteso' };
   }
 }

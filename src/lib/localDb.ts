@@ -90,6 +90,44 @@ export interface AppointmentPreferences {
   updated_at?: string;
 }
 
+/**
+ * Singola voce di un Ticket Richiesta Servizi degli Sposi: un servizio
+ * aggiunto, rimosso o variato rispetto al preventivo originario.
+ */
+export interface ServiceTicketItem {
+  id: string;
+  nome: string;
+  categoria?: string;
+  prezzo_unitario?: number;
+  quantita?: number;
+  immagine?: string;
+  azione?: 'aggiunta' | 'rimozione' | 'variazione';
+  note?: string;
+}
+
+/**
+ * Ticket di Richiesta Servizi inviato dagli Sposi dalla propria Area Riservata.
+ * Raccoglie i servizi richiesti/rimossi, le note della coppia e lo stato di
+ * valutazione della direzione (con eventuale nota e allegato B collegato).
+ */
+export interface ServiceTicket {
+  id: string;
+  quote_id: string;
+  client_id?: string;
+  client_name?: string;
+  client_email?: string;
+  client_phone?: string;
+  event_date?: string;
+  tipo_evento?: string;
+  servizi: ServiceTicketItem[];
+  note_sposi?: string;
+  status: 'nuovo' | 'in_valutazione' | 'approvato' | 'rifiutato';
+  note_direzione?: string;
+  allegato_b_id?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
 export interface LocalStore {
   clients: any[];
   quotes: any[];
@@ -114,6 +152,8 @@ export interface LocalStore {
   final_contracts?: any[];
   /** Appuntamenti / Visite in Tenuta (agenda segreteria e direzione). */
   appointments?: Appointment[];
+  /** Ticket Richiesta Servizi inviati dagli Sposi dall'Area Riservata. */
+  service_tickets?: ServiceTicket[];
 }
 
 export function getStore(): LocalStore {
@@ -130,7 +170,8 @@ export function getStore(): LocalStore {
       ticket_orders: [],
       blog_posts: [],
       payments: [],
-      appointments: buildDemoAppointments()
+      appointments: buildDemoAppointments(),
+      service_tickets: []
     };
     try {
       fs.writeFileSync(dataFile, JSON.stringify(initial, null, 2), 'utf8');
@@ -151,6 +192,8 @@ export function getStore(): LocalStore {
     if (!parsed.payments) parsed.payments = [];
     const appointmentsMissing = !Array.isArray(parsed.appointments);
     if (appointmentsMissing) parsed.appointments = buildDemoAppointments();
+    const serviceTicketsMissing = !Array.isArray(parsed.service_tickets);
+    if (serviceTicketsMissing) parsed.service_tickets = [];
     if (!parsed.services_catalog || !Array.isArray(parsed.services_catalog) || parsed.services_catalog.length === 0) {
       parsed.services_catalog = [...SERVICES_CATALOG];
       try {
@@ -158,7 +201,7 @@ export function getStore(): LocalStore {
       } catch {
         // ignore
       }
-    } else if (appointmentsMissing) {
+    } else if (appointmentsMissing || serviceTicketsMissing) {
       try {
         fs.writeFileSync(dataFile, JSON.stringify(parsed, null, 2), 'utf8');
       } catch {
@@ -177,7 +220,8 @@ export function getStore(): LocalStore {
       services_catalog: [...SERVICES_CATALOG],
       ticket_orders: [],
       payments: [],
-      appointments: buildDemoAppointments()
+      appointments: buildDemoAppointments(),
+      service_tickets: []
     };
   }
 }
@@ -2422,6 +2466,85 @@ export function deleteClientExperienceLocal(clientId: string, expId: string): an
 
   saveStore(store);
   return client;
+}
+
+/* ------------------------------------------------------------------ */
+/* Ticket Richiesta Servizi degli Sposi                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Crea un nuovo Ticket Richiesta Servizi. Genera un id univoco con prefisso
+ * `ticket_` e timestamp di creazione, normalizza i servizi in un array e
+ * registra il ticket nello store locale.
+ */
+export function createServiceTicketLocal(
+  ticketData: Omit<ServiceTicket, 'id' | 'created_at'>
+): ServiceTicket {
+  const store = getStore();
+  if (!Array.isArray(store.service_tickets)) store.service_tickets = [];
+
+  const created = new Date();
+  const entry: ServiceTicket = {
+    ...ticketData,
+    id: `ticket_${created.getTime()}_${crypto.randomUUID().slice(0, 8)}`,
+    servizi: Array.isArray(ticketData.servizi) ? ticketData.servizi : [],
+    status: ticketData.status || 'nuovo',
+    created_at: created.toISOString(),
+  };
+
+  store.service_tickets.push(entry);
+  saveStore(store);
+  return entry;
+}
+
+/**
+ * Ticket collegati a una quote. Il match è per `quote_id` esatto oppure per
+ * prefisso (in entrambe le direzioni), coerente con il resto del localDb.
+ */
+export function getServiceTicketsForQuoteLocal(quoteId: string): ServiceTicket[] {
+  const store = getStore();
+  const search = String(quoteId || '').trim().toLowerCase();
+  if (!search) return [];
+
+  return (store.service_tickets || [])
+    .filter((t) => {
+      const qid = String(t?.quote_id || '').trim().toLowerCase();
+      if (!qid) return false;
+      return qid === search || qid.startsWith(search) || search.startsWith(qid);
+    })
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+/** Elenco completo dei Ticket Richiesta Servizi, dal più recente al più vecchio. */
+export function getAllServiceTicketsLocal(): ServiceTicket[] {
+  const store = getStore();
+  return (store.service_tickets || [])
+    .slice()
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+}
+
+/**
+ * Aggiorna lo stato di valutazione di un ticket (match per id esatto).
+ * Aggiorna `note_direzione` e `allegato_b_id` solo se forniti e registra il
+ * timestamp di modifica. Ritorna il ticket aggiornato o `null` se non trovato.
+ */
+export function updateServiceTicketStatusLocal(
+  ticketId: string,
+  status: ServiceTicket['status'],
+  noteDirezione?: string,
+  allegatoBId?: string
+): ServiceTicket | null {
+  const store = getStore();
+  const ticket = (store.service_tickets || []).find((t) => t && t.id === ticketId);
+  if (!ticket) return null;
+
+  ticket.status = status;
+  if (noteDirezione !== undefined) ticket.note_direzione = noteDirezione;
+  if (allegatoBId !== undefined) ticket.allegato_b_id = allegatoBId;
+  ticket.updated_at = new Date().toISOString();
+
+  saveStore(store);
+  return ticket;
 }
 
 

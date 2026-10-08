@@ -4,14 +4,27 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { getQuoteForAdmin, getQuoteChangesHistory } from "@/app/preventivi/modifica/actions";
 import { isWithinEditableWindow } from "@/lib/eventWindow";
+import { getAllServiceTicketsLocal } from "@/lib/localDb";
+import type { ServiceTicket } from "@/lib/localDb";
 import ModificaServiziForm from "./ModificaServiziForm";
 
 export const revalidate = 0;
 
-export default async function ModificaServiziPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ModificaServiziPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ ticketId?: string }>;
+}) {
   const { id } = await params;
+  const { ticketId } = await searchParams;
   const quote = await getQuoteForAdmin(id);
   if (!quote) return notFound();
+
+  const ticket: ServiceTicket | null = ticketId
+    ? getAllServiceTicketsLocal().find((t) => t.id === ticketId) || null
+    : null;
 
   const isFirmato = quote.status === 'firmato';
   const withinWindow = isWithinEditableWindow(quote.data_evento);
@@ -36,7 +49,7 @@ export default async function ModificaServiziPage({ params }: { params: Promise<
           Sono trascorsi meno di 10 giorni dalla data dell&apos;evento: non è più possibile modificare i servizi, per nessuno.
         </div>
       ) : (
-        <ModificaServiziForm quote={quote} />
+        <ModificaServiziForm quote={quote} ticket={ticket} />
       )}
 
       <div className="premium-card" style={{ padding: "2rem", marginTop: "2rem" }}>

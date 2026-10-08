@@ -2,11 +2,9 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import ServiceItemsEditor, { ServiceItem } from "@/components/ServiceItemsEditor";
-import { createQuoteChange } from "@/app/preventivi/modifica/actions";
+import ClientServiceWishlist from "./ClientServiceWishlist";
 
 interface ClientDocumentsProps {
   quote: any;
@@ -17,7 +15,6 @@ interface ClientDocumentsProps {
   lang?: "it" | "en";
   onLangChange?: (lang: "it" | "en") => void;
   isHistoricalDashboard?: boolean;
-  canEditServices?: boolean;
   /** Area riservata bloccata in attesa della firma digitale del contratto. */
   isAreaLocked?: boolean;
   serviceChangesHistory?: any[];
@@ -31,17 +28,11 @@ export default function ClientDocuments({
   contractUrl,
   lang = "it",
   isHistoricalDashboard = false,
-  canEditServices = false,
   isAreaLocked = false,
   serviceChangesHistory = []
 }: ClientDocumentsProps) {
   const isEng = lang === "en";
-  const router = useRouter();
 
-  const [isEditingServices, setIsEditingServices] = useState(false);
-  const [editedItems, setEditedItems] = useState<ServiceItem[]>([]);
-  const [editLoading, setEditLoading] = useState(false);
-  const [editError, setEditError] = useState("");
   const [navigatingUrl, setNavigatingUrl] = useState<string | null>(null);
 
   const pendingQuote = clientQuotes.find(
@@ -72,38 +63,6 @@ export default function ClientDocuments({
 
   // Verifica se l'evento in primo piano è già passato
   const isPastEvent = quote?.data_evento ? new Date(quote.data_evento).getTime() < new Date().getTime() : false;
-
-  const totaleServiziModificati = editedItems.reduce((acc, item) => acc + (Number(item.prezzo_unitario) || 0), 0);
-  const nuovoTotale = totaleServiziModificati - (Number(quote?.sconto_fisso) || 0);
-  const deltaTotale = nuovoTotale - total;
-
-  const handleStartEditing = () => {
-    setEditError("");
-    setEditedItems(quoteItems.map((item: any, idx: number) => ({
-      id: item.id ?? `${idx}`,
-      descrizione: item.descrizione || "",
-      quantita: item.quantita ?? 1,
-      prezzo_unitario: Number(item.prezzo_unitario !== undefined ? item.prezzo_unitario : item.prezzo) || 0
-    })));
-    setIsEditingServices(true);
-  };
-
-  const handleCancelEditing = () => {
-    setIsEditingServices(false);
-    setEditError("");
-  };
-
-  const handleSubmitServiceChange = async () => {
-    setEditLoading(true);
-    setEditError("");
-    const res = await createQuoteChange(quote.id, editedItems, 'cliente');
-    if (res.success) {
-      router.push(`/preventivi/modifica/${res.changeId}?sig=${res.sig}`);
-    } else {
-      setEditError(res.error);
-      setEditLoading(false);
-    }
-  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
@@ -325,34 +284,12 @@ export default function ClientDocuments({
 
           {!isHistoricalDashboard && (
             <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-              {!isEditingServices && (
-                <div style={{ textAlign: "right" }}>
-                  <span style={{ fontSize: "0.85rem", color: "#777", display: "block" }}>{isEng ? "Total Agreed" : "Totale Concordato"}</span>
-                  <span style={{ fontSize: "1.85rem", fontWeight: 700, color: "#e58c2c" }}>
-                    € {total.toLocaleString("it-IT")}
-                  </span>
-                </div>
-              )}
-
-              {canEditServices && !isEditingServices && (
-                <button
-                  type="button"
-                  onClick={handleStartEditing}
-                  style={{
-                    padding: "0.7rem 1.3rem",
-                    borderRadius: "10px",
-                    border: "1px solid #e58c2c",
-                    background: "#fff7ed",
-                    color: "#c2410c",
-                    fontWeight: 700,
-                    fontSize: "0.9rem",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap"
-                  }}
-                >
-                  ✏️ {isEng ? "Edit Services" : "Modifica Servizi"}
-                </button>
-              )}
+              <div style={{ textAlign: "right" }}>
+                <span style={{ fontSize: "0.85rem", color: "#777", display: "block" }}>{isEng ? "Total Agreed" : "Totale Concordato"}</span>
+                <span style={{ fontSize: "1.85rem", fontWeight: 700, color: "#e58c2c" }}>
+                  € {total.toLocaleString("it-IT")}
+                </span>
+              </div>
             </div>
           )}
         </div>
@@ -378,123 +315,64 @@ export default function ClientDocuments({
               </strong>
               <p style={{ margin: 0, color: "#5a4a35", fontSize: "0.9rem", lineHeight: 1.55 }}>
                 {isEng
-                  ? "This section will be editable directly by you as soon as the contract is signed. In the meantime, preliminary preferences can be noted by our office during your visit to the venue."
-                  : "Questa sezione sarà modificabile direttamente da voi non appena il contratto sarà firmato. Nel frattempo, le preferenze preliminari possono essere annotate dalla nostra segreteria durante la visita in villa."}
+                  ? "The services for your event are agreed, entered and sent exclusively by the Venue Management. As soon as the contract is signed, you will find the confirmed list here."
+                  : "I servizi del vostro evento sono concordati, inseriti e inviati esclusivamente dalla Direzione. Non appena il contratto sarà firmato, troverete qui l'elenco confermato."}
               </p>
             </div>
           </div>
         )}
 
-        {canEditServices && (
-          <p style={{ margin: "-0.8rem 0 1.5rem 0", fontSize: "0.85rem", color: "#888" }}>
+        {!isHistoricalDashboard && (
+          <p style={{ margin: "-0.8rem 0 1.5rem 0", fontSize: "0.9rem", color: "#6a6764", lineHeight: 1.55 }}>
             {isEng
-              ? "You can add or remove services up to 10 days before the event date. Every change requires a quick digital signature."
-              : "È possibile aggiungere o rimuovere servizi fino a 10 giorni prima della data dell'evento. Ogni modifica richiede una rapida firma digitale."}
+              ? "The services listed below are confirmed under contract. To request additions or custom experiences, please contact the Venue Management."
+              : "I servizi elencati di seguito sono confermati a contratto. Per richiedere aggiunte, modifiche o esperienze personalizzate, contattate la Direzione de La Terra degli Aranci."}
           </p>
         )}
 
-        {!isEditingServices ? (
-          /* Tabella Voci Preventivo (sola lettura) */
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-              <thead>
-                <tr style={{ borderBottom: "2px solid #f0eae1", color: "#888", fontSize: "0.85rem", textTransform: "uppercase" }}>
-                  <th style={{ padding: "0.8rem 0" }}>{isEng ? "Service Description" : "Descrizione Servizio"}</th>
-                  <th style={{ padding: "0.8rem 0", textAlign: "center" }}>{isEng ? "Qty" : "Qta"}</th>
+        {/* Tabella Voci Preventivo (sempre in sola lettura: la modifica dei servizi
+            è gestita esclusivamente dalla Direzione tramite Allegato B). */}
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid #f0eae1", color: "#888", fontSize: "0.85rem", textTransform: "uppercase" }}>
+                <th style={{ padding: "0.8rem 0" }}>{isEng ? "Service Description" : "Descrizione Servizio"}</th>
+                <th style={{ padding: "0.8rem 0", textAlign: "center" }}>{isEng ? "Qty" : "Qta"}</th>
+                {!isHistoricalDashboard && (
+                  <th style={{ padding: "0.8rem 0", textAlign: "right" }}>{isEng ? "Amount" : "Prezzo"}</th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {quoteItems.map((item: any, idx: number) => (
+                <tr key={idx} style={{ borderBottom: "1px solid #f7f3ed" }}>
+                  <td style={{ padding: "1rem 0", fontSize: "0.98rem", color: "#2c2a27", fontWeight: 500 }}>
+                    {item.descrizione}
+                  </td>
+                  <td style={{ padding: "1rem 0", textAlign: "center", color: "#666" }}>
+                    {item.quantita || 1}
+                  </td>
                   {!isHistoricalDashboard && (
-                    <th style={{ padding: "0.8rem 0", textAlign: "right" }}>{isEng ? "Amount" : "Prezzo"}</th>
+                    <td style={{ padding: "1rem 0", textAlign: "right", fontWeight: 600, color: "#1e1b18" }}>
+                      € {(item.prezzo_unitario * (item.quantita || 1)).toLocaleString("it-IT")}
+                    </td>
                   )}
                 </tr>
-              </thead>
-              <tbody>
-                {quoteItems.map((item: any, idx: number) => (
-                  <tr key={idx} style={{ borderBottom: "1px solid #f7f3ed" }}>
-                    <td style={{ padding: "1rem 0", fontSize: "0.98rem", color: "#2c2a27", fontWeight: 500 }}>
-                      {item.descrizione}
-                    </td>
-                    <td style={{ padding: "1rem 0", textAlign: "center", color: "#666" }}>
-                      {item.quantita || 1}
-                    </td>
-                    {!isHistoricalDashboard && (
-                      <td style={{ padding: "1rem 0", textAlign: "right", fontWeight: 600, color: "#1e1b18" }}>
-                        € {(item.prezzo_unitario * (item.quantita || 1)).toLocaleString("it-IT")}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          /* Modalità Modifica Servizi */
-          <div>
-            <ServiceItemsEditor
-              items={editedItems}
-              numeroOspiti={quote?.numero_ospiti || 100}
-              onChange={setEditedItems}
-              restrictToCatalog
-            />
-
-            <div style={{ marginTop: "1.5rem", background: "#faf8f5", padding: "1.5rem", borderRadius: "12px", border: "1px solid #eee8df" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.6rem", color: "#666" }}>
-                <span>{isEng ? "Current Total" : "Totale Attuale"}</span>
-                <span>€ {total.toLocaleString("it-IT")}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1.4rem", fontWeight: "bold", color: "#e58c2c" }}>
-                <span>{isEng ? "New Total" : "Nuovo Totale"}</span>
-                <span>€ {nuovoTotale.toLocaleString("it-IT")}</span>
-              </div>
-              {deltaTotale !== 0 && (
-                <div style={{ marginTop: "0.4rem", textAlign: "right", fontSize: "0.9rem", color: deltaTotale > 0 ? "#e58c2c" : "#166534" }}>
-                  {deltaTotale > 0 ? "+" : ""}€ {deltaTotale.toLocaleString("it-IT")}
-                </div>
-              )}
-            </div>
-
-            {editError && <div style={{ color: "#d93838", marginTop: "1rem", fontWeight: 600 }}>{editError}</div>}
-
-            <div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem", flexWrap: "wrap" }}>
-              <button
-                type="button"
-                onClick={handleCancelEditing}
-                disabled={editLoading}
-                style={{
-                  padding: "1rem 1.8rem",
-                  borderRadius: "10px",
-                  border: "1px solid #ddd",
-                  background: "#ffffff",
-                  color: "#555",
-                  fontWeight: 600,
-                  cursor: editLoading ? "not-allowed" : "pointer"
-                }}
-              >
-                {isEng ? "Cancel" : "Annulla"}
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmitServiceChange}
-                disabled={editLoading || deltaTotale === 0}
-                style={{
-                  flex: 1,
-                  padding: "1rem 1.8rem",
-                  borderRadius: "10px",
-                  border: "none",
-                  background: deltaTotale === 0 ? "#ccc" : "#e58c2c",
-                  color: "#ffffff",
-                  fontWeight: 700,
-                  fontSize: "1rem",
-                  cursor: editLoading || deltaTotale === 0 ? "not-allowed" : "pointer",
-                  boxShadow: deltaTotale === 0 ? "none" : "0 6px 20px rgba(229, 140, 44, 0.4)"
-                }}
-              >
-                {editLoading
-                  ? (isEng ? "Processing..." : "Elaborazione...")
-                  : (isEng ? "Request Change & Sign →" : "Richiedi Modifica e Firma →")}
-              </button>
-            </div>
-          </div>
-        )}
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      {/* 2.4 VETRINA RICHIESTE SERVIZI (Wishlist) */}
+      {!isHistoricalDashboard && quote?.id && (
+        <ClientServiceWishlist
+          quoteId={quote.id}
+          quoteItems={quoteItems}
+          lang={lang}
+          isPastEvent={isPastEvent}
+        />
+      )}
 
       {/* 2.5 STORICO MODIFICHE SERVIZI */}
       {serviceChangesHistory.length > 0 && !isHistoricalDashboard && (

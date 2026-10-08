@@ -10,7 +10,6 @@ import UpcomingEvents from "./components/UpcomingEvents";
 import VenueGuide from "./components/VenueGuide";
 import Concierge from "./components/Concierge";
 import GuestManager from "./components/GuestManager";
-import { isWithinEditableWindow } from "@/lib/eventWindow";
 
 interface ClientPortalWrapperProps {
   quote: any;
@@ -69,8 +68,9 @@ export default function ClientPortalWrapper({
   // (pre-firma): il Diary è già attivo e va compilato prima della visita.
   const showDiaryBanner = isWedding && !isHistorical && activeTab !== "diary" && diaryProgress < 80;
 
-  // I servizi si possono modificare solo su un contratto firmato, non storico, e fino a 10gg dall'evento
-  const canEditServices = quote?.status === "firmato" && !isHistorical && !isAreaLocked && isWithinEditableWindow(quote?.data_evento);
+  // I servizi sono concordati, inseriti e inviati esclusivamente dalla Direzione
+  // (Roberto) tramite Allegato B. Gli sposi non possono mai modificarli in autonomia
+  // dall'Area Cliente: la tabella delle voci resta sempre in sola lettura.
 
   // Calcolo giorni mancanti all'evento
   const [daysLeft, setDaysLeft] = useState<number | null>(null);
@@ -664,7 +664,6 @@ export default function ClientPortalWrapper({
             contractUrl={contractUrl}
             lang={lang}
             isHistoricalDashboard={isHistorical}
-            canEditServices={canEditServices}
             isAreaLocked={isAreaLocked}
             serviceChangesHistory={serviceChangesHistory}
           />
