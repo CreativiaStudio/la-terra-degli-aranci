@@ -168,15 +168,26 @@ export default async function ClientiPage() {
     eventi.sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
 
     const eventiCount = cQuotes.length;
-    const isClub = hasPast || eventiCount > 1;
+    let isClub = hasPast || eventiCount > 1;
 
-    const tags: string[] = [];
-    if (isClub) tags.push("VIP Club TDA");
-    if (hasWedding) tags.push("Sposi");
-    if (hasPrivato) tags.push("Privato");
+    // Etichette manuali del cliente (se presenti) hanno priorità sul fallback automatico.
+    const manualTags = Array.isArray(client?.tags)
+      ? client.tags.map((t: unknown) => String(t ?? "").trim()).filter(Boolean)
+      : [];
 
-    const createdMs = Date.parse(String(client?.created_at || ""));
-    if (Number.isFinite(createdMs) && nowMs - createdMs < sixtyDaysMs) tags.push("Nuovo");
+    let tags: string[];
+    if (manualTags.length > 0) {
+      tags = manualTags;
+      isClub = manualTags.includes("VIP Club TDA");
+    } else {
+      tags = [];
+      if (isClub) tags.push("VIP Club TDA");
+      if (hasWedding) tags.push("Sposi");
+      if (hasPrivato) tags.push("Privato");
+
+      const createdMs = Date.parse(String(client?.created_at || ""));
+      if (Number.isFinite(createdMs) && nowMs - createdMs < sixtyDaysMs) tags.push("Nuovo");
+    }
 
     rows.push({
       id: cid,

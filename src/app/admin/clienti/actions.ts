@@ -165,6 +165,50 @@ export async function updateClientAction(
   }
 }
 
+/** Normalizza l'elenco etichette manuali: trim, dedup case-insensitive e limiti. */
+function cleanClientTags(tags: unknown): string[] {
+  if (!Array.isArray(tags)) return [];
+  const seen = new Set<string>();
+  const clean: string[] = [];
+  for (const raw of tags) {
+    const value = String(raw ?? '').trim().slice(0, 40);
+    if (!value) continue;
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    clean.push(value);
+    if (clean.length >= 30) break;
+  }
+  return clean;
+}
+
+/**
+ * Salva le etichette manuali del cliente (es. VIP Club TDA, Sposi, Aziendale),
+ * sovrascrivendo l'elenco precedente. Se l'array è vuoto il cliente torna al
+ * fallback automatico nella rubrica.
+ */
+export async function updateClientTagsAction(
+  clientId: string,
+  tags: string[]
+): Promise<ClientMutationResult> {
+  try {
+    const id = String(clientId || '').trim();
+    if (!id) return { success: false, error: 'Cliente non valido.' };
+
+    const cleanTags = cleanClientTags(tags);
+    const updated = updateClientLocal(id, { tags: cleanTags });
+    if (!updated) return { success: false, error: 'Cliente non trovato in rubrica.' };
+
+    revalidateCliente(id);
+    revalidatePath('/admin/clienti');
+    return { success: true };
+  } catch (err: unknown) {
+    console.error('Errore in updateClientTagsAction:', err);
+    const message = err instanceof Error && err.message ? err.message : 'Errore inatteso';
+    return { success: false, error: message };
+  }
+}
+
 export interface ClientExperienceInput {
   titolo: string;
   data: string;

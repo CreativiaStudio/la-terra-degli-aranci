@@ -284,11 +284,23 @@ export default async function ClienteDettaglioPage({
 
   // 6. Badge fidelizzazione (coerenti con la rubrica Club TDA).
   const eventiCount = ricevimenti.length;
-  const isClub = hasPast || eventiCount > 1 || esperienze.length > 0;
-  const tags: string[] = [];
-  if (isClub) tags.push("VIP Club TDA");
-  if (hasWedding) tags.push("Sposi");
-  if (hasPrivato) tags.push("Privato");
+  let isClub = hasPast || eventiCount > 1 || esperienze.length > 0;
+
+  // Etichette manuali del cliente (se presenti) hanno priorità sul fallback automatico.
+  const manualTags = Array.isArray(client?.tags)
+    ? client.tags.map((t: unknown) => String(t ?? "").trim()).filter(Boolean)
+    : [];
+
+  let tags: string[];
+  if (manualTags.length > 0) {
+    tags = manualTags;
+    isClub = manualTags.includes("VIP Club TDA");
+  } else {
+    tags = [];
+    if (isClub) tags.push("VIP Club TDA");
+    if (hasWedding) tags.push("Sposi");
+    if (hasPrivato) tags.push("Privato");
+  }
 
   const cliente: ClienteDetail = {
     id: clientId,

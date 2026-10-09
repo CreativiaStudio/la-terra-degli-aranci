@@ -12,6 +12,7 @@ import {
   updateClientPreferencesAction,
   type ClientiFormula,
 } from "../actions";
+import TagEditorModal, { TAG_STYLES } from "../TagEditorModal";
 
 /* ------------------------------------------------------------------ */
 /* Tipi esportati (consumati dal Server Component)                     */
@@ -112,12 +113,7 @@ const GOLD = "#c9a24b";
 const BORDER = "#e8e2d9";
 const CREAM = "#faf8f5";
 
-const TAG_STYLES: Record<string, { bg: string; color: string; border: string }> = {
-  "VIP Club TDA": { bg: "#f6c177", color: "#1e1b18", border: "#f6c177" },
-  Sposi: { bg: "#fff1f2", color: "#be123c", border: "#fecdd3" },
-  Privato: { bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
-  Nuovo: { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
-};
+const TAG_STYLES_FALLBACK = { bg: "#33302c", color: "#f6c177", border: "#33302c" };
 
 const labelStyle: React.CSSProperties = {
   display: "flex",
@@ -351,6 +347,7 @@ export default function ClienteDettaglioClient({
   // Modali
   const [ricevimentoOpen, setRicevimentoOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
+  const [tagsOpen, setTagsOpen] = useState(false);
 
   // Form Nuovo Ricevimento Privato
   const [ricevimentoTipo, setRicevimentoTipo] = useState("Matrimonio");
@@ -595,30 +592,46 @@ export default function ClienteDettaglioClient({
           )}
         </h1>
 
-        <div style={{ display: "flex", gap: "0.45rem", flexWrap: "wrap", marginTop: "0.7rem" }}>
-          {cliente.tags.length === 0 ? (
-            <span style={{ fontSize: "0.78rem", color: "#bdb5aa" }}>Contatto nuovo</span>
-          ) : (
-            cliente.tags.map((tag) => {
-              const s = TAG_STYLES[tag] || { bg: "#33302c", color: "#f6c177", border: "#33302c" };
-              return (
-                <span
-                  key={tag}
-                  style={{
-                    fontSize: "0.72rem",
-                    fontWeight: 800,
-                    padding: "0.2rem 0.65rem",
-                    borderRadius: 999,
-                    background: s.bg,
-                    color: s.color,
-                    border: `1px solid ${s.border}`,
-                  }}
-                >
-                  {tag}
-                </span>
-              );
-            })
-          )}
+        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap", marginTop: "0.7rem" }}>
+          <div style={{ display: "flex", gap: "0.45rem", flexWrap: "wrap" }}>
+            {cliente.tags.length === 0 ? (
+              <span style={{ fontSize: "0.78rem", color: "#bdb5aa" }}>Contatto nuovo</span>
+            ) : (
+              cliente.tags.map((tag) => {
+                const s = TAG_STYLES[tag] || TAG_STYLES_FALLBACK;
+                return (
+                  <span
+                    key={tag}
+                    style={{
+                      fontSize: "0.72rem",
+                      fontWeight: 800,
+                      padding: "0.2rem 0.65rem",
+                      borderRadius: 999,
+                      background: s.bg,
+                      color: s.color,
+                      border: `1px solid ${s.border}`,
+                    }}
+                  >
+                    {tag}
+                  </span>
+                );
+              })
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setTagsOpen(true)}
+            style={{
+              ...buttonGhost,
+              background: "transparent",
+              color: "#f6c177",
+              border: "1px solid #6b6258",
+              padding: "0.4rem 0.8rem",
+              fontSize: "0.8rem",
+            }}
+          >
+            🏷️ Modifica Etichette
+          </button>
         </div>
 
         <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginTop: "1.2rem" }}>
@@ -1278,6 +1291,20 @@ export default function ClienteDettaglioClient({
             </div>
           </form>
         </Modal>
+      )}
+
+      {/* Modale Modifica Etichette */}
+      {tagsOpen && (
+        <TagEditorModal
+          clientId={cliente.id}
+          clientName={nomeCompleto}
+          initialTags={cliente.tags}
+          onClose={() => setTagsOpen(false)}
+          onSaved={() => {
+            setFeedback({ type: "ok", text: "Etichette aggiornate." });
+            router.refresh();
+          }}
+        />
       )}
     </div>
   );

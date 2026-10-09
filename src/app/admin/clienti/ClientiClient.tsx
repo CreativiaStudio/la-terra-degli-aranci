@@ -2,10 +2,12 @@
 
 import React, { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   createEventForClientAction,
   type ClientiFormula,
 } from "./actions";
+import TagEditorModal, { TAG_STYLES } from "./TagEditorModal";
 
 export interface ClienteEventoRow {
   id: string;
@@ -35,13 +37,6 @@ interface ClientiClientProps {
   clienti: ClienteRow[];
 }
 
-const TAG_STYLES: Record<string, { bg: string; color: string; border: string }> = {
-  "VIP Club TDA": { bg: "#1e1b18", color: "#f6c177", border: "#1e1b18" },
-  Sposi: { bg: "#fff1f2", color: "#be123c", border: "#fecdd3" },
-  Privato: { bg: "#eff6ff", color: "#1d4ed8", border: "#bfdbfe" },
-  Nuovo: { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
-};
-
 function whatsappHref(telefono: string): string {
   return `https://wa.me/${String(telefono).replace(/[^0-9]/g, "")}`;
 }
@@ -65,8 +60,10 @@ function getEventTypesSummary(eventi: ClienteEventoRow[]): string {
 }
 
 export default function ClientiClient({ clienti }: ClientiClientProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [tagsCliente, setTagsCliente] = useState<ClienteRow | null>(null);
   const [formClienteId, setFormClienteId] = useState("");
   const [formData, setFormData] = useState("");
   const [formTurno, setFormTurno] = useState<"pranzo" | "cena">("pranzo");
@@ -237,7 +234,7 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                     >
                       {c.nome} {c.cognome}
                     </Link>
-                    <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", marginTop: "0.35rem" }}>
+                    <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", marginTop: "0.35rem", alignItems: "center" }}>
                       {c.tags.length === 0 ? (
                         <span style={{ fontSize: "0.72rem", color: "#a8a29e" }}>—</span>
                       ) : (
@@ -261,6 +258,28 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                           );
                         })
                       )}
+                      <button
+                        type="button"
+                        onClick={() => setTagsCliente(c)}
+                        title="Modifica etichette"
+                        aria-label={`Modifica etichette di ${c.nome} ${c.cognome}`}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          padding: "0.1rem 0.4rem",
+                          borderRadius: 999,
+                          border: "1px solid #e8e2d9",
+                          background: "#fff",
+                          color: "#c2410c",
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        🏷️
+                      </button>
                     </div>
                   </td>
 
@@ -533,6 +552,17 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
             </form>
           </div>
         </div>
+      )}
+
+      {/* MODALE MODIFICA ETICHETTE */}
+      {tagsCliente && (
+        <TagEditorModal
+          clientId={tagsCliente.id}
+          clientName={`${tagsCliente.nome} ${tagsCliente.cognome}`.trim()}
+          initialTags={tagsCliente.tags}
+          onClose={() => setTagsCliente(null)}
+          onSaved={() => router.refresh()}
+        />
       )}
     </div>
   );
