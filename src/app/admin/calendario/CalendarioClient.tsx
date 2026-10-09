@@ -2084,56 +2084,56 @@ export default function CalendarioClient({
       </div>
 
       {/* TOP KPI COUNTERS */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: "0.75rem", marginBottom: "1.5rem" }}>
 
-        <div style={{ background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)", border: "1px solid #fed7aa", padding: "1.1rem 1.25rem", borderRadius: "16px", boxShadow: "0 4px 12px rgba(229,140,44,0.08)" }}>
-          <div style={{ fontSize: "0.75rem", fontWeight: 800, color: "#c2410c", textTransform: "uppercase", letterSpacing: "1px" }}>
+        <div style={{ background: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%)", border: "1px solid #fed7aa", padding: "0.9rem 1rem", borderRadius: "14px", boxShadow: "0 4px 12px rgba(229,140,44,0.08)", minWidth: 0 }}>
+          <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#c2410c", textTransform: "uppercase", letterSpacing: "0.8px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             💍 MATRIMONI FIRMATI
           </div>
-          <div style={{ fontSize: "2rem", fontWeight: 800, color: "#1e1b18", margin: "0.2rem 0" }}>
+          <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#1e1b18", margin: "0.15rem 0" }}>
             {totalWeddings}
           </div>
-          <span style={{ fontSize: "0.78rem", color: "#78716c" }}>Contratti d&apos;esclusiva confermati</span>
+          <span style={{ fontSize: "0.74rem", color: "#78716c", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>Contratti confermati</span>
         </div>
 
-        <div style={{ background: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)", border: "1px solid #ddd6fe", padding: "1.1rem 1.25rem", borderRadius: "16px", boxShadow: "0 4px 12px rgba(139,92,246,0.08)" }}>
-          <div style={{ fontSize: "0.75rem", fontWeight: 800, color: "#6d28d9", textTransform: "uppercase", letterSpacing: "1px" }}>
+        <div style={{ background: "linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)", border: "1px solid #ddd6fe", padding: "0.9rem 1rem", borderRadius: "14px", boxShadow: "0 4px 12px rgba(139,92,246,0.08)", minWidth: 0 }}>
+          <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#6d28d9", textTransform: "uppercase", letterSpacing: "0.8px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             🎉 EVENTI PRIVATI
           </div>
-          <div style={{ fontSize: "2rem", fontWeight: 800, color: "#1e1b18", margin: "0.2rem 0" }}>
+          <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#1e1b18", margin: "0.15rem 0" }}>
             {totalPrivate}
           </div>
-          <span style={{ fontSize: "0.78rem", color: "#78716c" }}>Comunioni, Battesimi e Feste</span>
+          <span style={{ fontSize: "0.74rem", color: "#78716c", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>Comunioni e Feste</span>
         </div>
 
-        <div style={{ background: "linear-gradient(135deg, #fff7ed 0%, #fde68a 100%)", border: "2px solid #e58c2c", padding: "1.1rem 1.25rem", borderRadius: "16px", boxShadow: "0 6px 18px rgba(229,140,44,0.18)" }}>
-          <div style={{ fontSize: "0.75rem", fontWeight: 800, color: "#b45f0c", textTransform: "uppercase", letterSpacing: "1px" }}>
+        <div style={{ background: "linear-gradient(135deg, #fff7ed 0%, #fde68a 100%)", border: "2px solid #e58c2c", padding: "0.9rem 1rem", borderRadius: "14px", boxShadow: "0 6px 18px rgba(229,140,44,0.18)", minWidth: 0 }}>
+          <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#b45f0c", textTransform: "uppercase", letterSpacing: "0.8px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             ⏳ OPZIONI ATTIVE (7GG)
           </div>
-          <div style={{ fontSize: "2rem", fontWeight: 800, color: "#1e1b18", margin: "0.2rem 0" }}>
+          <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#1e1b18", margin: "0.15rem 0" }}>
             {totalPendingActive}
           </div>
-          <span style={{ fontSize: "0.78rem", color: "#78716c" }}>Contratti in pending da firmare</span>
+          <span style={{ fontSize: "0.74rem", color: "#78716c", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>Contratti in pending</span>
         </div>
 
-        <div style={{ background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)", border: "1px solid #bae6fd", padding: "1.1rem 1.25rem", borderRadius: "16px", boxShadow: "0 4px 12px rgba(2,132,199,0.08)" }}>
-          <div style={{ fontSize: "0.75rem", fontWeight: 800, color: "#0369a1", textTransform: "uppercase", letterSpacing: "1px" }}>
+        <div style={{ background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)", border: "1px solid #bae6fd", padding: "0.9rem 1rem", borderRadius: "14px", boxShadow: "0 4px 12px rgba(2,132,199,0.08)", minWidth: 0 }}>
+          <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#0369a1", textTransform: "uppercase", letterSpacing: "0.8px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             🕒 VISITE ACCOGLIENZA
           </div>
-          <div style={{ fontSize: "2rem", fontWeight: 800, color: "#1e1b18", margin: "0.2rem 0" }}>
+          <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#1e1b18", margin: "0.15rem 0" }}>
             {totalVisits}
           </div>
-          <span style={{ fontSize: "0.78rem", color: "#78716c" }}>Slot segreteria &amp; Roberto</span>
+          <span style={{ fontSize: "0.74rem", color: "#78716c", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>Slot segreteria</span>
         </div>
 
-        <div style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", padding: "1.1rem 1.25rem", borderRadius: "16px", boxShadow: "0 4px 12px rgba(22,163,74,0.08)" }}>
-          <div style={{ fontSize: "0.75rem", fontWeight: 800, color: "#15803d", textTransform: "uppercase", letterSpacing: "1px" }}>
+        <div style={{ background: "linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)", border: "1px solid #bbf7d0", padding: "0.9rem 1rem", borderRadius: "14px", boxShadow: "0 4px 12px rgba(22,163,74,0.08)", minWidth: 0 }}>
+          <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#15803d", textTransform: "uppercase", letterSpacing: "0.8px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             👑 ESCLUSIVA VILLA
           </div>
-          <div style={{ fontSize: "2rem", fontWeight: 800, color: "#1e1b18", margin: "0.2rem 0" }}>
+          <div style={{ fontSize: "1.75rem", fontWeight: 800, color: "#1e1b18", margin: "0.15rem 0" }}>
             {totalExclusives}
           </div>
-          <span style={{ fontSize: "0.78rem", color: "#78716c" }}>Struttura interamente bloccata</span>
+          <span style={{ fontSize: "0.74rem", color: "#78716c", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>Struttura interamente bloccata</span>
         </div>
 
       </div>

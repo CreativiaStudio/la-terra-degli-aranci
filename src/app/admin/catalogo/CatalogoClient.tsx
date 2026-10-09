@@ -379,61 +379,7 @@ export default function CatalogoClient() {
           </div>
         </div>
 
-        {/* FILTRO 1: FASI DELL'EVENTO */}
-        <div style={{ marginBottom: "0.85rem" }}>
-          <span style={{ fontSize: "0.74rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "1px", color: "#8c857e", display: "block", marginBottom: "0.4rem" }}>
-            🎯 FILTRA PER FASE DELL&apos;EVENTO
-          </span>
-          <div style={{ display: "flex", gap: "0.45rem", flexWrap: "wrap" }}>
-            <button
-              type="button"
-              onClick={() => setSelectedPhase("tutte")}
-              style={{
-                padding: "0.4rem 0.9rem",
-                borderRadius: "14px",
-                fontSize: "0.8rem",
-                fontWeight: 700,
-                border: selectedPhase === "tutte" ? "1.5px solid #1e1b18" : "1px solid #e8e2d9",
-                cursor: "pointer",
-                background: selectedPhase === "tutte" ? "#1e1b18" : "#ffffff",
-                color: selectedPhase === "tutte" ? "#ffffff" : "#44403c"
-              }}
-            >
-              🌟 Tutte le Fasi ({catalog.length})
-            </button>
-
-            {phaseKeys.map((pKey) => {
-              const cfg = PHASE_CONFIG[pKey];
-              const count = catalog.filter((c) => (c.fase_evento || "generale") === pKey).length;
-              const isSelected = selectedPhase === pKey;
-
-              return (
-                <button
-                  key={pKey}
-                  type="button"
-                  onClick={() => setSelectedPhase(pKey)}
-                  style={{
-                    padding: "0.4rem 0.9rem",
-                    borderRadius: "14px",
-                    fontSize: "0.8rem",
-                    fontWeight: 800,
-                    border: isSelected ? `2px solid ${cfg.text}` : `1px solid ${cfg.border}`,
-                    cursor: "pointer",
-                    background: isSelected ? cfg.bg : "#ffffff",
-                    color: cfg.text,
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.35rem"
-                  }}
-                >
-                  <span>{cfg.icon}</span> {cfg.label} ({count})
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* FILTRO 2: CATEGORIE SERVIZI */}
+        {/* FILTRI CATEGORIE SERVIZI */}
         <div>
           <span style={{ fontSize: "0.74rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "1px", color: "#8c857e", display: "block", marginBottom: "0.4rem" }}>
             📂 FILTRA PER CATEGORIA
