@@ -59,6 +59,8 @@ export interface Appointment {
   /** Preferenze raccolte dalla Segreteria durante la visita in tenuta. */
   preferenze?: AppointmentPreferences;
   created_at: string;
+  /** Timestamp dell'ultima modifica ai dati dell'appuntamento. */
+  updated_at?: string;
 }
 
 /**
@@ -2069,6 +2071,44 @@ export function getAppointmentLocal(id: string): Appointment | null {
   const store = getStore();
   if (!Array.isArray(store.appointments)) return null;
   return store.appointments.find((a) => a && a.id === id) || null;
+}
+
+/**
+ * Aggiorna integralmente i dati di un appuntamento esistente (data/ora, stato,
+ * tipo, contatti, note, ospiti…). I campi passati in `patch` vengono fusi sul
+ * record; `id` e `created_at` restano immutabili.
+ *
+ * Se cambiano `dataAppuntamento` e/o `orarioAppuntamento`, anche `dataOra`
+ * viene riallineato coerentemente. Restituisce l'appuntamento aggiornato,
+ * oppure `null` se l'id non è presente nello store.
+ */
+export function updateAppointmentLocal(
+  id: string,
+  patch: Partial<Appointment>
+): Appointment | null {
+  const store = getStore();
+  if (!Array.isArray(store.appointments)) return null;
+  const appointment = store.appointments.find((a) => a && a.id === id);
+  if (!appointment) return null;
+
+  // Merge dei campi modificabili. `id` e `created_at` non possono cambiare.
+  const fields: Partial<Appointment> = { ...patch };
+  delete fields.id;
+  delete fields.created_at;
+  Object.assign(appointment, fields);
+
+  // Riallinea `dataOra` quando data e/o orario vengono modificati.
+  if (fields.dataAppuntamento !== undefined || fields.orarioAppuntamento !== undefined) {
+    const data = String(appointment.dataAppuntamento || '').trim();
+    const ora = String(appointment.orarioAppuntamento || '').trim();
+    appointment.dataAppuntamento = data;
+    appointment.orarioAppuntamento = ora;
+    appointment.dataOra = data && ora ? `${data}T${ora}` : data;
+  }
+
+  appointment.updated_at = new Date().toISOString();
+  saveStore(store);
+  return appointment;
 }
 
 /**

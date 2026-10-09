@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Appointment } from "@/lib/localDb";
 import {
   createAppointmentAction,
+  updateAppointmentAction,
   updateAppointmentStatusAction,
   deleteAppointmentAction,
 } from "@/app/admin/appuntamentiActions";
@@ -213,6 +214,7 @@ export default function AppuntamentiClient({ appointments }: AppuntamentiClientP
   const [stato, setStato] = useState<StatoFilter>("tutti");
   const [query, setQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Appointment | null>(null);
   const [feedback, setFeedback] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
@@ -315,6 +317,12 @@ export default function AppuntamentiClient({ appointments }: AppuntamentiClientP
     setList((prev) => [...prev, appointment]);
     setModalOpen(false);
     showFeedback("ok", "Appuntamento registrato in agenda.");
+  };
+
+  const handleUpdated = (updated: Appointment) => {
+    setList((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+    setEditing(null);
+    showFeedback("ok", "Appuntamento aggiornato con successo.");
   };
 
   return (
@@ -550,6 +558,7 @@ export default function AppuntamentiClient({ appointments }: AppuntamentiClientP
             pending={pendingId === a.id}
             onStatus={handleStatus}
             onDelete={handleDelete}
+            onEdit={() => setEditing(a)}
           />
         ))}
 
@@ -576,6 +585,15 @@ export default function AppuntamentiClient({ appointments }: AppuntamentiClientP
           todayIso={todayIso}
           onClose={() => setModalOpen(false)}
           onCreated={handleCreated}
+          onError={(msg) => showFeedback("err", msg)}
+        />
+      )}
+
+      {editing && (
+        <ModificaAppuntamentoModal
+          appointment={editing}
+          onClose={() => setEditing(null)}
+          onUpdated={handleUpdated}
           onError={(msg) => showFeedback("err", msg)}
         />
       )}
@@ -627,6 +645,7 @@ function AppuntamentoCard({
   pending,
   onStatus,
   onDelete,
+  onEdit,
 }: {
   appointment: Appointment;
   todayIso: string;
@@ -634,6 +653,7 @@ function AppuntamentoCard({
   pending: boolean;
   onStatus: (id: string, stato: Appointment["stato"]) => void;
   onDelete: (id: string) => void;
+  onEdit: () => void;
 }) {
   const isWedding = a.tipo === "wedding";
   const partner = partnerName(a);
@@ -839,11 +859,7 @@ function AppuntamentoCard({
           <div style={{ fontWeight: 700 }}>📆 {a.dataEventoPresunta || "Da definire"}</div>
         </div>
         <div>👥 {a.ospitiPrevisti && a.ospitiPrevisti > 0 ? `${a.ospitiPrevisti} ospiti stimati` : "Ospiti da definire"}</div>
-        {a.note && (
-          <div style={{ color: "#6a6764", fontSize: "0.82rem", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-            📝 {a.note}
-          </div>
-        )}
+        {a.note && <NoteBlock note={a.note} />}
         {dateCandidates.length > 0 && (
           <div
             style={{
@@ -927,6 +943,30 @@ function AppuntamentoCard({
           {STATO_LABEL[a.stato]}
         </span>
 
+        <button
+          type="button"
+          disabled={pending}
+          onClick={onEdit}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "0.4rem",
+            padding: "0.55rem 0.8rem",
+            borderRadius: "10px",
+            fontWeight: 800,
+            fontSize: "0.85rem",
+            fontFamily: "inherit",
+            background: "linear-gradient(135deg, #e58c2c 0%, #c9791f 100%)",
+            color: "#fff",
+            border: "1px solid #c9791f",
+            cursor: pending ? "wait" : "pointer",
+            boxShadow: "0 4px 12px rgba(229,140,44,0.25)",
+          }}
+        >
+          ✏️ Modifica / Sposta
+        </button>
+
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
           {a.stato !== "confermato" && (
             <button type="button" disabled={pending} onClick={() => onStatus(a.id, "confermato")} style={quickBtn("#166534")}>
@@ -998,6 +1038,58 @@ function quickBtn(color: string): CSSProperties {
     cursor: "pointer",
     fontFamily: "inherit",
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Blocco note (testo integrale, senza troncamento CSS)                */
+/* ------------------------------------------------------------------ */
+
+const NOTE_COLLAPSE_LIMIT = 200;
+
+function NoteBlock({ note }: { note: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const clean = String(note || "");
+  const isLong = clean.length > NOTE_COLLAPSE_LIMIT;
+  const shown = isLong && !expanded ? `${clean.slice(0, NOTE_COLLAPSE_LIMIT).trimEnd()}…` : clean;
+
+  return (
+    <div style={{ marginTop: "0.4rem" }}>
+      <div
+        style={{
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          lineHeight: 1.45,
+          color: "#44403c",
+          background: "#fcfaf7",
+          borderLeft: "3px solid #e58c2c",
+          padding: "0.45rem 0.65rem",
+          borderRadius: "6px",
+          fontSize: "0.85rem",
+        }}
+      >
+        📝 {shown}
+      </div>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          style={{
+            marginTop: "0.3rem",
+            background: "transparent",
+            border: "none",
+            color: "#c2410c",
+            fontWeight: 800,
+            fontSize: "0.78rem",
+            cursor: "pointer",
+            fontFamily: "inherit",
+            padding: 0,
+          }}
+        >
+          {expanded ? "▲ Riduci" : "▼ Espandi"}
+        </button>
+      )}
+    </div>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -1241,6 +1333,259 @@ function NuovoAppuntamentoModal({
             }}
           >
             {saving ? "Salvataggio…" : "Salva in agenda"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Modale modifica appuntamento                                        */
+/* ------------------------------------------------------------------ */
+
+function formFromAppointment(a: Appointment): FormState {
+  return {
+    tipo: a.tipo,
+    nome: a.nome || "",
+    cognome: a.cognome || "",
+    partnerNome: a.partnerNome || "",
+    partnerCognome: a.partnerCognome || "",
+    telefono: a.telefono || "",
+    email: a.email || "",
+    dataAppuntamento: a.dataAppuntamento || "",
+    orarioAppuntamento: a.orarioAppuntamento || "",
+    dataEventoPresunta: a.dataEventoPresunta || "",
+    interesse: a.interesse,
+    ospitiPrevisti: a.ospitiPrevisti && a.ospitiPrevisti > 0 ? String(a.ospitiPrevisti) : "",
+    canale: a.canale,
+    stato: a.stato,
+    note: a.note || "",
+  };
+}
+
+function ModificaAppuntamentoModal({
+  appointment,
+  onClose,
+  onUpdated,
+  onError,
+}: {
+  appointment: Appointment;
+  onClose: () => void;
+  onUpdated: (appointment: Appointment) => void;
+  onError: (msg: string) => void;
+}) {
+  const [form, setForm] = useState<FormState>(() => formFromAppointment(appointment));
+  const [saving, setSaving] = useState(false);
+
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleSubmit = async (ev: FormEvent) => {
+    ev.preventDefault();
+    setSaving(true);
+    try {
+      const isWedding = form.tipo === "wedding";
+      const dataOra = form.dataAppuntamento && form.orarioAppuntamento
+        ? `${form.dataAppuntamento}T${form.orarioAppuntamento}`
+        : form.dataAppuntamento;
+
+      const res = await updateAppointmentAction(appointment.id, {
+        tipo: form.tipo,
+        nome: form.nome,
+        cognome: form.cognome || undefined,
+        partnerNome: isWedding ? form.partnerNome || undefined : undefined,
+        partnerCognome: isWedding ? form.partnerCognome || undefined : undefined,
+        telefono: form.telefono,
+        email: form.email || undefined,
+        dataOra,
+        dataAppuntamento: form.dataAppuntamento,
+        orarioAppuntamento: form.orarioAppuntamento,
+        dataEventoPresunta: form.dataEventoPresunta || undefined,
+        interesse: form.interesse,
+        ospitiPrevisti: form.ospitiPrevisti ? Number(form.ospitiPrevisti) : undefined,
+        canale: form.canale,
+        stato: form.stato,
+        note: form.note || undefined,
+      });
+
+      if (res.success && res.appointment) {
+        onUpdated(res.appointment);
+      } else {
+        onError(res.error || "Impossibile salvare le modifiche.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Modifica appuntamento"
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(30,27,24,0.55)",
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        padding: "3vh 1rem",
+        overflowY: "auto",
+        zIndex: 1000,
+      }}
+    >
+      <form
+        onSubmit={handleSubmit}
+        onClick={(ev) => ev.stopPropagation()}
+        style={{
+          background: "#fcfbfa",
+          borderRadius: "16px",
+          width: "min(760px, 100%)",
+          padding: "1.6rem 1.8rem",
+          boxShadow: "0 24px 60px rgba(0,0,0,0.3)",
+          border: "1px solid #efe7db",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
+          <div>
+            <span style={{ textTransform: "uppercase", letterSpacing: "2px", fontSize: "0.72rem", color: "#e58c2c", fontWeight: 800 }}>
+              Direzione &amp; Segreteria · Modifica
+            </span>
+            <h2 style={{ margin: "0.2rem 0 0", fontFamily: "Georgia, serif", fontSize: "1.5rem", color: "#1e1b18", border: "none", padding: 0 }}>
+              ✏️ Modifica / Sposta Appuntamento
+            </h2>
+            <p style={{ margin: "0.25rem 0 0", color: "#6a6764", fontSize: "0.85rem" }}>
+              {displayName(appointment)} · attualmente {formatDataBreve(appointment.dataAppuntamento)} alle {appointment.orarioAppuntamento || "--:--"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Chiudi"
+            style={{ background: "transparent", border: "none", fontSize: "1.4rem", cursor: "pointer", color: "#6a6764" }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "0.8rem", marginTop: "1.2rem" }}>
+          <label style={labelStyle}>
+            Categoria *
+            <select value={form.tipo} onChange={(ev) => set("tipo", ev.target.value as FormState["tipo"])} style={inputStyle}>
+              <option value="wedding">💍 Wedding (Matrimonio)</option>
+              <option value="privato">🎉 Evento Privato</option>
+            </select>
+          </label>
+          <label style={labelStyle}>
+            Nome referente / sposo/a *
+            <input value={form.nome} onChange={(ev) => set("nome", ev.target.value)} style={inputStyle} required />
+          </label>
+          <label style={labelStyle}>
+            Cognome
+            <input value={form.cognome} onChange={(ev) => set("cognome", ev.target.value)} style={inputStyle} />
+          </label>
+
+          {form.tipo === "wedding" && (
+            <>
+              <label style={labelStyle}>
+                Nome partner
+                <input value={form.partnerNome} onChange={(ev) => set("partnerNome", ev.target.value)} style={inputStyle} />
+              </label>
+              <label style={labelStyle}>
+                Cognome partner
+                <input value={form.partnerCognome} onChange={(ev) => set("partnerCognome", ev.target.value)} style={inputStyle} />
+              </label>
+            </>
+          )}
+
+          <label style={labelStyle}>
+            Telefono cellulare *
+            <input value={form.telefono} onChange={(ev) => set("telefono", ev.target.value)} style={inputStyle} required />
+          </label>
+          <label style={labelStyle}>
+            Email
+            <input type="email" value={form.email} onChange={(ev) => set("email", ev.target.value)} style={inputStyle} />
+          </label>
+
+          <label style={labelStyle}>
+            Data appuntamento *
+            <input type="date" value={form.dataAppuntamento} onChange={(ev) => set("dataAppuntamento", ev.target.value)} style={inputStyle} required />
+          </label>
+          <label style={labelStyle}>
+            Orario
+            <input type="time" value={form.orarioAppuntamento} onChange={(ev) => set("orarioAppuntamento", ev.target.value)} style={inputStyle} />
+          </label>
+          <label style={labelStyle}>
+            Periodo evento presunto
+            <input value={form.dataEventoPresunta} onChange={(ev) => set("dataEventoPresunta", ev.target.value)} style={inputStyle} placeholder="Es. Luglio 2027" />
+          </label>
+
+          <label style={labelStyle}>
+            Interesse / Formula
+            <select value={form.interesse} onChange={(ev) => set("interesse", ev.target.value as Appointment["interesse"])} style={inputStyle}>
+              <option value="da_definire">Da consigliare</option>
+              <option value="esclusiva">Esclusiva Location</option>
+              <option value="semi_esclusiva">Semi-Esclusività</option>
+              <option value="sala_bianca">Semi-Esclusività Sala Bianca</option>
+              <option value="sala_tufo">Semi-Esclusività Sala Tufo</option>
+            </select>
+          </label>
+          <label style={labelStyle}>
+            Ospiti previsti
+            <input type="number" min="0" value={form.ospitiPrevisti} onChange={(ev) => set("ospitiPrevisti", ev.target.value)} style={inputStyle} />
+          </label>
+          <label style={labelStyle}>
+            Canale di provenienza
+            <select value={form.canale} onChange={(ev) => set("canale", ev.target.value as Appointment["canale"])} style={inputStyle}>
+              <option value="telefono">📞 Telefono</option>
+              <option value="sito_web">🌐 Sito Web</option>
+              <option value="whatsapp">💬 WhatsApp</option>
+              <option value="instagram">📸 Instagram</option>
+              <option value="passaparola">🗣️ Passaparola</option>
+            </select>
+          </label>
+          <label style={labelStyle}>
+            Stato
+            <select value={form.stato} onChange={(ev) => set("stato", ev.target.value as Appointment["stato"])} style={inputStyle}>
+              <option value="da_confermare">🟡 Da confermare</option>
+              <option value="confermato">🟢 Confermato</option>
+              <option value="effettuato">🟣 Effettuato</option>
+              <option value="annullato">⚪ Annullato</option>
+            </select>
+          </label>
+        </div>
+
+        <label style={{ ...labelStyle, marginTop: "0.8rem" }}>
+          Note
+          <textarea
+            value={form.note}
+            onChange={(ev) => set("note", ev.target.value)}
+            rows={4}
+            style={{ ...inputStyle, minHeight: "110px", resize: "vertical", lineHeight: 1.5 }}
+            placeholder="Es. interessati alla Sala Tufo, chiedono info sul banqueting…"
+          />
+        </label>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.6rem", marginTop: "1.3rem" }}>
+          <button type="button" onClick={onClose} style={{ ...headerBtn, background: "#f0eee9" }}>
+            Annulla
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            style={{
+              ...headerBtn,
+              background: "linear-gradient(135deg, #e58c2c 0%, #c9791f 100%)",
+              color: "#fff",
+              border: "1px solid #c9791f",
+              cursor: saving ? "wait" : "pointer",
+              opacity: saving ? 0.75 : 1,
+            }}
+          >
+            {saving ? "Salvataggio…" : "Salva Modifiche"}
           </button>
         </div>
       </form>

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { logActivity as logBlackboxAction } from "@/lib/blackbox";
 import {
   createAppointmentLocal,
+  updateAppointmentLocal,
   updateAppointmentStatusLocal,
   deleteAppointmentLocal,
   type Appointment,
@@ -140,6 +141,48 @@ export async function updateAppointmentStatusAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Errore durante l'aggiornamento dello stato.",
+    };
+  }
+}
+
+/**
+ * Aggiorna integralmente i dati di un appuntamento (data, orario, stato, tipo,
+ * contatti, interesse, ospiti e note). Usata dalla card di /admin.
+ */
+export async function updateAppointmentAction(
+  id: string,
+  input: Partial<Appointment>
+): Promise<{ success: boolean; appointment?: Appointment; error?: string }> {
+  try {
+    if (!id) return { success: false, error: "Appuntamento non valido." };
+
+    const updated = updateAppointmentLocal(id, input);
+    if (!updated) return { success: false, error: "Appuntamento non trovato." };
+
+    const intestatario = [updated.nome, updated.cognome].filter(Boolean).join(" ").trim();
+    logBlackboxAction({
+      category: "LEAD_VISITA",
+      actor: "Segreteria TDA",
+      action: "APPUNTAMENTO_MODIFICATO",
+      message: `Appuntamento di ${intestatario || "cliente"} modificato — ${updated.dataAppuntamento} ${updated.orarioAppuntamento} (${updated.stato})`,
+      metadata: {
+        id,
+        tipo: updated.tipo,
+        stato: updated.stato,
+        data: updated.dataAppuntamento,
+        orario: updated.orarioAppuntamento,
+        telefono: updated.telefono,
+      },
+    });
+
+    revalidatePath("/admin");
+    revalidatePath("/segreteria");
+    return { success: true, appointment: updated };
+  } catch (error) {
+    console.error("Errore updateAppointmentAction:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Errore durante la modifica dell'appuntamento.",
     };
   }
 }

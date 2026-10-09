@@ -11,6 +11,7 @@ import {
   getAppointmentLocal,
   updateAppointmentPreferencesLocal,
   updateAppointmentStatusLocal,
+  updateAppointmentLocal,
   findOrCreateClientForAppointmentLocal,
   toggleTourServicePreferenceLocal,
   saveWeddingDiaryLocal,
@@ -289,6 +290,55 @@ export async function updateAppointmentStatoAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Errore durante l'aggiornamento dello stato.",
+    };
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Modifica dati appuntamento (Segreteria)                             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Aggiorna integralmente i dati di un appuntamento dalla postazione Segreteria
+ * (data, orario, stato, tipo, contatti, interesse, ospiti e note). Aggiorna
+ * anche la dashboard di direzione in /admin.
+ */
+export async function updateAppointmentDetailsAction(
+  id: string,
+  input: Partial<Appointment>
+): Promise<{ success: boolean; appointment?: Appointment; error?: string }> {
+  try {
+    if (!id) return { success: false, error: "Appuntamento non valido." };
+
+    const updated = updateAppointmentLocal(id, input);
+    if (!updated) return { success: false, error: "Appuntamento non trovato." };
+
+    const sposi = [updated.nome, updated.cognome].filter(Boolean).join(" ").trim() || "cliente";
+    logActivity({
+      category: "LEAD_VISITA",
+      actor: "Tablet Segreteria (iPad)",
+      action: "APPUNTAMENTO_MODIFICATO",
+      message: `Appuntamento di ${sposi} modificato dalla Segreteria — ${updated.dataAppuntamento} ${updated.orarioAppuntamento} (${updated.stato})`,
+      metadata: {
+        id,
+        tipo: updated.tipo,
+        stato: updated.stato,
+        data: updated.dataAppuntamento,
+        orario: updated.orarioAppuntamento,
+        telefono: updated.telefono,
+        ospiti: updated.ospitiPrevisti ?? null,
+      },
+    });
+
+    revalidatePath("/segreteria");
+    revalidatePath("/admin");
+    return { success: true, appointment: updated };
+  } catch (error) {
+    console.error("Errore updateAppointmentDetailsAction:", error);
+    logError("LEAD_VISITA", "Tablet Segreteria (iPad)", "APPUNTAMENTO_MODIFICA_ERRORE", error, { id });
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Errore durante la modifica dell'appuntamento.",
     };
   }
 }

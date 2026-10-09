@@ -6,6 +6,7 @@ import type { Appointment, AppointmentPreferences, QuickCalendarOptionLocal } fr
 import {
   saveAppointmentPreferencesAction,
   updateAppointmentStatoAction,
+  updateAppointmentDetailsAction,
   toggleAppointmentTourServiceAction,
   type AppointmentPreferencesInput,
 } from "./actions";
@@ -653,6 +654,7 @@ export default function SegreteriaClient({
   const [soloOggi, setSoloOggi] = useState(false);
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Appointment | null>(null);
+  const [detailsEditing, setDetailsEditing] = useState<Appointment | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   /** Visita attualmente "in corso" nel tour fotografico. */
@@ -733,6 +735,12 @@ export default function SegreteriaClient({
     setList((prev) =>
       prev.map((a) => (a.id === appointmentId ? { ...a, preferenze } : a))
     );
+  };
+
+  const handleDetailsSaved = (updated: Appointment) => {
+    setList((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+    setDetailsEditing(null);
+    showFeedback("ok", "Appuntamento aggiornato con successo.");
   };
 
   const activeAppointment = useMemo(
@@ -999,6 +1007,7 @@ export default function SegreteriaClient({
                 onStatus={handleStatus}
                 onOpenPreferences={() => setEditing(a)}
                 onStartTour={() => handleStartTourFor(a.id)}
+                onEditDetails={() => setDetailsEditing(a)}
               />
             ))}
 
@@ -1050,6 +1059,16 @@ export default function SegreteriaClient({
             handlePreferencesSaved(editing.id, prefs);
             showFeedback("ok", "Preferenze salvate! La coppia le troverà pronte nel proprio Wedding Diary.");
           }}
+        />
+      )}
+
+      {/* Modale Modifica / Sposta Appuntamento */}
+      {detailsEditing && (
+        <ModificaDettagliModal
+          appointment={detailsEditing}
+          onClose={() => setDetailsEditing(null)}
+          onUpdated={handleDetailsSaved}
+          onError={(msg) => showFeedback("err", msg)}
         />
       )}
     </div>
@@ -1155,6 +1174,7 @@ function AppuntamentoCard({
   onStatus,
   onOpenPreferences,
   onStartTour,
+  onEditDetails,
 }: {
   appointment: Appointment;
   todayIso: string;
@@ -1163,6 +1183,7 @@ function AppuntamentoCard({
   onStatus: (id: string, stato: Appointment["stato"]) => void;
   onOpenPreferences: () => void;
   onStartTour: () => void;
+  onEditDetails: () => void;
 }) {
   const isWedding = a.tipo === "wedding";
   const partner = partnerName(a);
@@ -1311,20 +1332,7 @@ function AppuntamentoCard({
           </span>
           <div style={{ fontWeight: 700 }}>📆 {a.dataEventoPresunta || "Da definire"}</div>
         </div>
-        {a.note && (
-          <div
-            style={{
-              color: "#6a6764",
-              fontSize: "0.85rem",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            📝 {a.note}
-          </div>
-        )}
+        {a.note && <NoteBlock note={a.note} />}
         {saved && (
           <div style={{ color: "#166534", fontWeight: 800, fontSize: "0.82rem" }}>
             ✅ Preferenze già registrate
@@ -1346,6 +1354,26 @@ function AppuntamentoCard({
         >
           {STATO_LABEL[a.stato]}
         </span>
+
+        <button
+          type="button"
+          disabled={pending}
+          onClick={onEditDetails}
+          style={{
+            minHeight: "46px",
+            borderRadius: "12px",
+            border: "1px solid #c9791f",
+            background: "linear-gradient(135deg, #e58c2c 0%, #c9791f 100%)",
+            color: "#fff",
+            fontWeight: 800,
+            fontSize: "0.92rem",
+            cursor: pending ? "wait" : "pointer",
+            fontFamily: "inherit",
+            boxShadow: "0 5px 16px rgba(229,140,44,0.28)",
+          }}
+        >
+          ✏️ Modifica / Sposta
+        </button>
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
           {a.stato !== "confermato" && (
@@ -1426,6 +1454,368 @@ function quickBtn(color: string): CSSProperties {
     cursor: "pointer",
     fontFamily: "inherit",
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Blocco note (testo integrale, senza troncamento CSS)                */
+/* ------------------------------------------------------------------ */
+
+const NOTE_COLLAPSE_LIMIT = 200;
+
+function NoteBlock({ note }: { note: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const clean = String(note || "");
+  const isLong = clean.length > NOTE_COLLAPSE_LIMIT;
+  const shown = isLong && !expanded ? `${clean.slice(0, NOTE_COLLAPSE_LIMIT).trimEnd()}…` : clean;
+
+  return (
+    <div style={{ marginTop: "0.35rem" }}>
+      <div
+        style={{
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+          lineHeight: 1.45,
+          color: "#44403c",
+          background: "#fcfaf7",
+          borderLeft: "3px solid #e58c2c",
+          padding: "0.45rem 0.65rem",
+          borderRadius: "6px",
+          fontSize: "0.85rem",
+        }}
+      >
+        📝 {shown}
+      </div>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          style={{
+            marginTop: "0.3rem",
+            background: "transparent",
+            border: "none",
+            color: "#c2410c",
+            fontWeight: 800,
+            fontSize: "0.8rem",
+            cursor: "pointer",
+            fontFamily: "inherit",
+            padding: 0,
+          }}
+        >
+          {expanded ? "▲ Riduci" : "▼ Espandi"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Modale Modifica / Sposta Appuntamento (Segreteria)                  */
+/* ------------------------------------------------------------------ */
+
+interface AppuntamentoFormState {
+  tipo: Appointment["tipo"];
+  nome: string;
+  cognome: string;
+  partnerNome: string;
+  partnerCognome: string;
+  telefono: string;
+  email: string;
+  dataAppuntamento: string;
+  orarioAppuntamento: string;
+  dataEventoPresunta: string;
+  interesse: Appointment["interesse"];
+  ospitiPrevisti: string;
+  canale: Appointment["canale"];
+  stato: Appointment["stato"];
+  note: string;
+}
+
+const modalInput: CSSProperties = {
+  padding: "0.7rem 0.85rem",
+  borderRadius: "10px",
+  border: "1px solid #e0ddd9",
+  fontFamily: "inherit",
+  fontSize: "0.95rem",
+  background: "#fff",
+  color: "#2c2a27",
+  width: "100%",
+  boxSizing: "border-box",
+};
+
+const modalLabel: CSSProperties = {
+  display: "grid",
+  gap: "0.25rem",
+  fontSize: "0.78rem",
+  fontWeight: 800,
+  color: "#6a6764",
+};
+
+function formFromSegreteriaAppointment(a: Appointment): AppuntamentoFormState {
+  return {
+    tipo: a.tipo,
+    nome: a.nome || "",
+    cognome: a.cognome || "",
+    partnerNome: a.partnerNome || "",
+    partnerCognome: a.partnerCognome || "",
+    telefono: a.telefono || "",
+    email: a.email || "",
+    dataAppuntamento: a.dataAppuntamento || "",
+    orarioAppuntamento: a.orarioAppuntamento || "",
+    dataEventoPresunta: a.dataEventoPresunta || "",
+    interesse: a.interesse,
+    ospitiPrevisti: a.ospitiPrevisti && a.ospitiPrevisti > 0 ? String(a.ospitiPrevisti) : "",
+    canale: a.canale,
+    stato: a.stato,
+    note: a.note || "",
+  };
+}
+
+function ModificaDettagliModal({
+  appointment,
+  onClose,
+  onUpdated,
+  onError,
+}: {
+  appointment: Appointment;
+  onClose: () => void;
+  onUpdated: (appointment: Appointment) => void;
+  onError: (msg: string) => void;
+}) {
+  const [form, setForm] = useState<AppuntamentoFormState>(() => formFromSegreteriaAppointment(appointment));
+  const [saving, setSaving] = useState(false);
+
+  const set = <K extends keyof AppuntamentoFormState>(key: K, value: AppuntamentoFormState[K]) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
+
+  const handleSubmit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    setSaving(true);
+    try {
+      const isWedding = form.tipo === "wedding";
+      const dataOra = form.dataAppuntamento && form.orarioAppuntamento
+        ? `${form.dataAppuntamento}T${form.orarioAppuntamento}`
+        : form.dataAppuntamento;
+
+      const res = await updateAppointmentDetailsAction(appointment.id, {
+        tipo: form.tipo,
+        nome: form.nome,
+        cognome: form.cognome || undefined,
+        partnerNome: isWedding ? form.partnerNome || undefined : undefined,
+        partnerCognome: isWedding ? form.partnerCognome || undefined : undefined,
+        telefono: form.telefono,
+        email: form.email || undefined,
+        dataOra,
+        dataAppuntamento: form.dataAppuntamento,
+        orarioAppuntamento: form.orarioAppuntamento,
+        dataEventoPresunta: form.dataEventoPresunta || undefined,
+        interesse: form.interesse,
+        ospitiPrevisti: form.ospitiPrevisti ? Number(form.ospitiPrevisti) : undefined,
+        canale: form.canale,
+        stato: form.stato,
+        note: form.note || undefined,
+      });
+
+      if (res.success && res.appointment) {
+        onUpdated(res.appointment);
+      } else {
+        onError(res.error || "Impossibile salvare le modifiche.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Modifica appuntamento"
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(30,27,24,0.55)",
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "center",
+        padding: "3vh 1rem",
+        overflowY: "auto",
+        zIndex: 1200,
+      }}
+    >
+      <form
+        onSubmit={handleSubmit}
+        onClick={(ev) => ev.stopPropagation()}
+        style={{
+          background: "#fcfbfa",
+          borderRadius: "20px",
+          width: "min(820px, 100%)",
+          padding: "1.7rem 1.9rem 2rem",
+          boxShadow: "0 24px 60px rgba(0,0,0,0.3)",
+          border: "1px solid #efe7db",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
+          <div>
+            <span style={{ textTransform: "uppercase", letterSpacing: "2px", fontSize: "0.74rem", color: "#e58c2c", fontWeight: 800 }}>
+              Segreteria · Modifica rapida
+            </span>
+            <h2 style={{ margin: "0.25rem 0 0", fontFamily: "Georgia, 'Playfair Display', serif", fontSize: "1.6rem", color: "#1e1b18" }}>
+              ✏️ Modifica / Sposta Appuntamento
+            </h2>
+            <p style={{ margin: "0.2rem 0 0", color: "#6a6764", fontSize: "0.9rem" }}>
+              {displayName(appointment)} · attualmente {formatDataLunga(appointment.dataAppuntamento)}
+              {appointment.orarioAppuntamento ? ` · ore ${appointment.orarioAppuntamento}` : ""}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Chiudi"
+            style={{ background: "transparent", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "#6a6764", lineHeight: 1 }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.85rem", marginTop: "1.3rem" }}>
+          <label style={modalLabel}>
+            Categoria *
+            <select value={form.tipo} onChange={(ev) => set("tipo", ev.target.value as Appointment["tipo"])} style={modalInput}>
+              <option value="wedding">💍 Wedding (Matrimonio)</option>
+              <option value="privato">🎉 Evento Privato</option>
+            </select>
+          </label>
+          <label style={modalLabel}>
+            Nome referente / sposo/a *
+            <input value={form.nome} onChange={(ev) => set("nome", ev.target.value)} style={modalInput} required />
+          </label>
+          <label style={modalLabel}>
+            Cognome
+            <input value={form.cognome} onChange={(ev) => set("cognome", ev.target.value)} style={modalInput} />
+          </label>
+
+          {form.tipo === "wedding" && (
+            <>
+              <label style={modalLabel}>
+                Nome partner
+                <input value={form.partnerNome} onChange={(ev) => set("partnerNome", ev.target.value)} style={modalInput} />
+              </label>
+              <label style={modalLabel}>
+                Cognome partner
+                <input value={form.partnerCognome} onChange={(ev) => set("partnerCognome", ev.target.value)} style={modalInput} />
+              </label>
+            </>
+          )}
+
+          <label style={modalLabel}>
+            Telefono cellulare *
+            <input value={form.telefono} onChange={(ev) => set("telefono", ev.target.value)} style={modalInput} required />
+          </label>
+          <label style={modalLabel}>
+            Email
+            <input type="email" value={form.email} onChange={(ev) => set("email", ev.target.value)} style={modalInput} />
+          </label>
+
+          <label style={modalLabel}>
+            Data appuntamento *
+            <input type="date" value={form.dataAppuntamento} onChange={(ev) => set("dataAppuntamento", ev.target.value)} style={modalInput} required />
+          </label>
+          <label style={modalLabel}>
+            Orario
+            <input type="time" value={form.orarioAppuntamento} onChange={(ev) => set("orarioAppuntamento", ev.target.value)} style={modalInput} />
+          </label>
+          <label style={modalLabel}>
+            Periodo evento presunto
+            <input value={form.dataEventoPresunta} onChange={(ev) => set("dataEventoPresunta", ev.target.value)} style={modalInput} placeholder="Es. Luglio 2027" />
+          </label>
+
+          <label style={modalLabel}>
+            Interesse / Formula
+            <select value={form.interesse} onChange={(ev) => set("interesse", ev.target.value as Appointment["interesse"])} style={modalInput}>
+              <option value="da_definire">Da consigliare</option>
+              <option value="esclusiva">Esclusiva Location</option>
+              <option value="semi_esclusiva">Semi-Esclusività</option>
+              <option value="sala_bianca">Semi-Esclusività Sala Bianca</option>
+              <option value="sala_tufo">Semi-Esclusività Sala Tufo</option>
+            </select>
+          </label>
+          <label style={modalLabel}>
+            Ospiti previsti
+            <input type="number" min="0" value={form.ospitiPrevisti} onChange={(ev) => set("ospitiPrevisti", ev.target.value)} style={modalInput} />
+          </label>
+          <label style={modalLabel}>
+            Canale di provenienza
+            <select value={form.canale} onChange={(ev) => set("canale", ev.target.value as Appointment["canale"])} style={modalInput}>
+              <option value="telefono">📞 Telefono</option>
+              <option value="sito_web">🌐 Sito Web</option>
+              <option value="whatsapp">💬 WhatsApp</option>
+              <option value="instagram">📸 Instagram</option>
+              <option value="passaparola">🗣️ Passaparola</option>
+            </select>
+          </label>
+          <label style={modalLabel}>
+            Stato
+            <select value={form.stato} onChange={(ev) => set("stato", ev.target.value as Appointment["stato"])} style={modalInput}>
+              <option value="da_confermare">🟡 Da confermare</option>
+              <option value="confermato">🟢 Confermato</option>
+              <option value="effettuato">🟣 Effettuato</option>
+              <option value="annullato">⚪ Annullato</option>
+            </select>
+          </label>
+        </div>
+
+        <label style={{ ...modalLabel, marginTop: "0.9rem" }}>
+          Note
+          <textarea
+            value={form.note}
+            onChange={(ev) => set("note", ev.target.value)}
+            rows={4}
+            style={{ ...modalInput, minHeight: "120px", resize: "vertical", lineHeight: 1.5 }}
+            placeholder="Es. interessati alla Sala Tufo, chiedono info sul banqueting…"
+          />
+        </label>
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.6rem", marginTop: "1.4rem" }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              padding: "0.7rem 1.2rem",
+              borderRadius: "12px",
+              border: "1px solid #e0ddd9",
+              background: "#f0eee9",
+              color: "#44403c",
+              fontWeight: 800,
+              fontSize: "0.95rem",
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            Annulla
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            style={{
+              padding: "0.7rem 1.4rem",
+              borderRadius: "12px",
+              border: "1px solid #c9791f",
+              background: "linear-gradient(135deg, #e58c2c 0%, #c9791f 100%)",
+              color: "#fff",
+              fontWeight: 800,
+              fontSize: "0.95rem",
+              cursor: saving ? "wait" : "pointer",
+              opacity: saving ? 0.75 : 1,
+              fontFamily: "inherit",
+            }}
+          >
+            {saving ? "Salvataggio…" : "Salva Modifiche"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 }
 
 /* ------------------------------------------------------------------ */
