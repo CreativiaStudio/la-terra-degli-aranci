@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useTransition } from "react";
+import React, { useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -57,6 +57,160 @@ function getEventTypesSummary(eventi: ClienteEventoRow[]): string {
     if (titolo && !tipi.includes(titolo)) tipi.push(titolo);
   }
   return tipi.join(" + ");
+}
+
+/**
+ * Cellula compatta "Storico Eventi": mostra in evidenza il primo evento (il più
+ * recente) e, se ce ne sono altri, un micro-pulsante che apre un popover con lo
+ * storico completo. Il popover è in posizione fissa per non alterare l'altezza
+ * della riga (zero effetto fisarmonica).
+ */
+function EventiCell({ eventi }: { eventi: ClienteEventoRow[] }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+
+  if (eventi.length === 0) {
+    return <span style={{ fontSize: "0.78rem", color: "#a8a29e" }}>Nessun evento collegato</span>;
+  }
+
+  const primo = eventi[0];
+  const altri = eventi.slice(1);
+
+  const toggle = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      const width = 300;
+      const left = Math.max(12, Math.min(rect.left, window.innerWidth - width - 12));
+      setPos({ top: rect.bottom + 6, left });
+    }
+    setOpen((v) => !v);
+  };
+
+  const badgeStyle: React.CSSProperties = {
+    fontSize: "0.7rem",
+    fontWeight: 700,
+    padding: "0.18rem 0.5rem",
+    borderRadius: "6px",
+    textDecoration: "none",
+    whiteSpace: "nowrap",
+  };
+
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", flexWrap: "nowrap" }}>
+      <a
+        href={`/admin/eventi/${primo.id}`}
+        title={`${primo.titolo} · ${formatDate(primo.data)} · ${primo.formula}`}
+        style={{ ...badgeStyle, background: primo.badgeColor, color: "#ffffff" }}
+      >
+        {primo.stageLabel} · {formatDate(primo.data)}
+      </a>
+
+      {altri.length > 0 && (
+        <button
+          ref={btnRef}
+          type="button"
+          onClick={toggle}
+          title={`Mostra altri ${altri.length} eventi`}
+          aria-expanded={open}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.15rem",
+            fontSize: "0.68rem",
+            fontWeight: 700,
+            padding: "0.16rem 0.45rem",
+            borderRadius: 999,
+            border: "1px solid #e8e2d9",
+            background: open ? "#1e1b18" : "#fff",
+            color: open ? "#f6c177" : "#c2410c",
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          ▾ +{altri.length} altri eventi
+        </button>
+      )}
+
+      {open && altri.length > 0 && (
+        <>
+          <div
+            onClick={() => setOpen(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 900 }}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: pos.top,
+              left: pos.left,
+              width: 300,
+              maxHeight: 300,
+              overflowY: "auto",
+              zIndex: 901,
+              background: "#fff",
+              border: "1px solid #e8e2d9",
+              borderRadius: 12,
+              boxShadow: "0 14px 34px rgba(0,0,0,0.18)",
+              padding: "0.5rem",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.68rem",
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+                color: "#8a847c",
+                fontWeight: 700,
+                padding: "0.25rem 0.5rem 0.5rem",
+              }}
+            >
+              Storico · {altri.length} {altri.length === 1 ? "altro evento" : "altri eventi"}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+              {altri.map((ev) => (
+                <a
+                  key={ev.id}
+                  href={`/admin/eventi/${ev.id}`}
+                  title={`Apri scheda regia: ${ev.titolo}`}
+                  style={{
+                    display: "block",
+                    padding: "0.45rem 0.5rem",
+                    borderRadius: 8,
+                    textDecoration: "none",
+                    color: "#1e1b18",
+                    background: "#faf8f5",
+                    border: "1px solid #f0eee9",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", alignItems: "baseline" }}>
+                    <span style={{ fontSize: "0.8rem", fontWeight: 700 }}>{ev.titolo}</span>
+                    <span style={{ fontSize: "0.72rem", color: "#8a847c", whiteSpace: "nowrap" }}>{formatDate(ev.data)}</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", alignItems: "center", marginTop: "0.2rem" }}>
+                    <span
+                      style={{
+                        fontSize: "0.64rem",
+                        fontWeight: 700,
+                        padding: "0.1rem 0.4rem",
+                        borderRadius: 999,
+                        background: ev.badgeColor,
+                        color: "#fff",
+                      }}
+                    >
+                      {ev.stageLabel}
+                    </span>
+                    <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#c2410c" }}>
+                      Scheda regia →
+                    </span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 export default function ClientiClient({ clienti }: ClientiClientProps) {
@@ -238,25 +392,49 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                       {c.tags.length === 0 ? (
                         <span style={{ fontSize: "0.72rem", color: "#a8a29e" }}>—</span>
                       ) : (
-                        c.tags.map((tag) => {
-                          const s = TAG_STYLES[tag] || { bg: "#f5f5f4", color: "#57534e", border: "#e7e5e4" };
-                          return (
-                            <span
-                              key={tag}
+                        <>
+                          {(c.tags.length > 2 ? c.tags.slice(0, 2) : c.tags).map((tag) => {
+                            const s = TAG_STYLES[tag] || { bg: "#f5f5f4", color: "#57534e", border: "#e7e5e4" };
+                            return (
+                              <span
+                                key={tag}
+                                style={{
+                                  fontSize: "0.68rem",
+                                  fontWeight: 700,
+                                  padding: "0.15rem 0.5rem",
+                                  borderRadius: "999px",
+                                  background: s.bg,
+                                  color: s.color,
+                                  border: `1px solid ${s.border}`,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {tag}
+                              </span>
+                            );
+                          })}
+                          {c.tags.length > 2 && (
+                            <button
+                              type="button"
+                              onClick={() => setTagsCliente(c)}
+                              title={`Altre etichette: ${c.tags.slice(2).join(", ")}`}
+                              aria-label={`Mostra le altre ${c.tags.length - 2} etichette di ${c.nome} ${c.cognome}`}
                               style={{
                                 fontSize: "0.68rem",
                                 fontWeight: 700,
                                 padding: "0.15rem 0.5rem",
                                 borderRadius: "999px",
-                                background: s.bg,
-                                color: s.color,
-                                border: `1px solid ${s.border}`,
+                                background: "#f5f5f4",
+                                color: "#57534e",
+                                border: "1px solid #e7e5e4",
+                                cursor: "pointer",
+                                whiteSpace: "nowrap",
                               }}
                             >
-                              {tag}
-                            </span>
-                          );
-                        })
+                              +{c.tags.length - 2} altri
+                            </button>
+                          )}
+                        </>
                       )}
                       <button
                         type="button"
@@ -305,31 +483,7 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                   </td>
 
                   <td style={{ padding: "0.9rem 0.7rem" }}>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
-                      {c.eventi.length === 0 ? (
-                        <span style={{ fontSize: "0.78rem", color: "#a8a29e" }}>Nessun evento collegato</span>
-                      ) : (
-                        c.eventi.map((ev) => (
-                          <a
-                            key={ev.id}
-                            href={`/admin/eventi/${ev.id}`}
-                            title={`${ev.titolo} · ${formatDate(ev.data)} · ${ev.formula}`}
-                            style={{
-                              fontSize: "0.7rem",
-                              fontWeight: 700,
-                              padding: "0.18rem 0.5rem",
-                              borderRadius: "6px",
-                              background: ev.badgeColor,
-                              color: "#ffffff",
-                              textDecoration: "none",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {ev.stageLabel} · {formatDate(ev.data)}
-                          </a>
-                        ))
-                      )}
-                    </div>
+                    <EventiCell eventi={c.eventi} />
                   </td>
 
                   <td style={{ padding: "0.9rem 0.7rem", textAlign: "right", whiteSpace: "nowrap" }}>

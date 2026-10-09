@@ -330,6 +330,185 @@ function Modal({
 }
 
 /* ------------------------------------------------------------------ */
+/* Riga / scheda riutilizzabile per i ricevimenti privati              */
+/* ------------------------------------------------------------------ */
+
+/** Riga compatta di un ricevimento (usata nella tabella e nell'accordion). */
+function RicevimentoRow({ r, compact = false }: { r: ClienteRicevimentoRow; compact?: boolean }) {
+  const pad = compact ? "0.6rem 0.55rem" : "0.85rem 0.6rem";
+  return (
+    <tr style={{ borderBottom: `1px solid #f0eee9`, verticalAlign: "top" }}>
+      <td style={{ padding: pad, fontWeight: 700, color: ANTHRACITE, whiteSpace: "nowrap" }}>
+        {formatDate(r.data)}
+        <div style={{ fontSize: "0.72rem", color: "#a8a29e", fontWeight: 400 }}>
+          {r.tipoEvento === "wedding" ? "💍 Matrimonio" : "🎉 Evento"}
+        </div>
+      </td>
+      <td style={{ padding: pad, fontSize: compact ? "0.8rem" : "0.85rem", color: "#514d48" }}>
+        {turnoLabel(r.turno)}
+      </td>
+      <td style={{ padding: pad, fontSize: "0.82rem", color: "#514d48", maxWidth: 190 }}>
+        {r.spazi.length > 0 ? r.spazi.join(", ") : <span style={{ color: "#a8a29e" }}>{r.formula}</span>}
+      </td>
+      <td style={{ padding: pad }}>
+        <code style={{ fontSize: "0.78rem", background: CREAM, padding: "0.15rem 0.4rem", borderRadius: 5, fontWeight: 700 }}>
+          {r.codiceTda}
+        </code>
+      </td>
+      <td style={{ padding: pad }}>
+        <span
+          style={{
+            fontSize: "0.72rem",
+            fontWeight: 800,
+            padding: "0.2rem 0.6rem",
+            borderRadius: 999,
+            background: r.badgeColor,
+            color: "#fff",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {r.stageLabel}
+        </span>
+      </td>
+      <td style={{ padding: pad, textAlign: "right", fontWeight: 700, color: ANTHRACITE, whiteSpace: "nowrap" }}>
+        {formatEuro(r.concordato)}
+      </td>
+      <td style={{ padding: pad, textAlign: "right", fontWeight: 700, color: "#16a34a", whiteSpace: "nowrap" }}>
+        {formatEuro(r.incassato)}
+      </td>
+      <td style={{ padding: pad, textAlign: "right", whiteSpace: "nowrap" }}>
+        <a
+          href={`/admin/eventi/${r.id}`}
+          style={{
+            display: "inline-block",
+            padding: "0.4rem 0.7rem",
+            background: ANTHRACITE,
+            color: GOLD,
+            borderRadius: 7,
+            fontSize: "0.76rem",
+            fontWeight: 700,
+            textDecoration: "none",
+            marginRight: "0.35rem",
+          }}
+        >
+          🔎 Scheda Regia 360°
+        </a>
+        {!r.isSigned && (
+          <a
+            href={r.contractUrl}
+            style={{
+              display: "inline-block",
+              padding: "0.4rem 0.7rem",
+              background: "#fff7ed",
+              color: "#c2410c",
+              border: "1px solid #ffedd5",
+              borderRadius: 7,
+              fontSize: "0.76rem",
+              fontWeight: 700,
+              textDecoration: "none",
+            }}
+          >
+            ✍️ Contratto
+          </a>
+        )}
+      </td>
+    </tr>
+  );
+}
+
+/** Scheda estesa del ricevimento più recente/attivo (Overload Guard). */
+function RicevimentoCard({ r }: { r: ClienteRicevimentoRow }) {
+  return (
+    <div
+      style={{
+        border: `1px solid ${BORDER}`,
+        borderLeft: `4px solid ${AMBER}`,
+        borderRadius: 12,
+        padding: "1rem 1.1rem",
+        background: CREAM,
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "0.6rem", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ fontSize: "1.02rem", fontWeight: 800, color: ANTHRACITE }}>
+            {r.tipoEvento === "wedding" ? "💍 Matrimonio" : "🎉 Ricevimento Privato"} · {formatDate(r.data)}
+          </div>
+          <div style={{ fontSize: "0.82rem", color: "#6a6764", marginTop: "0.2rem" }}>
+            {turnoLabel(r.turno)} · {r.spazi.length > 0 ? r.spazi.join(", ") : r.formula}
+          </div>
+        </div>
+        <span
+          style={{
+            fontSize: "0.72rem",
+            fontWeight: 800,
+            padding: "0.22rem 0.7rem",
+            borderRadius: 999,
+            background: r.badgeColor,
+            color: "#fff",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {r.stageLabel}
+        </span>
+      </div>
+
+      <div style={{ display: "flex", gap: "1.6rem", flexWrap: "wrap", marginTop: "0.75rem" }}>
+        <div>
+          <div style={{ fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.5px", color: "#a8a29e", fontWeight: 700 }}>Codice TDA</div>
+          <code style={{ fontSize: "0.82rem", background: "#fff", padding: "0.15rem 0.45rem", borderRadius: 5, fontWeight: 700, border: `1px solid ${BORDER}` }}>
+            {r.codiceTda}
+          </code>
+        </div>
+        <div>
+          <div style={{ fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.5px", color: "#a8a29e", fontWeight: 700 }}>Concordato</div>
+          <strong style={{ color: ANTHRACITE }}>{formatEuro(r.concordato)}</strong>
+        </div>
+        <div>
+          <div style={{ fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "0.5px", color: "#a8a29e", fontWeight: 700 }}>Incassato</div>
+          <strong style={{ color: "#16a34a" }}>{formatEuro(r.incassato)}</strong>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.85rem", flexWrap: "wrap" }}>
+        <a
+          href={`/admin/eventi/${r.id}`}
+          style={{
+            display: "inline-block",
+            padding: "0.45rem 0.8rem",
+            background: ANTHRACITE,
+            color: GOLD,
+            borderRadius: 7,
+            fontSize: "0.78rem",
+            fontWeight: 700,
+            textDecoration: "none",
+          }}
+        >
+          🔎 Scheda Regia 360°
+        </a>
+        {!r.isSigned && (
+          <a
+            href={r.contractUrl}
+            style={{
+              display: "inline-block",
+              padding: "0.45rem 0.8rem",
+              background: "#fff7ed",
+              color: "#c2410c",
+              border: "1px solid #ffedd5",
+              borderRadius: 7,
+              fontSize: "0.78rem",
+              fontWeight: 700,
+              textDecoration: "none",
+            }}
+          >
+            ✍️ Contratto
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Componente principale                                               */
 /* ------------------------------------------------------------------ */
 
@@ -348,6 +527,10 @@ export default function ClienteDettaglioClient({
   const [ricevimentoOpen, setRicevimentoOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
+
+  // Overload Guard: accordion storico (righe snelle, zero fisarmonica di default)
+  const [showAltriRicevimenti, setShowAltriRicevimenti] = useState(false);
+  const [showTutteEsperienze, setShowTutteEsperienze] = useState(false);
 
   // Form Nuovo Ricevimento Privato
   const [ricevimentoTipo, setRicevimentoTipo] = useState("Matrimonio");
@@ -530,6 +713,11 @@ export default function ClienteDettaglioClient({
     </div>
   );
 
+  // Overload Guard: valori derivati per la UI compatta
+  const altriRicevimenti = ricevimenti.slice(1);
+  const ricevimentoEsteso = ricevimenti.length > 2;
+  const esperienzeVisibili = showTutteEsperienze ? esperienze : esperienze.slice(0, 4);
+
   return (
     <div
       style={{
@@ -593,29 +781,53 @@ export default function ClienteDettaglioClient({
         </h1>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap", marginTop: "0.7rem" }}>
-          <div style={{ display: "flex", gap: "0.45rem", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "0.45rem", flexWrap: "wrap", alignItems: "center" }}>
             {cliente.tags.length === 0 ? (
               <span style={{ fontSize: "0.78rem", color: "#bdb5aa" }}>Contatto nuovo</span>
             ) : (
-              cliente.tags.map((tag) => {
-                const s = TAG_STYLES[tag] || TAG_STYLES_FALLBACK;
-                return (
-                  <span
-                    key={tag}
+              <>
+                {(cliente.tags.length > 3 ? cliente.tags.slice(0, 3) : cliente.tags).map((tag) => {
+                  const s = TAG_STYLES[tag] || TAG_STYLES_FALLBACK;
+                  return (
+                    <span
+                      key={tag}
+                      style={{
+                        fontSize: "0.72rem",
+                        fontWeight: 800,
+                        padding: "0.2rem 0.65rem",
+                        borderRadius: 999,
+                        background: s.bg,
+                        color: s.color,
+                        border: `1px solid ${s.border}`,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  );
+                })}
+                {cliente.tags.length > 3 && (
+                  <button
+                    type="button"
+                    onClick={() => setTagsOpen(true)}
+                    title={`Altre etichette: ${cliente.tags.slice(3).join(", ")}`}
+                    aria-label={`Mostra le altre ${cliente.tags.length - 3} etichette`}
                     style={{
                       fontSize: "0.72rem",
                       fontWeight: 800,
                       padding: "0.2rem 0.65rem",
                       borderRadius: 999,
-                      background: s.bg,
-                      color: s.color,
-                      border: `1px solid ${s.border}`,
+                      background: "transparent",
+                      color: "#f6c177",
+                      border: "1px solid #6b6258",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
                     }}
                   >
-                    {tag}
-                  </span>
-                );
-              })
+                    +{cliente.tags.length - 3} altri
+                  </button>
+                )}
+              </>
             )}
           </div>
           <button
@@ -766,6 +978,73 @@ export default function ClienteDettaglioClient({
             <p style={{ padding: "2rem", textAlign: "center", color: "#94a3b8" }}>
               Nessun ricevimento privato registrato. Usa “➕ Nuovo Ricevimento Privato” per crearne uno.
             </p>
+          ) : ricevimentoEsteso ? (
+            <>
+              <RicevimentoCard r={ricevimenti[0]} />
+
+              {altriRicevimenti.length > 0 && (
+                <div style={{ marginTop: "1rem" }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowAltriRicevimenti((v) => !v)}
+                    aria-expanded={showAltriRicevimenti}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "0.6rem",
+                      padding: "0.6rem 0.9rem",
+                      borderRadius: 10,
+                      border: `1px solid ${BORDER}`,
+                      background: showAltriRicevimenti ? "#fff" : CREAM,
+                      color: ANTHRACITE,
+                      fontWeight: 700,
+                      fontSize: "0.85rem",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <span>
+                      {showAltriRicevimenti ? "▾" : "▸"} Storico precedente · {altriRicevimenti.length}{" "}
+                      {altriRicevimenti.length === 1 ? "ricevimento" : "ricevimenti"}
+                    </span>
+                    <span style={{ color: "#c2410c" }}>{showAltriRicevimenti ? "Riduci" : "Apri l'elenco"}</span>
+                  </button>
+
+                  {showAltriRicevimenti && (
+                    <div style={{ marginTop: "0.7rem", overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                        <thead>
+                          <tr
+                            style={{
+                              borderBottom: `2px solid ${BORDER}`,
+                              color: "#78716c",
+                              fontSize: "0.72rem",
+                              textTransform: "uppercase",
+                              letterSpacing: "0.5px",
+                            }}
+                          >
+                            <th style={{ padding: "0.6rem 0.55rem" }}>Data</th>
+                            <th style={{ padding: "0.6rem 0.55rem" }}>Turno</th>
+                            <th style={{ padding: "0.6rem 0.55rem" }}>Spazi</th>
+                            <th style={{ padding: "0.6rem 0.55rem" }}>Codice TDA</th>
+                            <th style={{ padding: "0.6rem 0.55rem" }}>Stato</th>
+                            <th style={{ padding: "0.6rem 0.55rem", textAlign: "right" }}>Concordato</th>
+                            <th style={{ padding: "0.6rem 0.55rem", textAlign: "right" }}>Incassato</th>
+                            <th style={{ padding: "0.6rem 0.55rem", textAlign: "right" }}>Azioni</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {altriRicevimenti.map((r) => (
+                            <RicevimentoRow key={r.id} r={r} compact />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           ) : (
             <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
               <thead>
@@ -790,82 +1069,7 @@ export default function ClienteDettaglioClient({
               </thead>
               <tbody>
                 {ricevimenti.map((r) => (
-                  <tr key={r.id} style={{ borderBottom: `1px solid #f0eee9`, verticalAlign: "top" }}>
-                    <td style={{ padding: "0.85rem 0.6rem", fontWeight: 700, color: ANTHRACITE, whiteSpace: "nowrap" }}>
-                      {formatDate(r.data)}
-                      <div style={{ fontSize: "0.72rem", color: "#a8a29e", fontWeight: 400 }}>
-                        {r.tipoEvento === "wedding" ? "💍 Matrimonio" : "🎉 Evento"}
-                      </div>
-                    </td>
-                    <td style={{ padding: "0.85rem 0.6rem", fontSize: "0.85rem", color: "#514d48" }}>
-                      {turnoLabel(r.turno)}
-                    </td>
-                    <td style={{ padding: "0.85rem 0.6rem", fontSize: "0.82rem", color: "#514d48", maxWidth: 190 }}>
-                      {r.spazi.length > 0 ? r.spazi.join(", ") : <span style={{ color: "#a8a29e" }}>{r.formula}</span>}
-                    </td>
-                    <td style={{ padding: "0.85rem 0.6rem" }}>
-                      <code style={{ fontSize: "0.78rem", background: CREAM, padding: "0.15rem 0.4rem", borderRadius: 5, fontWeight: 700 }}>
-                        {r.codiceTda}
-                      </code>
-                    </td>
-                    <td style={{ padding: "0.85rem 0.6rem" }}>
-                      <span
-                        style={{
-                          fontSize: "0.72rem",
-                          fontWeight: 800,
-                          padding: "0.2rem 0.6rem",
-                          borderRadius: 999,
-                          background: r.badgeColor,
-                          color: "#fff",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {r.stageLabel}
-                      </span>
-                    </td>
-                    <td style={{ padding: "0.85rem 0.6rem", textAlign: "right", fontWeight: 700, color: ANTHRACITE, whiteSpace: "nowrap" }}>
-                      {formatEuro(r.concordato)}
-                    </td>
-                    <td style={{ padding: "0.85rem 0.6rem", textAlign: "right", fontWeight: 700, color: "#16a34a", whiteSpace: "nowrap" }}>
-                      {formatEuro(r.incassato)}
-                    </td>
-                    <td style={{ padding: "0.85rem 0.6rem", textAlign: "right", whiteSpace: "nowrap" }}>
-                      <a
-                        href={`/admin/eventi/${r.id}`}
-                        style={{
-                          display: "inline-block",
-                          padding: "0.4rem 0.7rem",
-                          background: ANTHRACITE,
-                          color: GOLD,
-                          borderRadius: 7,
-                          fontSize: "0.76rem",
-                          fontWeight: 700,
-                          textDecoration: "none",
-                          marginRight: "0.35rem",
-                        }}
-                      >
-                        🔎 Scheda Regia 360°
-                      </a>
-                      {!r.isSigned && (
-                        <a
-                          href={r.contractUrl}
-                          style={{
-                            display: "inline-block",
-                            padding: "0.4rem 0.7rem",
-                            background: "#fff7ed",
-                            color: "#c2410c",
-                            border: "1px solid #ffedd5",
-                            borderRadius: 7,
-                            fontSize: "0.76rem",
-                            fontWeight: 700,
-                            textDecoration: "none",
-                          }}
-                        >
-                          ✍️ Contratto
-                        </a>
-                      )}
-                    </td>
-                  </tr>
+                  <RicevimentoRow key={r.id} r={r} />
                 ))}
               </tbody>
             </table>
@@ -913,7 +1117,7 @@ export default function ClienteDettaglioClient({
                 </tr>
               </thead>
               <tbody>
-                {esperienze.map((e) => (
+                {esperienzeVisibili.map((e) => (
                   <tr key={e.id} style={{ borderBottom: `1px solid #f0eee9`, verticalAlign: "top" }}>
                     <td style={{ padding: "0.85rem 0.6rem", fontWeight: 700, color: ANTHRACITE, whiteSpace: "nowrap" }}>
                       {formatDate(e.data)}
@@ -952,6 +1156,30 @@ export default function ClienteDettaglioClient({
                 ))}
               </tbody>
             </table>
+          )}
+
+          {esperienze.length > 4 && (
+            <div style={{ marginTop: "0.9rem", display: "flex", justifyContent: "flex-end" }}>
+              <button
+                type="button"
+                onClick={() => setShowTutteEsperienze((v) => !v)}
+                aria-expanded={showTutteEsperienze}
+                style={{
+                  padding: "0.5rem 0.95rem",
+                  borderRadius: 10,
+                  border: `1px solid ${BORDER}`,
+                  background: showTutteEsperienze ? "#fff" : ANTHRACITE,
+                  color: showTutteEsperienze ? ANTHRACITE : GOLD,
+                  fontWeight: 700,
+                  fontSize: "0.82rem",
+                  cursor: "pointer",
+                }}
+              >
+                {showTutteEsperienze
+                  ? "▴ Riduci"
+                  : `▾ Mostra tutte le ${esperienze.length} cene/serate location`}
+              </button>
+            </div>
           )}
         </div>
       )}
