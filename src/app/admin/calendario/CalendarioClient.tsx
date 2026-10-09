@@ -4,7 +4,16 @@ import React, { useState } from "react";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from "date-fns";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isSameDay,
+  parseISO,
+  addDays,
+  startOfDay,
+} from "date-fns";
 import { it } from "date-fns/locale";
 import type { PendingContractLocal, QuickCalendarOptionLocal } from "@/lib/localDb";
 import { normalizeTipoEsclusiva, isTufoSide, SEMI_ESCLUSIVA_FORMULE } from "@/lib/contractMeta";
@@ -87,6 +96,10 @@ const GOLD_TEXT = "#7c3f08";
 type ViewMode = "griglia" | "matrice";
 type MacroSpace = "bianca" | "tufo";
 type OccupantTone = "free" | "option" | "signed";
+type TurnoKey = "pranzo" | "cena";
+type DayState = "libero" | "parziale" | "opzione" | "saturo";
+type AvailLevel = "libera" | "opzione" | "parziale" | "occupata";
+type TurnoFilter = "qualsiasi" | TurnoKey;
 
 interface SpaceSlot {
   occupant: CalendarEvent | null;
@@ -96,21 +109,88 @@ interface SpaceSlot {
 interface TurnoPlan {
   bianca: SpaceSlot;
   tufo: SpaceSlot;
+  /** Evento in esclusiva che riserva l'intera tenuta SOLO per questo turno. */
+  exclusive: CalendarEvent | null;
 }
 
 interface DayPlan {
   iso: string;
   isWeekend: boolean;
-  exclusive: CalendarEvent | null;
   pranzo: TurnoPlan;
   cena: TurnoPlan;
   /** Eventi "di contorno" (visits, turni mattina/pomeriggio). */
   visits: CalendarEvent[];
   /** True se la giornata contiene almeno una prenotazione (opzione o firmata). */
   hasAnyBooking: boolean;
+  /** Semaforo della giornata. */
+  state: DayState;
+  /** Numero di slot liberi sui 4 totali (2 turni x 2 sale). */
+  freeSlots: number;
+  hasOption: boolean;
 }
 
 const EMPTY_SLOT: SpaceSlot = { occupant: null, tone: "free" };
+const EMPTY_TURNO: TurnoPlan = { bianca: EMPTY_SLOT, tufo: EMPTY_SLOT, exclusive: null };
+
+const TURNO_LABEL: Record<TurnoKey, string> = { pranzo: "☀️ Pranzo", cena: "🌙 Cena" };
+
+const LEVEL_STYLE: Record<AvailLevel, { bg: string; border: string; text: string; label: string }> = {
+  libera: { bg: GREEN_BG, border: GREEN_BORDER, text: GREEN_TEXT, label: "🟢 Libera 100%" },
+  opzione: { bg: AMBER_BG, border: AMBER_BORDER, text: AMBER_TEXT, label: "🟡 Opzione 7gg in corso" },
+  parziale: { bg: "#ffedd5", border: "#fdba74", text: "#9a3412", label: "🟠 Parzialmente libera" },
+  occupata: { bg: RED_BG, border: RED_BORDER, text: RED_TEXT, label: "🔴 Occupata" },
+};
+
+const SEARCH_BTN: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "0.3rem",
+  padding: "0.45rem 0.8rem",
+  borderRadius: "10px",
+  fontFamily: "inherit",
+  fontSize: "0.78rem",
+  fontWeight: 800,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+};
+
+const DAY_STATE_STYLE: Record<
+  DayState,
+  { bg: string; border: string; chipBg: string; chipText: string; chipBorder: string; label: string }
+> = {
+  libero: {
+    bg: "#f6fef9",
+    border: `1.5px solid ${GREEN_BORDER}`,
+    chipBg: GREEN_BG,
+    chipText: GREEN_TEXT,
+    chipBorder: GREEN_BORDER,
+    label: "🟢 Libero",
+  },
+  parziale: {
+    bg: "linear-gradient(160deg, #fff1e0 0%, #fff8ef 45%, #f1fdf5 100%)",
+    border: "2px solid #fdba74",
+    chipBg: "#ffedd5",
+    chipText: "#9a3412",
+    chipBorder: "#fdba74",
+    label: "🟠 Parziale",
+  },
+  opzione: {
+    bg: "#fffbeb",
+    border: `2px solid ${AMBER_BORDER}`,
+    chipBg: AMBER_BG,
+    chipText: AMBER_TEXT,
+    chipBorder: AMBER_BORDER,
+    label: "🟡 Opzione",
+  },
+  saturo: {
+    bg: "#fef2f2",
+    border: `2px solid ${RED_BORDER}`,
+    chipBg: RED_BG,
+    chipText: RED_TEXT,
+    chipBorder: RED_BORDER,
+    label: "🔴 Pieno",
+  },
+};
 
 /* ------------------------------------------------------------------ */
 /* Stili statici (evitano ricostruzioni inutili ad ogni render)        */
@@ -123,12 +203,18 @@ const BAND_WRAP: CSSProperties = {
   borderRadius: "9px",
   background: "#fbfaf7",
   border: "1px solid #f0ece4",
+  minWidth: 0,
+  maxWidth: "100%",
+  boxSizing: "border-box",
+  overflow: "hidden",
 };
 const BAND_LABEL: CSSProperties = {
-  fontSize: "0.6rem",
+  fontSize: "0.58rem",
   fontWeight: 800,
   letterSpacing: "0.5px",
   color: "#8c857b",
+  textTransform: "uppercase",
+  whiteSpace: "nowrap",
 };
 const FREE_BADGE: CSSProperties = {
   fontSize: "0.63rem",
@@ -140,13 +226,34 @@ const FREE_BADGE: CSSProperties = {
   padding: "2px 7px",
   whiteSpace: "nowrap",
 };
-const FREE_MINI: CSSProperties = {
-  fontSize: "0.63rem",
-  fontWeight: 700,
-  color: GREEN_TEXT,
+const SLOT_ROW: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "3px",
+  minWidth: 0,
+  maxWidth: "100%",
+};
+const SLOT_TAG: CSSProperties = {
+  flex: "0 0 30px",
+  fontSize: "0.55rem",
+  fontWeight: 800,
+  color: "#8c857b",
+  textTransform: "uppercase",
+  letterSpacing: "0.2px",
   whiteSpace: "nowrap",
 };
+const SLOT_FREE_TEXT: CSSProperties = {
+  flex: "1 1 0",
+  minWidth: 0,
+  fontSize: "0.63rem",
+  fontWeight: 800,
+  color: GREEN_TEXT,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
 const SIGNED_MINI: CSSProperties = {
+  boxSizing: "border-box",
   fontSize: "0.63rem",
   fontWeight: 800,
   color: RED_TEXT,
@@ -161,6 +268,7 @@ const SIGNED_MINI: CSSProperties = {
   overflow: "hidden",
   textOverflow: "ellipsis",
   maxWidth: "100%",
+  minWidth: 0,
 };
 const OPTION_MINI: CSSProperties = {
   ...SIGNED_MINI,
@@ -168,27 +276,8 @@ const OPTION_MINI: CSSProperties = {
   background: AMBER_BG,
   border: `1px solid ${AMBER_BORDER}`,
 };
-const EXCLUSIVE_BANNER: CSSProperties = {
-  background: "linear-gradient(135deg, #7c3f08 0%, #5a2d06 100%)",
-  color: "#ffe9c7",
-  borderRadius: "9px",
-  padding: "6px 8px",
-  fontWeight: 800,
-  fontSize: "0.72rem",
-  textAlign: "center",
-  letterSpacing: "0.3px",
-};
-const LOCKED_BADGE: CSSProperties = {
-  fontSize: "0.63rem",
-  fontWeight: 700,
-  color: GOLD_TEXT,
-  background: GOLD_BG,
-  border: "1px dashed #c9a24b",
-  borderRadius: "6px",
-  padding: "2px 6px",
-  whiteSpace: "nowrap",
-};
 const VISIT_CHIP: CSSProperties = {
+  boxSizing: "border-box",
   fontSize: "0.64rem",
   fontWeight: 700,
   color: "#0369a1",
@@ -203,6 +292,22 @@ const VISIT_CHIP: CSSProperties = {
   overflow: "hidden",
   textOverflow: "ellipsis",
   maxWidth: "100%",
+  minWidth: 0,
+};
+const FREE_HINT_CHIP: CSSProperties = {
+  display: "block",
+  boxSizing: "border-box",
+  maxWidth: "100%",
+  fontSize: "0.6rem",
+  fontWeight: 800,
+  color: GREEN_TEXT,
+  background: GREEN_BG,
+  border: `1px solid ${GREEN_BORDER}`,
+  borderRadius: "999px",
+  padding: "1px 7px",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 const MATRIX_TH: CSSProperties = {
   padding: "0.7rem 0.6rem",
@@ -248,10 +353,11 @@ const MATRIX_OCC_BTN: CSSProperties = {
 };
 
 const LEGEND_ITEMS: Array<{ dot: string; label: string }> = [
-  { dot: GREEN_BG, label: "Verde = Spazio Disponibile / Prenotabile" },
-  { dot: AMBER_BG, label: "Ambra = Opzione 7 Giorni in attesa di firma" },
-  { dot: RED_BG, label: "Rosso = Contratto Firmato / Data Bloccata" },
-  { dot: "#e6c976", label: "Oro = Esclusiva Intera Tenuta" },
+  { dot: GREEN_BG, label: "🟢 Libero = tutta la giornata prenotabile" },
+  { dot: "#fdba74", label: "🟠 Parziale = c'è ancora un turno o una sala libera" },
+  { dot: AMBER_BG, label: "🟡 Opzione 7gg in attesa di firma" },
+  { dot: RED_BG, label: "🔴 Pieno = contratti firmati su tutti i turni" },
+  { dot: "#e6c976", label: "👑 Esclusiva = tenuta riservata solo in quel turno" },
 ];
 
 /** "Sposo & Sposa" per i matrimoni, solo il cliente per gli eventi. */
@@ -442,6 +548,252 @@ function buildDemoEvents(reference: Date): CalendarEvent[] {
   });
 }
 
+/**
+ * Dataset demo arricchito di LUGLIO 2027 ("il mese demo").
+ * Mostra tutti i casi operativi reali: esclusive di solo pranzo o solo cena,
+ * incastri semi-esclusivi, opzioni 7gg con countdown, visite che NON bloccano,
+ * giornate completamente libere e cene private in Sala Tufo.
+ * Gli id NON iniziano con "demo-" così il set resta vivo anche dopo il salvataggio
+ * di un'opzione rapida (che ripulisce solo i demo ancorati al mese corrente).
+ */
+function buildJuly2027DemoEvents(): CalendarEvent[] {
+  const iso = (day: number) => `2027-07-${String(day).padStart(2, "0")}`;
+  return [
+    // Sab 3 Luglio — Esclusiva SOLO PRANZO · cena 100% libera
+    {
+      id: "jul27-03-esclusiva-pranzo",
+      title: "Matrimonio Marco Esposito & Sofia De Luca",
+      clientName: "Marco Esposito & Sofia De Luca",
+      tipo: "wedding",
+      status: "firmato",
+      data: iso(3),
+      ora: "12:00",
+      turno: "pranzo",
+      invitati: 140,
+      importo: 18200,
+      sala: "esclusiva_villa",
+      note: "Esclusiva tenuta SOLO a pranzo: rito simbolico in Giardino delle Promesse e banchetto. La cena resta libera.",
+      isSigned: true,
+      isPending: false,
+      tipoEsclusiva: "esclusiva",
+      spaziRiservati: [],
+      signedPdfUrl: null,
+    },
+    // Dom 4 Luglio — Esclusiva SOLO CENA · pranzo 100% libero
+    {
+      id: "jul27-04-esclusiva-cena",
+      title: "Matrimonio Gianluca Marini & Federica Ricci",
+      clientName: "Gianluca Marini & Federica Ricci",
+      tipo: "wedding",
+      status: "firmato",
+      data: iso(4),
+      ora: "19:00",
+      turno: "cena",
+      invitati: 120,
+      importo: 15600,
+      sala: "esclusiva_villa",
+      note: "Esclusiva tenuta SOLO a cena. Il pranzo resta libero per eventuali incastri.",
+      isSigned: true,
+      isPending: false,
+      tipoEsclusiva: "esclusiva",
+      spaziRiservati: [],
+      signedPdfUrl: null,
+    },
+    // Sab 10 Luglio — Incastro semi-esclusivo a pranzo · cena 100% libera
+    {
+      id: "jul27-10-bianca",
+      title: "Matrimonio Alessandro Conti & Chiara Moretti",
+      clientName: "Alessandro Conti & Chiara Moretti",
+      tipo: "wedding",
+      status: "firmato",
+      data: iso(10),
+      ora: "12:00",
+      turno: "pranzo",
+      invitati: 110,
+      importo: 14300,
+      sala: "sala_bianca",
+      note: "Semi-esclusiva Sala Bianca & Giardini (matrimonio firmato). Incastro con la Comunione in Sala Tufo.",
+      isSigned: true,
+      isPending: false,
+      tipoEsclusiva: "semi_esclusiva",
+      spaziRiservati: ["Sala Bianca", "Giardino Mediterraneo (Agrumeto)"],
+      signedPdfUrl: null,
+    },
+    {
+      id: "jul27-10-tufo",
+      title: "Comunione Famiglia De Rosa",
+      clientName: "Famiglia De Rosa",
+      tipo: "privato",
+      status: "firmato",
+      data: iso(10),
+      ora: "12:30",
+      turno: "pranzo",
+      invitati: 55,
+      importo: 4400,
+      sala: "sala_tufo",
+      note: "Semi-esclusiva Sala Tufo & Parco (comunione firmata). Incastro con il matrimonio in Sala Bianca.",
+      isSigned: true,
+      isPending: false,
+      tipoEsclusiva: "semi_esclusiva",
+      spaziRiservati: ["Sala Tufo", "Giardino delle Promesse"],
+      signedPdfUrl: null,
+    },
+    // Dom 11 Luglio — Opzione 7gg (Ambra) a pranzo · cena libera
+    {
+      id: "jul27-11-opzione",
+      title: "Opzione Matrimonio Valerio Romano & Silvia",
+      clientName: "Valerio Romano & Silvia",
+      tipo: "wedding",
+      status: "opzione",
+      data: iso(11),
+      ora: "12:00",
+      turno: "pranzo",
+      invitati: 100,
+      importo: 13000,
+      sala: "esclusiva_villa",
+      note: "Opzione esclusiva a pranzo gestita da Ambra: mancano 4 giorni alla scadenza. La cena resta libera.",
+      isSigned: false,
+      isPending: true,
+      tipoEsclusiva: "esclusiva",
+      spaziRiservati: [],
+      scadenza: "2027-07-15",
+      giorniRimanenti: 4,
+      scaduta: false,
+      signedPdfUrl: null,
+    },
+    // Ven 16 Luglio — Evento privato serale in Sala Tufo · pranzo libero
+    {
+      id: "jul27-16-notarile",
+      title: "Festa Aziendale Studio Notarile",
+      clientName: "Studio Notarile",
+      tipo: "privato",
+      status: "firmato",
+      data: iso(16),
+      ora: "19:30",
+      turno: "cena",
+      invitati: 70,
+      importo: 5600,
+      sala: "sala_tufo",
+      note: "Evento privato serale in semi-esclusiva Sala Tufo & Parco. Pranzo libero.",
+      isSigned: true,
+      isPending: false,
+      tipoEsclusiva: "semi_esclusiva",
+      spaziRiservati: ["Sala Tufo", "Giardino delle Promesse"],
+      signedPdfUrl: null,
+    },
+    // Sab 17 Luglio — GIORNATA 100% LIBERA (nessun evento: perfetta per testare il blocco data)
+    // Dom 18 Luglio — Esclusiva a pranzo + Festa 18 anni in Sala Tufo a cena
+    {
+      id: "jul27-18-esclusiva",
+      title: "Matrimonio Matteo Barone & Giulia",
+      clientName: "Matteo Barone & Giulia",
+      tipo: "wedding",
+      status: "firmato",
+      data: iso(18),
+      ora: "11:30",
+      turno: "pranzo",
+      invitati: 150,
+      importo: 19500,
+      sala: "esclusiva_villa",
+      note: "Esclusiva tenuta SOLO a pranzo.",
+      isSigned: true,
+      isPending: false,
+      tipoEsclusiva: "esclusiva",
+      spaziRiservati: [],
+      signedPdfUrl: null,
+    },
+    {
+      id: "jul27-18-18anni",
+      title: "Festa 18 Anni Sala Tufo",
+      clientName: "Festa 18 Anni (Sala Tufo)",
+      tipo: "privato",
+      status: "firmato",
+      data: iso(18),
+      ora: "19:30",
+      turno: "cena",
+      invitati: 70,
+      importo: 3500,
+      sala: "sala_tufo",
+      note: "Semi-esclusiva serale Sala Tufo & Parco (festa 18 anni).",
+      isSigned: true,
+      isPending: false,
+      tipoEsclusiva: "semi_esclusiva",
+      spaziRiservati: ["Sala Tufo", "Giardino delle Promesse"],
+      signedPdfUrl: null,
+    },
+    // Sab 24 Luglio — Esclusiva SOLO PRANZO + visita serale separata · cena 100% libera
+    {
+      id: "jul27-24-esclusiva-pranzo",
+      title: "Matrimonio Edoardo Gallo & Giorgia Castaldi",
+      clientName: "Edoardo Gallo & Giorgia Castaldi",
+      tipo: "wedding",
+      status: "firmato",
+      data: iso(24),
+      ora: "12:00",
+      turno: "pranzo",
+      invitati: 130,
+      importo: 16900,
+      sala: "esclusiva_villa",
+      note: "Contratto firmato. Esclusiva tenuta SOLO a pranzo: la cena resta libera.",
+      isSigned: true,
+      isPending: false,
+      tipoEsclusiva: "esclusiva",
+      spaziRiservati: [],
+      signedPdfUrl: null,
+    },
+    {
+      id: "jul27-24-visita",
+      title: "Visita Accoglienza Coppia Ferrara & Capri",
+      clientName: "Coppia Ferrara & Capri",
+      tipo: "visita",
+      status: "visita",
+      data: iso(24),
+      ora: "18:30",
+      turno: "pomeriggio",
+      invitati: 2,
+      importo: 0,
+      sala: "giardino_agrumeto",
+      note: "Visita guidata alle 18:30. NON è un'esclusiva e NON blocca la cena.",
+      isSigned: false,
+      isPending: false,
+      spaziRiservati: [],
+      signedPdfUrl: null,
+    },
+    // Sab 31 Luglio — Esclusiva SOLO CENA · pranzo 100% libero
+    {
+      id: "jul27-31-esclusiva-cena",
+      title: "Matrimonio Federico Testa & Ludovica Leone",
+      clientName: "Federico Testa & Ludovica Leone",
+      tipo: "wedding",
+      status: "firmato",
+      data: iso(31),
+      ora: "19:00",
+      turno: "cena",
+      invitati: 125,
+      importo: 16250,
+      sala: "esclusiva_villa",
+      note: "Esclusiva tenuta SOLO a cena. Il pranzo resta 100% libero.",
+      isSigned: true,
+      isPending: false,
+      tipoEsclusiva: "esclusiva",
+      spaziRiservati: [],
+      signedPdfUrl: null,
+    },
+  ];
+}
+
+/**
+ * Luglio 2027 è il "mese demo" ufficiale: gli scenari mostrati sono definiti
+ * nel codice (buildJuly2027DemoEvents) e hanno priorità assoluta.
+ * Eventuali quote/opzioni locali con data in questo mese vengono ignorate,
+ * così i turni liberi/occupati restano sempre quelli narrati nel demo
+ * (es. Sab 3 Luglio: pranzo esclusivo, cena 100% libera).
+ */
+const DEMO_MONTH_ISO = "2027-07";
+function isDemoMonthDate(value?: string | null): boolean {
+  return String(value || "").slice(0, 7) === DEMO_MONTH_ISO;
+}
+
 function buildEvents(
   quotes: any[],
   signedPdfs: any[],
@@ -461,7 +813,7 @@ function buildEvents(
 
   // --- Opzioni / contratti in attesa (pendingContracts) ---
   (pendingContracts || []).forEach((c) => {
-    if (!c || !c.data_evento) return;
+    if (!c || !c.data_evento || isDemoMonthDate(c.data_evento)) return;
     const intestatari = getIntestatari(c);
     const tipoEsclusiva = normalizeTipoEsclusiva(
       c.opzione?.tipo || c.quote?.tipo_esclusiva
@@ -504,7 +856,7 @@ function buildEvents(
 
   // --- Contratti firmati / opzioni provenienti dalle quote ---
   (quotes || []).forEach((q) => {
-    if (!q || !q.data_evento || !q.id) return;
+    if (!q || !q.data_evento || !q.id || isDemoMonthDate(q.data_evento)) return;
     const id = String(q.id).toLowerCase();
     if (handledQuoteIds.has(id)) return;
 
@@ -555,20 +907,29 @@ function buildEvents(
     });
   });
 
+  // Luglio 2027 è il mese demo: lo arricchiamo SEMPRE con casi realistici,
+  // così la griglia di Luglio 2027 resta viva anche in presenza di dati reali.
+  const julyDemo = buildJuly2027DemoEvents();
+
   // Fallback dimostrativo solo se non esiste alcun dato reale.
   if (events.length === 0) {
-    return buildDemoEvents(reference);
+    return [...buildDemoEvents(reference), ...julyDemo];
   }
 
-  return events;
+  return [...events, ...julyDemo];
 }
 
 /* ------------------------------------------------------------------ */
 /* Logica "colpo d'occhio": occupazione macro-spazi per turno          */
 /* ------------------------------------------------------------------ */
 
-/** L'evento occupa l'intera tenuta (esclusiva) per tutta la giornata. */
+/**
+ * L'evento riserva l'intera tenuta (esclusiva), ma SOLO nel proprio turno.
+ * Una VISITA non è mai un'esclusiva e non deve mai bloccare sala o turno.
+ */
 function isExclusiveEvent(evt: CalendarEvent): boolean {
+  if (evt.tipo === "visita" || evt.status === "visita" || evt.status === "bozza_visita") return false;
+  if (!evt.isSigned && !evt.isPending && evt.status !== "firmato" && evt.status !== "opzione") return false;
   return evt.tipoEsclusiva === "esclusiva" || evt.sala === "esclusiva_villa";
 }
 
@@ -592,10 +953,55 @@ function eventCoversMacro(evt: CalendarEvent, macro: MacroSpace): boolean {
   return bianca || !tufo;
 }
 
-/** Un evento occupa un turno? (Pranzo/Cena; turni vuoti o ignoti => pranzo.) */
-function eventMatchesTurno(evt: CalendarEvent, turno: "pranzo" | "cena"): boolean {
+/**
+ * Turni occupati da un evento. Un evento copre UN solo turno (pranzo o cena);
+ * solo se dichiarato "giornata intera" blocca entrambi i turni.
+ * Turni vuoti o ignoti => pranzo.
+ */
+function eventTurni(evt: CalendarEvent): TurnoKey[] {
   const raw = String(evt.turno || "pranzo").toLowerCase();
-  return raw === turno;
+  if (raw === "cena") return ["cena"];
+  if (/(giornata|intera|tutto|entramb|full)/.test(raw)) return ["pranzo", "cena"];
+  return ["pranzo"];
+}
+
+/**
+ * Etichetta chiara del turno coperto da un'esclusiva:
+ * "☀️ PRANZO", "🌙 CENA" oppure "☀️🌙 GIORNATA INTERA".
+ */
+function exclusiveTurnoLabel(evt: CalendarEvent, turno: TurnoKey): string {
+  if (eventTurni(evt).length > 1) return "☀️🌙 GIORNATA INTERA";
+  return turno === "cena" ? "🌙 CENA" : "☀️ PRANZO";
+}
+
+/** A parità di slot prevale il contratto firmato sull'opzione. */
+function pickOccupant(list: CalendarEvent[]): CalendarEvent | null {
+  return list.find(isSignedEvent) || list[0] || null;
+}
+
+function toSlot(evt: CalendarEvent | null): SpaceSlot {
+  if (!evt) return EMPTY_SLOT;
+  return { occupant: evt, tone: isSignedEvent(evt) ? "signed" : "option" };
+}
+
+function buildTurnoPlan(bookings: CalendarEvent[], turno: TurnoKey): TurnoPlan {
+  const inTurno = bookings.filter((e) => eventTurni(e).includes(turno));
+  if (inTurno.length === 0) return EMPTY_TURNO;
+
+  // Esclusiva: riserva tutta la tenuta, ma SOLO in questo turno.
+  const exclusive = pickOccupant(inTurno.filter(isExclusiveEvent));
+  if (exclusive) {
+    const slot = toSlot(exclusive);
+    return { bianca: slot, tufo: slot, exclusive };
+  }
+
+  // Semi-esclusive a incastro: una per sala (Bianca & Giardini / Tufo & Parco).
+  const semi = inTurno.filter((e) => !isExclusiveEvent(e));
+  return {
+    bianca: toSlot(pickOccupant(semi.filter((e) => eventCoversMacro(e, "bianca")))),
+    tufo: toSlot(pickOccupant(semi.filter((e) => eventCoversMacro(e, "tufo")))),
+    exclusive: null,
+  };
 }
 
 function buildDayPlan(day: Date, events: CalendarEvent[]): DayPlan {
@@ -608,27 +1014,131 @@ function buildDayPlan(day: Date, events: CalendarEvent[]): DayPlan {
     }
   });
 
-  const exclusive = dayEvents.find(isExclusiveEvent) || null;
   const visits = dayEvents.filter((e) => e.tipo === "visita");
-  const bookingEvents = dayEvents.filter((e) => !isExclusiveEvent(e) && e.tipo !== "visita");
+  const bookingEvents = dayEvents.filter((e) => e.tipo !== "visita");
 
-  const slotFor = (turno: "pranzo" | "cena", macro: MacroSpace): SpaceSlot => {
-    const match = bookingEvents.find(
-      (e) => eventMatchesTurno(e, turno) && eventCoversMacro(e, macro)
-    );
-    if (!match) return EMPTY_SLOT;
-    return { occupant: match, tone: isSignedEvent(match) ? "signed" : "option" };
-  };
+  const pranzo = buildTurnoPlan(bookingEvents, "pranzo");
+  const cena = buildTurnoPlan(bookingEvents, "cena");
+
+  const slots = [pranzo.bianca, pranzo.tufo, cena.bianca, cena.tufo];
+  const freeSlots = slots.filter((s) => !s.occupant).length;
+  const hasOption = slots.some((s) => s.tone === "option");
+
+  let state: DayState;
+  if (freeSlots === 4) state = "libero";
+  else if (hasOption) state = "opzione";
+  else if (freeSlots === 0) state = "saturo";
+  else state = "parziale";
 
   return {
     iso: format(day, "yyyy-MM-dd"),
     isWeekend: day.getDay() === 0 || day.getDay() === 6,
-    exclusive,
-    pranzo: { bianca: slotFor("pranzo", "bianca"), tufo: slotFor("pranzo", "tufo") },
-    cena: { bianca: slotFor("cena", "bianca"), tufo: slotFor("cena", "tufo") },
+    pranzo,
+    cena,
     visits,
-    hasAnyBooking: Boolean(exclusive) || bookingEvents.length > 0,
+    hasAnyBooking: freeSlots < 4,
+    state,
+    freeSlots,
+    hasOption,
   };
+}
+
+const isTurnoFullyFree = (tp: TurnoPlan) => !tp.bianca.occupant && !tp.tufo.occupant;
+
+/** Suggerimenti "a colpo d'occhio" per i giorni parziali/con opzione (es. "🌙 Sera libera"). */
+function getFreeHints(plan: DayPlan): string[] {
+  const hints: string[] = [];
+  const entries: Array<[TurnoKey, TurnoPlan, string, string]> = [
+    ["pranzo", plan.pranzo, "☀️ Pranzo libero", "☀️"],
+    ["cena", plan.cena, "🌙 Sera libera", "🌙"],
+  ];
+  for (const [, tp, fullLabel, icon] of entries) {
+    if (isTurnoFullyFree(tp)) hints.push(fullLabel);
+    else if (!tp.bianca.occupant) hints.push(`${icon} Bianca libera`);
+    else if (!tp.tufo.occupant) hints.push(`${icon} Tufo libera`);
+  }
+  return hints;
+}
+
+/* ------------------------------------------------------------------ */
+/* Ricerca disponibilità data + suggeritore giorni vicini              */
+/* ------------------------------------------------------------------ */
+
+function turnoPlansFor(plan: DayPlan, filter: TurnoFilter): TurnoPlan[] {
+  if (filter === "pranzo") return [plan.pranzo];
+  if (filter === "cena") return [plan.cena];
+  return [plan.pranzo, plan.cena];
+}
+
+function availabilityLevel(plan: DayPlan, filter: TurnoFilter): AvailLevel {
+  const slots = turnoPlansFor(plan, filter).flatMap((t) => [t.bianca, t.tufo]);
+  const free = slots.filter((s) => !s.occupant).length;
+  if (free === slots.length) return "libera";
+  // Occupazione solo da opzioni 7gg (nessun contratto firmato): la data non è
+  // ancora bloccata, resta in prelazione → la segnaliamo come "opzione".
+  const hasSigned = slots.some((s) => s.tone === "signed");
+  const hasOption = slots.some((s) => s.tone === "option");
+  if (!hasSigned && hasOption) return "opzione";
+  if (free === 0) return "occupata";
+  return "parziale";
+}
+
+function describeTurno(tp: TurnoPlan): { text: string; tone: "free" | "partial" | "busy" } {
+  if (tp.exclusive) {
+    const isOption = tp.bianca.tone === "option";
+    return {
+      text: `${isOption ? "🟡 Opzione esclusiva tenuta" : "👑 Esclusiva tenuta"} · ${tp.exclusive.clientName}`,
+      tone: isOption ? "partial" : "busy",
+    };
+  }
+  const b = tp.bianca.occupant;
+  const t = tp.tufo.occupant;
+  if (!b && !t) return { text: "Intero turno libero (Sala Bianca & Sala Tufo)", tone: "free" };
+  const bText = b ? `Bianca: ${b.clientName}` : "Sala Bianca libera";
+  const tText = t ? `Tufo: ${t.clientName}` : "Sala Tufo libera";
+  return { text: `${bText} · ${tText}`, tone: b && t ? "busy" : "partial" };
+}
+
+interface DateSuggestion {
+  iso: string;
+  date: Date;
+  offsetDays: number;
+}
+
+/** Primi venerdì/sabato/domenica completamente liberi (per il turno scelto) attorno alla data cercata. */
+function findAlternatives(
+  fromIso: string,
+  filter: TurnoFilter,
+  events: CalendarEvent[],
+  limit = 4
+): DateSuggestion[] {
+  const base = parseISO(fromIso);
+  if (Number.isNaN(base.getTime())) return [];
+  const today = startOfDay(new Date());
+  const found: DateSuggestion[] = [];
+  for (let offset = 1; offset <= 60 && found.length < limit; offset++) {
+    for (const sign of [1, -1]) {
+      if (found.length >= limit) break;
+      const date = addDays(base, sign * offset);
+      if (date < today) continue;
+      if (![5, 6, 0].includes(date.getDay())) continue;
+      const plan = buildDayPlan(date, events);
+      if (availabilityLevel(plan, filter) === "libera") {
+        found.push({ iso: plan.iso, date, offsetDays: sign * offset });
+      }
+    }
+  }
+  return found.sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+
+function formatOffset(days: number): string {
+  const abs = Math.abs(days);
+  const when = days > 0 ? "dopo" : "prima";
+  if (abs % 7 === 0) {
+    const w = abs / 7;
+    return `${w} ${w === 1 ? "settimana" : "settimane"} ${when}`;
+  }
+  return `${abs} ${abs === 1 ? "giorno" : "giorni"} ${when}`;
 }
 
 /* ------------------------------------------------------------------ */
@@ -662,6 +1172,8 @@ function BloccaLink({
   turno,
   exclusive = false,
   compact = false,
+  mini = false,
+  title,
   formula,
   onChoose,
 }: {
@@ -669,12 +1181,17 @@ function BloccaLink({
   turno?: "pranzo" | "cena";
   exclusive?: boolean;
   compact?: boolean;
+  /** Solo icona "＋": per le righe sala dentro le celle strette. */
+  mini?: boolean;
+  title?: string;
   formula?: OptionFormula;
   onChoose: (slot: SlotChoice) => void;
 }) {
   return (
     <button
       type="button"
+      title={title ?? "Blocca questa data"}
+      aria-label={title ?? "Blocca questa data"}
       onClick={() =>
         onChoose({ iso, turno, exclusive, formula: formula ?? (exclusive ? "esclusiva" : "sala_bianca") })
       }
@@ -682,11 +1199,12 @@ function BloccaLink({
         ...BLOCK_LINK_BASE,
         fontFamily: "inherit",
         cursor: "pointer",
-        fontSize: compact ? "0.6rem" : "0.72rem",
-        padding: compact ? "1px 6px" : "3px 9px",
+        flex: "0 0 auto",
+        fontSize: compact || mini ? "0.6rem" : "0.72rem",
+        padding: mini ? "0 5px" : compact ? "1px 6px" : "3px 9px",
       }}
     >
-      ＋ Blocca
+      {mini ? "＋" : "＋ Blocca"}
     </button>
   );
 }
@@ -851,6 +1369,22 @@ export default function CalendarioClient({
   const [optError, setOptError] = useState("");
   const [toast, setToast] = useState("");
 
+  // Verifica rapida disponibilità data per gli sposi
+  const [searchDate, setSearchDate] = useState("");
+  const [searchTurno, setSearchTurno] = useState<TurnoFilter>("qualsiasi");
+  const [highlightIso, setHighlightIso] = useState("");
+
+  const jumpToDate = (iso: string) => {
+    const d = parseISO(iso);
+    if (Number.isNaN(d.getTime())) return;
+    setCurrentMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+    setHighlightIso(iso);
+    window.setTimeout(() => {
+      document.getElementById(`cal-day-${iso}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 150);
+    window.setTimeout(() => setHighlightIso((cur) => (cur === iso ? "" : cur)), 4500);
+  };
+
   const openOptionModal = (preset?: { iso?: string; turno?: "pranzo" | "cena"; formula?: OptionFormula }) => {
     setOptNome("");
     setOptTelefono("");
@@ -935,6 +1469,28 @@ export default function CalendarioClient({
   // Piano "colpo d'occhio" per ogni giorno (disponibilità sempre veritiera,
   // indipendente dal filtro attivo che agisce solo sui dettagli).
   const dayPlans = days.map((day) => ({ day, plan: buildDayPlan(day, eventsList) }));
+  // Il 1° del mese deve cadere sulla colonna giusta (settimana da Lunedì).
+  const leadingBlanks = days.length ? (days[0].getDay() + 6) % 7 : 0;
+
+  // --- Verifica rapida disponibilità data ---
+  const searchDay = searchDate ? parseISO(searchDate) : null;
+  const searchPlan = searchDay && !Number.isNaN(searchDay.getTime()) ? buildDayPlan(searchDay, eventsList) : null;
+  const searchLevel: AvailLevel | null = searchPlan ? availabilityLevel(searchPlan, searchTurno) : null;
+  const searchAlternatives: DateSuggestion[] =
+    searchPlan && searchLevel !== "libera" ? findAlternatives(searchPlan.iso, searchTurno, eventsList) : [];
+  const searchFreeTurno: TurnoKey | null = searchPlan
+    ? searchTurno !== "qualsiasi"
+      ? searchTurno
+      : isTurnoFullyFree(searchPlan.pranzo)
+        ? "pranzo"
+        : isTurnoFullyFree(searchPlan.cena)
+          ? "cena"
+          : !searchPlan.pranzo.bianca.occupant || !searchPlan.pranzo.tufo.occupant
+            ? "pranzo"
+            : !searchPlan.cena.bianca.occupant || !searchPlan.cena.tufo.occupant
+              ? "cena"
+              : null
+    : null;
 
   // --- Statistiche / KPI ---
   const totalWeddings = eventsList.filter(e => e.tipo === "wedding" && e.status === "firmato").length;
@@ -966,7 +1522,7 @@ export default function CalendarioClient({
       if (activeFilter === "privato") return e.tipo === "privato";
       if (activeFilter === "visita") return e.tipo === "visita";
       if (activeFilter === "esclusiva") {
-        return e.tipoEsclusiva === "esclusiva" || e.sala === "esclusiva_villa";
+        return isExclusiveEvent(e);
       }
       if (activeFilter === "opzione") return Boolean(e.isPending || e.status === "opzione");
       return true;
@@ -1011,112 +1567,174 @@ export default function CalendarioClient({
     }
   };
 
-  /* ------------------ Render: pill macro-spazio (Tab 1) ------------------ */
-  const renderSpacePill = (plan: DayPlan, slot: SpaceSlot, macro: MacroSpace, turno: "pranzo" | "cena") => {
+  /* ------------------ Helpers testo occupante ------------------ */
+  const occupantText = (occ: CalendarEvent, isOption: boolean) => {
+    if (!isOption) return occ.clientName;
+    if (occ.scaduta) return `⚠️ ${occ.clientName}`;
+    return typeof occ.giorniRimanenti === "number"
+      ? `⏳ ${occ.clientName} · ${occ.giorniRimanenti}gg`
+      : `⏳ ${occ.clientName}`;
+  };
+
+  const occupantTitle = (occ: CalendarEvent, isOption: boolean, prefix?: string) =>
+    [
+      prefix,
+      isOption ? optionStatusLabel(occ) : "✅ Contratto firmato",
+      occ.clientName,
+      occ.telefono ? `📞 ${occ.telefono}` : "",
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+  /* ------------------ Render: riga sala dentro un turno (Tab 1) ------------------ */
+  const renderSpaceRow = (plan: DayPlan, slot: SpaceSlot, macro: MacroSpace, turno: TurnoKey) => {
     const macroLabel = macro === "bianca" ? "Bianca" : "Tufo";
+    const fullName = macro === "bianca" ? "Sala Bianca & Giardini" : "Sala Tufo & Parco";
     if (!slot.occupant) {
       return (
-        <span key={`${plan.iso}-${turno}-${macro}-free`} style={FREE_MINI}>
-          🏛️ {macroLabel}: 🟢 Libera
-        </span>
+        <div style={SLOT_ROW}>
+          <span style={SLOT_TAG}>{macroLabel}</span>
+          <span style={SLOT_FREE_TEXT} title={`${fullName}: libera`}>
+            🟢 Libera
+          </span>
+          <BloccaLink
+            iso={plan.iso}
+            turno={turno}
+            mini
+            formula={macro === "tufo" ? "sala_tufo" : "sala_bianca"}
+            title={`Blocca ${fullName} · ${turno === "cena" ? "Cena" : "Pranzo"}`}
+            onChoose={handleChooseSlot}
+          />
+        </div>
       );
     }
     const occ = slot.occupant;
     const isOption = slot.tone === "option";
-
-    if (isOption && occ.isQuickOption) {
-      return (
+    return (
+      <div style={SLOT_ROW}>
+        <span style={SLOT_TAG}>{macroLabel}</span>
         <button
-          key={`${plan.iso}-${turno}-${macro}-occ`}
           type="button"
           onClick={() => handleOpenEdit(occ)}
-          title={`${optionStatusLabel(occ)} · ${occ.clientName}${occ.telefono ? ` · ${occ.telefono}` : ""}`}
-          style={{ ...OPTION_MINI, whiteSpace: "normal", lineHeight: 1.3 }}
+          title={occupantTitle(occ, isOption, fullName)}
+          style={{ ...(isOption ? OPTION_MINI : SIGNED_MINI), flex: "1 1 0" }}
         >
-          {optionStatusLabel(occ)}
-          <br />
-          {occ.clientName}
-          {occ.telefono ? ` · 📞 ${occ.telefono}` : ""}
+          {occupantText(occ, isOption)}
         </button>
-      );
-    }
-
-    const giorni =
-      isOption && typeof occ.giorniRimanenti === "number"
-        ? occ.scaduta
-          ? " · ⚠️ scaduta"
-          : ` · ${occ.giorniRimanenti}gg`
-        : "";
-    return (
-      <button
-        key={`${plan.iso}-${turno}-${macro}-occ`}
-        type="button"
-        onClick={() => handleOpenEdit(occ)}
-        title={`${macroLabel}: ${occ.clientName}`}
-        style={isOption ? OPTION_MINI : SIGNED_MINI}
-      >
-        🏛️ {macroLabel}: {occ.clientName}
-        {giorni}
-      </button>
+      </div>
     );
   };
 
   /* ------------------ Render: fascia turno (Tab 1) ------------------ */
-  const renderBand = (plan: DayPlan, turno: "pranzo" | "cena", label: string, slot: TurnoPlan) => {
-    const allFree = !slot.bianca.occupant && !slot.tufo.occupant;
+  const renderBand = (plan: DayPlan, turno: TurnoKey, label: string, tp: TurnoPlan) => {
+    if (isTurnoFullyFree(tp)) {
+      return (
+        <div style={{ ...BAND_WRAP, background: "#f0fdf4", border: `1px solid ${GREEN_BORDER}` }}>
+          <div style={{ ...BAND_LABEL, color: GREEN_TEXT }}>{label}</div>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px", minWidth: 0 }}>
+            <span style={FREE_BADGE} title="Sala Bianca & Giardini + Sala Tufo & Parco liberi">
+              🟢 Libera
+            </span>
+            <BloccaLink iso={plan.iso} turno={turno} compact onChoose={handleChooseSlot} />
+          </div>
+        </div>
+      );
+    }
+
+    if (tp.exclusive) {
+      const occ = tp.exclusive;
+      const isOption = tp.bianca.tone === "option";
+      const turnoBadge = exclusiveTurnoLabel(occ, turno);
+      return (
+        <div
+          style={{
+            ...BAND_WRAP,
+            background: isOption ? AMBER_BG : RED_BG,
+            border: `1px solid ${isOption ? AMBER_BORDER : RED_BORDER}`,
+          }}
+        >
+          <div style={{ ...BAND_LABEL, color: isOption ? AMBER_TEXT : RED_TEXT }}>{label}</div>
+          <button
+            type="button"
+            onClick={() => handleOpenEdit(occ)}
+            title={occupantTitle(occ, isOption, `👑 Esclusiva tenuta · ${turnoBadge}`)}
+            style={{
+              display: "block",
+              width: "100%",
+              maxWidth: "100%",
+              minWidth: 0,
+              boxSizing: "border-box",
+              textAlign: "left",
+              fontFamily: "inherit",
+              cursor: "pointer",
+              padding: "3px 6px",
+              borderRadius: "7px",
+              border: isOption ? `1px solid ${AMBER_BORDER}` : "1px solid #5a2d06",
+              background: isOption ? "#fde68a" : "linear-gradient(135deg, #7c3f08 0%, #5a2d06 100%)",
+              color: isOption ? AMBER_TEXT : "#ffe9c7",
+              overflow: "hidden",
+            }}
+          >
+            <span style={{ display: "block", fontSize: "0.58rem", fontWeight: 800, letterSpacing: "0.3px", whiteSpace: "nowrap" }}>
+              👑 ESCLUSIVA TENUTA · {turnoBadge}{isOption ? " · opzione" : ""}
+            </span>
+            <span
+              style={{
+                display: "block",
+                fontSize: "0.63rem",
+                fontWeight: 700,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                maxWidth: "100%",
+              }}
+            >
+              {occupantText(occ, isOption)}
+            </span>
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div style={BAND_WRAP}>
         <div style={BAND_LABEL}>{label}</div>
-        {plan.exclusive ? (
-          <span style={LOCKED_BADGE}>🔒 Turno Riservato</span>
-        ) : allFree ? (
-          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "4px" }}>
-            <span style={FREE_BADGE}>🟢 Libera (Tufo &amp; Bianca)</span>
-            <BloccaLink iso={plan.iso} turno={turno} compact onChoose={handleChooseSlot} />
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "3px", alignItems: "flex-start" }}>
-            {renderSpacePill(plan, slot.bianca, "bianca", turno)}
-            {renderSpacePill(plan, slot.tufo, "tufo", turno)}
-            {(!slot.bianca.occupant || !slot.tufo.occupant) && (
-              <BloccaLink
-                iso={plan.iso}
-                turno={turno}
-                compact
-                formula={slot.bianca.occupant ? "sala_tufo" : "sala_bianca"}
-                onChoose={handleChooseSlot}
-              />
-            )}
-          </div>
-        )}
+        {renderSpaceRow(plan, tp.bianca, "bianca", turno)}
+        {renderSpaceRow(plan, tp.tufo, "tufo", turno)}
       </div>
     );
   };
 
   /* ------------------ Render: celle matrice (Tab 2) ------------------ */
-  const renderSlotCell = (
-    plan: DayPlan,
-    slot: SpaceSlot,
-    turno: "pranzo" | "cena",
-    macro: MacroSpace
-  ) => {
-    if (plan.exclusive) {
-      const signed = isSignedEvent(plan.exclusive);
+  const renderSlotCell = (plan: DayPlan, tp: TurnoPlan, turno: TurnoKey, macro: MacroSpace) => {
+    const slot = macro === "bianca" ? tp.bianca : tp.tufo;
+
+    if (tp.exclusive) {
+      const occ = tp.exclusive;
+      const isOption = tp.bianca.tone === "option";
       return (
         <td
           style={{
             ...MATRIX_TD,
-            background: signed ? RED_BG : AMBER_BG,
-            border: `1px solid ${signed ? RED_BORDER : AMBER_BORDER}`,
+            background: isOption ? AMBER_BG : RED_BG,
+            border: `1px solid ${isOption ? AMBER_BORDER : RED_BORDER}`,
           }}
         >
-          <div style={{ fontWeight: 800, fontSize: "0.72rem", color: signed ? GOLD_TEXT : AMBER_TEXT }}>
-            {plan.exclusive.isQuickOption ? optionStatusLabel(plan.exclusive) : "👑 Intera Tenuta Riservata"}
+          <div style={{ fontWeight: 800, fontSize: "0.72rem", color: isOption ? AMBER_TEXT : GOLD_TEXT }}>
+            {isOption && occ.isQuickOption
+              ? optionStatusLabel(occ)
+              : isOption
+                ? `👑 ESCLUSIVA · OPZIONE · ${exclusiveTurnoLabel(occ, turno)}`
+                : `👑 ESCLUSIVA TENUTA · ${exclusiveTurnoLabel(occ, turno)}`}
           </div>
-          <div style={{ fontSize: "0.7rem", color: signed ? RED_TEXT : AMBER_TEXT, fontWeight: 700 }}>
-            {plan.exclusive.clientName}
-            {plan.exclusive.isQuickOption && plan.exclusive.telefono ? ` · 📞 ${plan.exclusive.telefono}` : ""}
-          </div>
+          <button
+            type="button"
+            onClick={() => handleOpenEdit(occ)}
+            title={occupantTitle(occ, isOption)}
+            style={{ ...MATRIX_OCC_BTN, color: isOption ? AMBER_TEXT : RED_TEXT }}
+          >
+            {occ.clientName}
+          </button>
         </td>
       );
     }
@@ -1124,7 +1742,7 @@ export default function CalendarioClient({
     if (!slot.occupant) {
       return (
         <td style={{ ...MATRIX_TD, background: GREEN_BG, border: `1px solid ${GREEN_BORDER}` }}>
-          <div style={{ fontWeight: 800, fontSize: "0.72rem", color: GREEN_TEXT }}>LIBERO</div>
+          <div style={{ fontWeight: 800, fontSize: "0.72rem", color: GREEN_TEXT }}>🟢 LIBERO</div>
           <BloccaLink
             iso={plan.iso}
             turno={turno}
@@ -1144,9 +1762,14 @@ export default function CalendarioClient({
     return (
       <td style={{ ...MATRIX_TD, background: bg, border: `1px solid ${border}` }}>
         <div style={{ fontWeight: 800, fontSize: "0.68rem", color: text, letterSpacing: "0.3px" }}>
-          {isOption ? (occ.isQuickOption ? optionStatusLabel(occ) : "OPZIONE 7GG") : "OCCUPATO / FIRMATO"}
+          {isOption ? (occ.isQuickOption ? optionStatusLabel(occ) : "🟡 OPZIONE 7GG") : "🔴 OCCUPATO / FIRMATO"}
         </div>
-        <button type="button" onClick={() => handleOpenEdit(occ)} style={{ ...MATRIX_OCC_BTN, color: text }}>
+        <button
+          type="button"
+          onClick={() => handleOpenEdit(occ)}
+          title={occupantTitle(occ, isOption)}
+          style={{ ...MATRIX_OCC_BTN, color: text }}
+        >
           {occ.clientName}
         </button>
         {occ.isQuickOption && occ.telefono && (
@@ -1161,49 +1784,53 @@ export default function CalendarioClient({
     );
   };
 
+  /** Colonna "Esclusiva Villa": l'esclusiva si prenota per singolo turno (serve tutta la tenuta libera in quel turno). */
   const renderExclusiveColumnCell = (plan: DayPlan) => {
-    if (plan.exclusive) {
-      const signed = isSignedEvent(plan.exclusive);
-      return (
-        <td
-          style={{
-            ...MATRIX_TD,
-            background: signed ? "linear-gradient(135deg, #7c3f08 0%, #5a2d06 100%)" : AMBER_BG,
-            border: `1px solid ${signed ? "#7c3f08" : AMBER_BORDER}`,
-            color: signed ? "#ffe9c7" : AMBER_TEXT,
-          }}
-        >
-          <div style={{ fontWeight: 800, fontSize: "0.72rem" }}>
-            {signed ? "👑 Riservata" : plan.exclusive.isQuickOption ? optionStatusLabel(plan.exclusive) : "👑 Opzione"}
-          </div>
-          <div style={{ fontSize: "0.7rem", fontWeight: 700 }}>
-            {plan.exclusive.clientName}
-            {plan.exclusive.isQuickOption && plan.exclusive.telefono ? ` · 📞 ${plan.exclusive.telefono}` : ""}
-          </div>
-        </td>
-      );
-    }
-
-    if (plan.hasAnyBooking) {
-      return (
-        <td style={{ ...MATRIX_TD, background: RED_BG, border: `1px solid ${RED_BORDER}` }}>
-          <div style={{ fontWeight: 800, fontSize: "0.7rem", color: RED_TEXT }}>
-            Non disponibile in esclusiva
-          </div>
-        </td>
-      );
-    }
-
+    const rows: Array<[TurnoKey, TurnoPlan]> = [
+      ["pranzo", plan.pranzo],
+      ["cena", plan.cena],
+    ];
     return (
-      <td style={{ ...MATRIX_TD, background: GOLD_BG, border: `1px solid ${GOLD_BORDER}` }}>
-        <div style={{ fontWeight: 800, fontSize: "0.72rem", color: GOLD_TEXT }}>👑 Libera per Esclusiva</div>
-        <BloccaLink iso={plan.iso} exclusive compact onChoose={handleChooseSlot} />
+      <td style={{ ...MATRIX_TD, background: GOLD_BG, border: `1px solid ${GOLD_BORDER}`, textAlign: "left" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          {rows.map(([turno, tp]) => {
+            const icon = turno === "cena" ? "🌙" : "☀️";
+            const name = turno === "cena" ? "Cena" : "Pranzo";
+            if (tp.exclusive) {
+              const isOption = tp.bianca.tone === "option";
+              return (
+                <div
+                  key={turno}
+                  title={`${name}: esclusiva tenuta · ${tp.exclusive.clientName}`}
+                  style={{ fontSize: "0.68rem", fontWeight: 800, color: isOption ? AMBER_TEXT : RED_TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                >
+                  {icon} {isOption ? "🟡" : "👑"} {isOption ? "Opzione esclusiva" : "ESCLUSIVA"} · {tp.exclusive.clientName}
+                </div>
+              );
+            }
+            if (isTurnoFullyFree(tp)) {
+              return (
+                <div key={turno} style={{ display: "flex", alignItems: "center", gap: "4px", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: "0.68rem", fontWeight: 800, color: GREEN_TEXT }}>
+                    {icon} {name}: 🟢 Libera
+                  </span>
+                  <BloccaLink iso={plan.iso} turno={turno} exclusive compact title={`Blocca esclusiva · ${name}`} onChoose={handleChooseSlot} />
+                </div>
+              );
+            }
+            return (
+              <div key={turno} style={{ fontSize: "0.68rem", fontWeight: 700, color: "#8c857b" }}>
+                {icon} {name}: non disponibile in esclusiva
+              </div>
+            );
+          })}
+        </div>
       </td>
     );
   };
 
   return (
-    <div style={{ maxWidth: "1250px", margin: "0 auto", fontFamily: "'Outfit', system-ui, sans-serif", color: "#2c2a27" }}>
+    <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", margin: "0 auto", fontFamily: "'Outfit', system-ui, sans-serif", color: "#2c2a27" }}>
 
       {/* Header Sezione */}
       <div style={{ marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
@@ -1270,6 +1897,175 @@ export default function CalendarioClient({
           </button>
         </div>
       </div>
+
+      {/* WIDGET: VERIFICA RAPIDA DISPONIBILITÀ DATA PER GLI SPOSI */}
+      <section
+        aria-label="Verifica rapida disponibilità data"
+        style={{
+          width: "100%",
+          maxWidth: "100%",
+          minWidth: 0,
+          boxSizing: "border-box",
+          marginBottom: "1.25rem",
+          padding: "1.1rem 1.25rem",
+          borderRadius: "18px",
+          border: "1px solid #ecd9b5",
+          borderLeft: `5px solid ${GOLD_BORDER}`,
+          background: "linear-gradient(135deg, #fffaf0 0%, #ffffff 70%)",
+          boxShadow: "0 6px 20px rgba(201,162,75,0.10)",
+        }}
+      >
+        <h2 style={{ margin: "0 0 0.8rem 0", fontSize: "1.05rem", fontFamily: "Georgia, serif", color: "#1e1b18", fontWeight: 600 }}>
+          🔍 Verifica Rapida Disponibilità Data per gli Sposi
+        </h2>
+
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: "0.8rem" }}>
+          <div style={{ flex: "0 1 210px", minWidth: "160px" }}>
+            <label htmlFor="search-date" style={MODAL_LABEL}>Data desiderata</label>
+            <input
+              id="search-date"
+              type="date"
+              value={searchDate}
+              onChange={(e) => setSearchDate(e.target.value)}
+              style={MODAL_INPUT}
+            />
+          </div>
+          <div style={{ flex: "0 1 auto", minWidth: 0 }}>
+            <span style={MODAL_LABEL}>Turno</span>
+            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+              {(["qualsiasi", "pranzo", "cena"] as TurnoFilter[]).map((t) => (
+                <div key={t} style={{ flex: "0 0 auto" }}>
+                  <ChoiceChip active={searchTurno === t} onClick={() => setSearchTurno(t)}>
+                    {t === "qualsiasi" ? "Qualsiasi" : t === "pranzo" ? "☀️ Pranzo" : "🌙 Cena"}
+                  </ChoiceChip>
+                </div>
+              ))}
+            </div>
+          </div>
+          {searchDate && (
+            <button
+              type="button"
+              onClick={() => setSearchDate("")}
+              style={{ ...SEARCH_BTN, border: "1px solid #e2d7c7", background: "#ffffff", color: "#78716c" }}
+            >
+              ✕ Pulisci
+            </button>
+          )}
+        </div>
+
+        {searchPlan && searchLevel && (
+          <div style={{ marginTop: "1rem", minWidth: 0 }}>
+            <div
+              role="status"
+              style={{
+                background: LEVEL_STYLE[searchLevel].bg,
+                border: `1.5px solid ${LEVEL_STYLE[searchLevel].border}`,
+                color: LEVEL_STYLE[searchLevel].text,
+                borderRadius: "14px",
+                padding: "0.85rem 1rem",
+                minWidth: 0,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.6rem" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: "1.05rem" }}>{LEVEL_STYLE[searchLevel].label}</div>
+                  <div style={{ fontSize: "0.85rem", fontWeight: 700, textTransform: "capitalize" }}>
+                    {format(parseISO(searchPlan.iso), "EEEE d MMMM yyyy", { locale: it })}
+                    {searchTurno !== "qualsiasi" && ` · ${TURNO_LABEL[searchTurno]}`}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={() => jumpToDate(searchPlan.iso)}
+                    style={{ ...SEARCH_BTN, border: `1px solid ${LEVEL_STYLE[searchLevel].border}`, background: "#ffffff", color: LEVEL_STYLE[searchLevel].text }}
+                  >
+                    📍 Vai al giorno
+                  </button>
+                  {searchLevel !== "occupata" && searchFreeTurno && (
+                    <button
+                      type="button"
+                      onClick={() => openOptionModal({ iso: searchPlan.iso, turno: searchFreeTurno })}
+                      style={{ ...SEARCH_BTN, border: "none", background: "linear-gradient(135deg, #e58c2c 0%, #c2410c 100%)", color: "#ffffff" }}
+                    >
+                      ⚡ Opzione rapida
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "3px", marginTop: "0.6rem" }}>
+                {(searchTurno === "qualsiasi" ? (["pranzo", "cena"] as TurnoKey[]) : [searchTurno]).map((t) => {
+                  const d = describeTurno(searchPlan[t]);
+                  return (
+                    <div key={t} style={{ fontSize: "0.82rem", fontWeight: 600, display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                      <strong>{TURNO_LABEL[t]}:</strong>
+                      <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>
+                        {d.tone === "free" ? "🟢" : d.tone === "partial" ? "🟠" : "🔴"} {d.text}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {searchLevel !== "libera" && (
+              <div style={{ marginTop: "0.9rem" }}>
+                <div style={{ fontSize: "0.78rem", fontWeight: 800, color: "#544e45", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: "0.5rem" }}>
+                  💡 Alternative libere nei weekend vicini (ven · sab · dom)
+                </div>
+                {searchAlternatives.length === 0 ? (
+                  <div style={{ fontSize: "0.85rem", color: "#78716c" }}>
+                    Nessun venerdì, sabato o domenica completamente libero nei prossimi due mesi attorno a questa data.
+                  </div>
+                ) : (
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "0.6rem" }}>
+                    {searchAlternatives.map((alt) => (
+                      <div
+                        key={alt.iso}
+                        style={{ background: "#f6fef9", border: `1px solid ${GREEN_BORDER}`, borderRadius: "12px", padding: "0.65rem 0.75rem", minWidth: 0, boxSizing: "border-box" }}
+                      >
+                        <div style={{ fontWeight: 800, color: "#1e1b18", fontSize: "0.92rem", textTransform: "capitalize", fontFamily: "Georgia, serif" }}>
+                          {format(alt.date, "EEE d MMM yyyy", { locale: it })}
+                        </div>
+                        <div style={{ fontSize: "0.72rem", fontWeight: 700, color: GREEN_TEXT, margin: "2px 0 0.5rem 0" }}>
+                          🟢 {searchTurno === "qualsiasi" ? "Intera giornata libera" : `${TURNO_LABEL[searchTurno]} libero`} · {formatOffset(alt.offsetDays)}
+                        </div>
+                        <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                          <button
+                            type="button"
+                            onClick={() => jumpToDate(alt.iso)}
+                            style={{ ...SEARCH_BTN, padding: "0.3rem 0.6rem", fontSize: "0.72rem", border: `1px solid ${GREEN_BORDER}`, background: "#ffffff", color: GREEN_TEXT }}
+                          >
+                            📍 Vai
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openOptionModal({ iso: alt.iso, turno: searchTurno === "cena" ? "cena" : "pranzo" })
+                            }
+                            style={{ ...SEARCH_BTN, padding: "0.3rem 0.6rem", fontSize: "0.72rem", border: "none", background: "linear-gradient(135deg, #e58c2c 0%, #c2410c 100%)", color: "#ffffff" }}
+                          >
+                            ⚡ Opzione
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSearchDate(alt.iso)}
+                            title="Verifica questa data"
+                            style={{ ...SEARCH_BTN, padding: "0.3rem 0.6rem", fontSize: "0.72rem", border: "1px solid #e2d7c7", background: "#ffffff", color: "#544e45" }}
+                          >
+                            🔍
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* SELETTORE MODALITÀ DI VISUALIZZAZIONE */}
       <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginBottom: "1.25rem" }}>
@@ -1507,58 +2303,73 @@ export default function CalendarioClient({
 
       {/* ============================ TAB 1: GRIGLIA MENSILE ============================ */}
       {viewMode === "griglia" && (
-        <div style={{ background: "#ffffff", borderRadius: "20px", border: "1px solid #e8e2d9", padding: "1.5rem", boxShadow: "0 10px 30px rgba(0,0,0,0.03)" }}>
+        <div style={{ background: "#ffffff", borderRadius: "20px", border: "1px solid #e8e2d9", padding: "1rem", boxShadow: "0 10px 30px rgba(0,0,0,0.03)", width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
             <h2 style={{ margin: 0, fontSize: "1.15rem", fontFamily: "Georgia, serif", color: "#1e1b18", fontWeight: 600 }}>
               🗓️ Slot Spazi per Giorno
             </h2>
             <span style={{ fontSize: "0.8rem", color: "#78716c" }}>
-              Clicca su un giorno o su <strong>＋ Blocca</strong> per bloccare subito la data.
+              Clicca su <strong>＋ Blocca</strong> per bloccare subito il turno libero.
             </span>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "10px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+              gap: "6px",
+              width: "100%",
+              maxWidth: "100%",
+              boxSizing: "border-box",
+            }}
+          >
 
-            {["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"].map(dayName => (
-              <div key={dayName} style={{ padding: "0.8rem", fontWeight: 800, color: "#8c857b", fontSize: "0.82rem", textTransform: "uppercase", letterSpacing: "1px", textAlign: "center" }}>
+            {["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"].map((dayName) => (
+              <div key={dayName} style={{ padding: "0.4rem 0.2rem", fontWeight: 800, color: "#8c857b", fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "1px", textAlign: "center", minWidth: 0 }}>
                 {dayName}
               </div>
             ))}
 
-            {dayPlans.map(({ day, plan }) => {
-              const exclusiveSigned = plan.exclusive ? isSignedEvent(plan.exclusive) : false;
-              const cellBackground = plan.exclusive
-                ? (exclusiveSigned ? "#fef2f2" : "#fff7ed")
-                : "#ffffff";
-              const cellBorder = plan.exclusive
-                ? (exclusiveSigned ? "2px solid #7c3f08" : `2px solid ${GOLD_BORDER}`)
-                : plan.isWeekend
-                  ? "1.5px solid #f0d9b5"
-                  : "1px solid #eee8df";
+            {/* Celle vuote iniziali: il 1° del mese cade sul giorno della settimana corretto */}
+            {Array.from({ length: leadingBlanks }, (_, i) => (
+              <div key={`blank-${i}`} aria-hidden style={{ minWidth: 0 }} />
+            ))}
 
+            {dayPlans.map(({ day, plan }) => {
+              const st = DAY_STATE_STYLE[plan.state];
+              const hints =
+                plan.state === "parziale" || plan.state === "opzione" ? getFreeHints(plan).slice(0, 2) : [];
+              const isHighlighted = highlightIso === plan.iso;
               const chipSource = activeFilter === "tutti" ? plan.visits : getEventsForDay(day);
 
               return (
                 <div
+                  id={`cal-day-${plan.iso}`}
                   key={plan.iso}
                   style={{
+                    minWidth: 0,
+                    maxWidth: "100%",
+                    boxSizing: "border-box",
                     minHeight: "190px",
-                    background: cellBackground,
+                    background: st.bg,
                     borderRadius: "14px",
-                    border: cellBorder,
-                    padding: "0.55rem",
+                    border: st.border,
+                    padding: "0.4rem",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "0.4rem",
+                    gap: "0.3rem",
+                    overflow: "hidden",
+                    boxShadow: isHighlighted ? "0 0 0 3px #e58c2c, 0 8px 22px rgba(229,140,44,0.35)" : "none",
                     transition: "all 0.2s ease-out",
                   }}
                 >
-                  {/* Intestazione giorno */}
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.3rem" }}>
+                  {/* Intestazione giorno + semaforo */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.25rem", minWidth: 0 }}>
                     <Link
                       href={`/admin/contratti?data=${plan.iso}`}
-                      title="Blocca questa data (apri contratti)"
+                      title={`${plan.isWeekend ? "Weekend · " : ""}Blocca questa data (apri contratti)`}
                       style={{
+                        flex: "0 0 auto",
                         fontWeight: 800,
                         color: plan.isWeekend ? "#b45f0c" : "#1e1b18",
                         fontSize: "1rem",
@@ -1567,46 +2378,49 @@ export default function CalendarioClient({
                       }}
                     >
                       {format(day, "d")}
-                      {plan.isWeekend && (
-                        <span style={{ fontSize: "0.58rem", marginLeft: "4px", fontWeight: 700, color: "#b45f0c" }}>
-                          weekend
-                        </span>
-                      )}
                     </Link>
-                    {plan.visits.length > 0 && (
-                      <span style={{ fontSize: "0.6rem", fontWeight: 800, color: "#0369a1", background: "#f0f9ff", padding: "0.1rem 0.35rem", borderRadius: "9px", border: "1px solid #bae6fd" }}>
-                        🕒 {plan.visits.length}
-                      </span>
-                    )}
+                    <span
+                      title={`Stato giornata: ${st.label}`}
+                      style={{
+                        minWidth: 0,
+                        fontSize: "0.58rem",
+                        fontWeight: 800,
+                        color: st.chipText,
+                        background: st.chipBg,
+                        border: `1px solid ${st.chipBorder}`,
+                        borderRadius: "999px",
+                        padding: "1px 6px",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {st.label}
+                    </span>
                   </div>
 
-                  {/* Badge esclusiva: copre l'intera giornata */}
-                  {plan.exclusive && (
-                    <div style={EXCLUSIVE_BANNER}>
-                      👑 ESCLUSIVA TENUTA
-                      {plan.exclusive.isQuickOption && (
-                        <div style={{ fontSize: "0.66rem", fontWeight: 800, marginTop: "1px" }}>
-                          {optionStatusLabel(plan.exclusive)}
-                        </div>
+                  {(plan.visits.length > 0 || hints.length > 0) && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
+                      {hints.map((h) => (
+                        <span key={h} style={FREE_HINT_CHIP} title={h}>
+                          {h}
+                        </span>
+                      ))}
+                      {plan.visits.length > 0 && (
+                        <span style={{ fontSize: "0.58rem", fontWeight: 800, color: "#0369a1" }}>
+                          🕒 {plan.visits.length} {plan.visits.length === 1 ? "visita" : "visite"}
+                        </span>
                       )}
-                      <div style={{ fontSize: "0.66rem", fontWeight: 600, marginTop: "1px" }}>
-                        {plan.exclusive.clientName}
-                        {plan.exclusive.isQuickOption && plan.exclusive.telefono
-                          ? ` · 📞 ${plan.exclusive.telefono}`
-                          : plan.exclusive.isPending && typeof plan.exclusive.giorniRimanenti === "number"
-                            ? ` · opzione ${plan.exclusive.giorniRimanenti}gg`
-                            : ""}
-                      </div>
                     </div>
                   )}
 
-                  {/* Micro-fasce PRANZO / CENA */}
-                  {renderBand(plan, "pranzo", "☀️ PRANZO", plan.pranzo)}
-                  {renderBand(plan, "cena", "🌙 CENA", plan.cena)}
+                  {/* Micro-fasce PRANZO / CENA: l'esclusiva vale solo nel proprio turno */}
+                  {renderBand(plan, "pranzo", "☀️ Pranzo", plan.pranzo)}
+                  {renderBand(plan, "cena", "🌙 Cena", plan.cena)}
 
                   {/* Chips di dettaglio (visite o eventi filtrati) */}
                   {chipSource.length > 0 && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "3px", marginTop: "auto" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "3px", marginTop: "auto", minWidth: 0 }}>
                       {chipSource.map((evt) => {
                         const isVisita = evt.tipo === "visita";
                         const isPending = Boolean(evt.isPending || evt.status === "opzione");
@@ -1616,20 +2430,19 @@ export default function CalendarioClient({
                           ? VISIT_CHIP
                           : isExclusive || isSigned
                             ? SIGNED_MINI
-                            : isPending
-                              ? OPTION_MINI
-                              : OPTION_MINI;
+                            : OPTION_MINI;
+                        const chipText = isVisita
+                          ? `🕒 ${evt.ora} Visita · ${evt.clientName}`
+                          : `${isExclusive ? "👑 " : isPending ? "⏳ " : ""}${evt.turno === "cena" ? "Cena" : "Pranzo"} · ${evt.clientName}`;
                         return (
                           <button
                             key={evt.id}
                             type="button"
                             onClick={() => handleOpenEdit(evt)}
-                            title={evt.title}
-                            style={{ ...toneStyle, cursor: "pointer" }}
+                            title={`${evt.title} — ${chipText}`}
+                            style={toneStyle}
                           >
-                            {isVisita
-                              ? `🕒 ${evt.ora} Visita · ${evt.clientName}`
-                              : `${isExclusive ? "👑 " : isPending ? "⏳ " : ""}${evt.turno === "cena" ? "Cena" : "Pranzo"} · ${evt.clientName}`}
+                            {chipText}
                           </button>
                         );
                       })}
@@ -1645,7 +2458,7 @@ export default function CalendarioClient({
 
       {/* ==================== TAB 2: MATRICE SPAZI & TURNI (COLPO D'OCCHIO) ==================== */}
       {viewMode === "matrice" && (
-        <div style={{ background: "#ffffff", borderRadius: "20px", border: "1px solid #e8e2d9", padding: "1.5rem", boxShadow: "0 10px 30px rgba(0,0,0,0.03)" }}>
+        <div style={{ background: "#ffffff", borderRadius: "20px", border: "1px solid #e8e2d9", padding: "1rem", boxShadow: "0 10px 30px rgba(0,0,0,0.03)", width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
             <h2 style={{ margin: 0, fontSize: "1.15rem", fontFamily: "Georgia, serif", color: "#1e1b18", fontWeight: 600 }}>
               🏢 Planning Mensile — Dove c&apos;è posto a colpo d&apos;occhio
@@ -1664,12 +2477,19 @@ export default function CalendarioClient({
                   <th style={MATRIX_TH}>☀️ PRANZO — Sala Tufo &amp; Parco</th>
                   <th style={MATRIX_TH}>🌙 CENA — Sala Bianca &amp; Giardini</th>
                   <th style={MATRIX_TH}>🌙 CENA — Sala Tufo &amp; Parco</th>
-                  <th style={MATRIX_TH}>👑 Formula Esclusiva Villa</th>
+                  <th style={MATRIX_TH}>👑 Esclusiva Villa (per turno)</th>
                 </tr>
               </thead>
               <tbody>
                 {dayPlans.map(({ day, plan }) => (
-                  <tr key={plan.iso} style={{ background: plan.isWeekend ? "#fffaf0" : "#ffffff" }}>
+                  <tr
+                    id={`cal-day-${plan.iso}`}
+                    key={plan.iso}
+                    style={{
+                      background: plan.isWeekend ? "#fffaf0" : "#ffffff",
+                      outline: highlightIso === plan.iso ? `3px solid ${COLOR_PENDING}` : "none",
+                    }}
+                  >
                     <td
                       style={{
                         ...MATRIX_DAY_TD,
@@ -1691,10 +2511,10 @@ export default function CalendarioClient({
                         </div>
                       )}
                     </td>
-                    {renderSlotCell(plan, plan.pranzo.bianca, "pranzo", "bianca")}
-                    {renderSlotCell(plan, plan.pranzo.tufo, "pranzo", "tufo")}
-                    {renderSlotCell(plan, plan.cena.bianca, "cena", "bianca")}
-                    {renderSlotCell(plan, plan.cena.tufo, "cena", "tufo")}
+                    {renderSlotCell(plan, plan.pranzo, "pranzo", "bianca")}
+                    {renderSlotCell(plan, plan.pranzo, "pranzo", "tufo")}
+                    {renderSlotCell(plan, plan.cena, "cena", "bianca")}
+                    {renderSlotCell(plan, plan.cena, "cena", "tufo")}
                     {renderExclusiveColumnCell(plan)}
                   </tr>
                 ))}
@@ -1881,7 +2701,7 @@ export default function CalendarioClient({
                 </div>
                 <div style={{ fontSize: "0.9rem", color: "#2c2a27", marginBottom: selectedEvent.signedPdfUrl ? "0.75rem" : 0 }}>
                   {selectedEvent.tipoEsclusiva === "esclusiva"
-                    ? "Formula: Esclusiva intera villa (occupazione totale della giornata)."
+                    ? `Formula: Esclusiva tenuta — riservata SOLO per ${exclusiveTurnoLabel(selectedEvent, selectedEvent.turno === "cena" ? "cena" : "pranzo")}. L'altro turno resta libero e prenotabile.`
                     : `Formula: Semi-esclusiva (turno ${selectedEvent.turno === "cena" ? "cena" : "pranzo"}).`}
                 </div>
                 {selectedEvent.signedPdfUrl ? (
@@ -2013,7 +2833,8 @@ export default function CalendarioClient({
             </span>
             <h3 style={{ margin: "0.2rem 0 1.1rem 0", fontFamily: "Georgia, serif", fontSize: "1.3rem", color: "#1e1b18" }}>
               {formatDateOnly(slotChoice.iso)}
-              {slotChoice.exclusive ? " · 👑 Esclusiva" : slotChoice.turno ? ` · ${slotChoice.turno === "cena" ? "🌙 Cena" : "☀️ Pranzo"}` : ""}
+              {slotChoice.turno ? ` · ${slotChoice.turno === "cena" ? "🌙 Cena" : "☀️ Pranzo"}` : ""}
+              {slotChoice.exclusive ? " · 👑 Esclusiva" : ""}
             </h3>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.7rem" }}>
               <button
