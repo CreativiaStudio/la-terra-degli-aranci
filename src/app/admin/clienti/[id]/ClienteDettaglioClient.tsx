@@ -36,6 +36,7 @@ export interface ClienteDetail {
   telefono: string;
   citta: string;
   provenienza: string;
+  professione?: string;
   codiceFiscale: string;
   tipoCliente: "privato" | "azienda";
   ragioneSociale: string;
@@ -103,7 +104,7 @@ type TabKey = "ricevimenti" | "location" | "memoria" | "anagrafica";
 const TABS: Array<{ key: TabKey; label: string; icon: string }> = [
   { key: "ricevimenti", label: "Ricevimenti Privati", icon: "💍" },
   { key: "location", label: "Eventi Location", icon: "🥂" },
-  { key: "memoria", label: "Memoria della Tenuta", icon: "🌿" },
+  { key: "memoria", label: "Memoria La Terra degli Aranci", icon: "🌿" },
   { key: "anagrafica", label: "Anagrafica & Fiscale", icon: "📇" },
 ];
 
@@ -556,6 +557,7 @@ export default function ClienteDettaglioClient({
     email: cliente.email,
     telefono: cliente.telefono,
     citta: cliente.citta,
+    professione: cliente.professione || "",
     codiceFiscale: cliente.codiceFiscale,
     tipoCliente: cliente.tipoCliente,
     ragioneSociale: cliente.ragioneSociale,
@@ -657,7 +659,7 @@ export default function ClienteDettaglioClient({
     startTransition(async () => {
       const res = await updateClientPreferencesAction(cliente.id, memoria);
       if (res.success) {
-        setFeedback({ type: "ok", text: "Memoria della tenuta salvata." });
+        setFeedback({ type: "ok", text: "Memoria salvata." });
         router.refresh();
       } else {
         setFeedback({ type: "err", text: res.error || "Impossibile salvare le preferenze." });
@@ -678,6 +680,7 @@ export default function ClienteDettaglioClient({
         email: ana.email.trim(),
         telefono: ana.telefono.trim(),
         citta_di_residenza: ana.citta.trim(),
+        professione: ana.professione.trim(),
         codice_fiscale: ana.codiceFiscale.trim(),
         tipo_cliente: ana.tipoCliente,
         ragione_sociale: ana.tipoCliente === "azienda" ? ana.ragioneSociale.trim() : "",
@@ -1184,11 +1187,11 @@ export default function ClienteDettaglioClient({
         </div>
       )}
 
-      {/* C) Memoria della Tenuta */}
+      {/* C) Memoria La Terra degli Aranci */}
       {tab === "memoria" && (
         <form className="premium-card" style={{ padding: "1.6rem" }} onSubmit={handleMemoriaSubmit}>
           <h2 style={{ margin: "0 0 0.3rem 0", color: "#514d48", fontFamily: "serif", fontSize: "1.4rem" }}>
-            🌿 Memoria della Tenuta &amp; Preferenze Permanenti
+            🌿 Memoria La Terra degli Aranci &amp; Preferenze Permanenti
           </h2>
           <p style={{ margin: "0 0 1.4rem 0", color: "#8a847c", fontSize: "0.9rem" }}>
             Ciò che rende unico il rapporto con questa famiglia, da custodire negli anni.
@@ -1262,7 +1265,7 @@ export default function ClienteDettaglioClient({
           </div>
 
           <button type="submit" disabled={pending} style={{ ...buttonPrimary, marginTop: "1.4rem", opacity: pending ? 0.7 : 1 }}>
-            {pending ? "Salvataggio..." : "💾 Salva Memoria della Tenuta"}
+            {pending ? "Salvataggio..." : "💾 Salva Memoria"}
           </button>
         </form>
       )}
@@ -1306,6 +1309,16 @@ export default function ClienteDettaglioClient({
                 onChange={(e) => setAna({ ...ana, citta: e.target.value })}
                 style={inputStyle}
                 placeholder={cliente.provenienza || "Es. Napoli"}
+              />
+            </label>
+            <label style={labelStyle}>
+              Professione
+              <input
+                type="text"
+                value={ana.professione}
+                onChange={(e) => setAna({ ...ana, professione: e.target.value })}
+                style={inputStyle}
+                placeholder="Es. Medico, Avvocato, Imprenditore"
               />
             </label>
             <label style={labelStyle}>

@@ -21,6 +21,8 @@ export const TAG_STYLES: Record<string, TagStyle> = {
   "Cliente Storico": { bg: "#166534", color: "#ffffff", border: "#166534" },
   Nuovo: { bg: "#f0fdf4", color: "#15803d", border: "#bbf7d0" },
   Aziendale: { bg: "#f5f3ff", color: "#6d28d9", border: "#ddd6fe" },
+  "⚠️ Con Riserva": { bg: "#fef2f2", color: "#991b1b", border: "#fca5a5" },
+  "🔒 Riservato Direzione": { bg: "#334155", color: "#f8fafc", border: "#1e293b" },
 };
 
 /** Etichette predefinite proposte come toggle rapido nel modale. */
@@ -31,6 +33,8 @@ export const TAG_PRESETS: string[] = [
   "Cliente Storico",
   "Nuovo",
   "Aziendale",
+  "⚠️ Con Riserva",
+  "🔒 Riservato Direzione",
 ];
 
 const FALLBACK_STYLE: TagStyle = { bg: "#f5f5f4", color: "#57534e", border: "#e7e5e4" };

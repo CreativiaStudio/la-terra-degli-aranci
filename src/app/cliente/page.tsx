@@ -5,6 +5,7 @@ import { listPdfsInR2 } from "@/lib/r2";
 import { generateSignature } from "@/lib/crypto";
 import { getQuoteChangesHistory } from "@/app/preventivi/modifica/actions";
 import { getServerSession } from "@/lib/auth";
+import { getClientSessionFromCookie } from "@/lib/magicLinkAuth";
 import ClientPortalWrapper from "./ClientPortalWrapper";
 
 export const revalidate = 0;
@@ -16,6 +17,7 @@ interface PageProps {
 export default async function ClientPortalPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const session = await getServerSession();
+  const clientSession = await getClientSessionFromCookie();
 
   const [quotes, signedPdfs] = await Promise.all([
     getQuotesFast(),
@@ -29,6 +31,9 @@ export default async function ClientPortalPage({ searchParams }: PageProps) {
 
   // Mappatura parametri e determinazione Modalità Dinamica (Wedding, Privato, Storico)
   let searchId = params.id;
+  if (!searchId && clientSession?.clientId) {
+    searchId = clientSession.clientId;
+  }
   if (searchId === "demo1" || searchId === "demo-pre-firma") searchId = "client-demo-pre-firma";
   if (searchId === "demo-firmato" || searchId === "demo-signed") searchId = "client-demo-firmato";
   if (searchId === "demo-ai" || searchId === "demo1b") searchId = "client-demo-ai";
@@ -57,6 +62,8 @@ export default async function ClientPortalPage({ searchParams }: PageProps) {
   // Trova il preventivo selezionato o configura i mock dedicati per le modalità
   const clientQuotesRaw = searchId
     ? quotes.filter((q) => q.id === searchId || q.client_id === searchId)
+    : clientSession?.email
+    ? quotes.filter((q) => q.clients?.email?.toLowerCase() === clientSession.email.toLowerCase())
     : quotes;
   let selectedQuote = clientQuotesRaw[0];
 
@@ -177,6 +184,14 @@ export default async function ClientPortalPage({ searchParams }: PageProps) {
         email: "sposi@laterradegliaranci.it",
       },
     };
+  }
+
+  // Se la data dell'evento è già trascorsa nel passato, passa automaticamente a modalità "storico" (blocco prezzi)
+  if (selectedQuote?.data_evento) {
+    const eventTime = new Date(selectedQuote.data_evento).getTime();
+    if (!isNaN(eventTime) && eventTime < new Date().setHours(0, 0, 0, 0)) {
+      mode = "storico";
+    }
   }
 
   const clientId = selectedQuote.client_id || selectedQuote.clients?.id || "demo-client";

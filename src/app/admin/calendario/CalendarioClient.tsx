@@ -15,12 +15,13 @@ import {
   startOfDay,
 } from "date-fns";
 import { it } from "date-fns/locale";
-import type { PendingContractLocal, QuickCalendarOptionLocal } from "@/lib/localDb";
+import type { PendingContractLocal, QuickCalendarOptionLocal, GoogleCalendarEvent } from "@/lib/localDb";
 import { normalizeTipoEsclusiva, isTufoSide, SEMI_ESCLUSIVA_FORMULE } from "@/lib/contractMeta";
 import {
   saveQuickCalendarOptionAction,
   releaseQuickCalendarOptionAction,
 } from "@/app/admin/calendario/calendarioActions";
+import { associateGCalAction } from "./gcalActions";
 
 interface CalendarioClientProps {
   quotes: any[];
@@ -28,8 +29,10 @@ interface CalendarioClientProps {
   pendingContracts?: PendingContractLocal[];
   quickOptions?: QuickCalendarOptionLocal[];
   initialMonth?: string;
+  gcalEvents?: GoogleCalendarEvent[];
 }
 
+export type LocationKey = "tutte" | "laterradegliaranci" | "villa_pagodina" | "sala_bianca" | "sala_tufo";
 type OptionFormula = "esclusiva" | "sala_bianca" | "sala_tufo";
 
 /** Evento normalizzato usato dal calendario: unifica firmati, opzioni 7gg e visite. */
@@ -66,6 +69,11 @@ interface CalendarEvent {
   telefono?: string;
   email?: string;
   formulaOpzione?: OptionFormula;
+  // Google Calendar Integration
+  isGCal?: boolean;
+  isVerbalOption?: boolean;
+  hasIncompleteData?: boolean;
+  location?: 'laterradegliaranci' | 'villa_pagodina' | 'sala_bianca' | 'sala_tufo';
 }
 
 const COLOR_SIGNED_SEMI = "#15803d"; // verde — semi-esclusiva confermata
@@ -136,7 +144,7 @@ const TURNO_LABEL: Record<TurnoKey, string> = { pranzo: "☀️ Pranzo", cena: "
 
 const LEVEL_STYLE: Record<AvailLevel, { bg: string; border: string; text: string; label: string }> = {
   libera: { bg: GREEN_BG, border: GREEN_BORDER, text: GREEN_TEXT, label: "🟢 Libera 100%" },
-  opzione: { bg: AMBER_BG, border: AMBER_BORDER, text: AMBER_TEXT, label: "🟡 Opzione 7gg in corso" },
+  opzione: { bg: AMBER_BG, border: AMBER_BORDER, text: AMBER_TEXT, label: "🟡 Revoca Contratto (7gg)" },
   parziale: { bg: "#ffedd5", border: "#fdba74", text: "#9a3412", label: "🟠 Parzialmente libera" },
   occupata: { bg: RED_BG, border: RED_BORDER, text: RED_TEXT, label: "🔴 Occupata" },
 };
@@ -180,7 +188,7 @@ const DAY_STATE_STYLE: Record<
     chipBg: AMBER_BG,
     chipText: AMBER_TEXT,
     chipBorder: AMBER_BORDER,
-    label: "🟡 Opzione",
+    label: "🟡 Revoca Contratto",
   },
   saturo: {
     bg: "#fef2f2",
@@ -357,7 +365,7 @@ const LEGEND_ITEMS: Array<{ dot: string; label: string }> = [
   { dot: "#fdba74", label: "🟠 Parziale = c'è ancora un turno o una sala libera" },
   { dot: AMBER_BG, label: "🟡 Opzione 7gg in attesa di firma" },
   { dot: RED_BG, label: "🔴 Pieno = contratti firmati su tutti i turni" },
-  { dot: "#e6c976", label: "👑 Esclusiva = tenuta riservata solo in quel turno" },
+  { dot: "#e6c976", label: "👑 Esclusiva = villa riservata solo in quel turno" },
 ];
 
 /** "Sposo & Sposa" per i matrimoni, solo il cliente per gli eventi. */
@@ -390,9 +398,9 @@ function resolveSala(
 
 /** Etichetta "colpo d'occhio" di un'opzione attiva con countdown. */
 function optionStatusLabel(evt: CalendarEvent): string {
-  if (evt.scaduta) return "⚠️ OPZIONE SCADUTA";
+  if (evt.scaduta) return "⚠️ CONTRATTO REVOCATO (SCADUTO)";
   const giorni = Math.max(0, Number(evt.giorniRimanenti ?? 0));
-  return `🟡 OPZIONE ATTIVA (mancano ${giorni} gg)`;
+  return `🟡 REVOCA CONTRATTO (mancano ${giorni} gg)`;
 }
 
 const OPTION_FORMULA_LABEL: Record<OptionFormula, string> = {
@@ -407,7 +415,7 @@ function quickOptionToEvent(o: QuickCalendarOptionLocal): CalendarEvent {
     o.formula === "sala_tufo" ? "sala_tufo" : o.formula === "sala_bianca" ? "sala_bianca" : "esclusiva";
   return {
     id: `quick-${o.quoteId}`,
-    title: `Opzione Rapida ${o.nome}`,
+    title: `Revoca Contratto 7gg · ${o.nome}`,
     clientName: o.nome,
     tipo: "wedding",
     status: "opzione",
@@ -572,7 +580,7 @@ function buildJuly2027DemoEvents(): CalendarEvent[] {
       invitati: 140,
       importo: 18200,
       sala: "esclusiva_villa",
-      note: "Esclusiva tenuta SOLO a pranzo: rito simbolico in Giardino delle Promesse e banchetto. La cena resta libera.",
+      note: "Esclusiva villa SOLO a pranzo: rito simbolico in Giardino delle Promesse e banchetto. La cena resta libera.",
       isSigned: true,
       isPending: false,
       tipoEsclusiva: "esclusiva",
@@ -592,7 +600,7 @@ function buildJuly2027DemoEvents(): CalendarEvent[] {
       invitati: 120,
       importo: 15600,
       sala: "esclusiva_villa",
-      note: "Esclusiva tenuta SOLO a cena. Il pranzo resta libero per eventuali incastri.",
+      note: "Esclusiva villa SOLO a cena. Il pranzo resta libero per eventuali incastri.",
       isSigned: true,
       isPending: false,
       tipoEsclusiva: "esclusiva",
@@ -695,7 +703,7 @@ function buildJuly2027DemoEvents(): CalendarEvent[] {
       invitati: 150,
       importo: 19500,
       sala: "esclusiva_villa",
-      note: "Esclusiva tenuta SOLO a pranzo.",
+      note: "Esclusiva villa SOLO a pranzo.",
       isSigned: true,
       isPending: false,
       tipoEsclusiva: "esclusiva",
@@ -734,7 +742,7 @@ function buildJuly2027DemoEvents(): CalendarEvent[] {
       invitati: 130,
       importo: 16900,
       sala: "esclusiva_villa",
-      note: "Contratto firmato. Esclusiva tenuta SOLO a pranzo: la cena resta libera.",
+      note: "Contratto firmato. Esclusiva villa SOLO a pranzo: la cena resta libera.",
       isSigned: true,
       isPending: false,
       tipoEsclusiva: "esclusiva",
@@ -772,7 +780,7 @@ function buildJuly2027DemoEvents(): CalendarEvent[] {
       invitati: 125,
       importo: 16250,
       sala: "esclusiva_villa",
-      note: "Esclusiva tenuta SOLO a cena. Il pranzo resta 100% libero.",
+      note: "Esclusiva villa SOLO a cena. Il pranzo resta 100% libero.",
       isSigned: true,
       isPending: false,
       tipoEsclusiva: "esclusiva",
@@ -799,7 +807,8 @@ function buildEvents(
   signedPdfs: any[],
   pendingContracts: PendingContractLocal[],
   reference: Date,
-  quickOptions: QuickCalendarOptionLocal[] = []
+  quickOptions: QuickCalendarOptionLocal[] = [],
+  gcalEvents: GoogleCalendarEvent[] = []
 ): CalendarEvent[] {
   const events: CalendarEvent[] = [];
   const handledQuoteIds = new Set<string>();
@@ -904,6 +913,40 @@ function buildEvents(
       tipoEsclusiva,
       spaziRiservati: spazi,
       signedPdfUrl: isSigned ? matchSignedPdf(signedPdfs, q) : null,
+    });
+  });
+
+  // --- Eventi importati da Google Calendar (Ibridi TDA & Villa Pagodina) ---
+  (gcalEvents || []).forEach((g) => {
+    if (!g || !g.start) return;
+    const isVerbal = Boolean(g.is_verbal_confirmation);
+    const loc = g.location || "laterradegliaranci";
+    const data = String(g.start).slice(0, 10);
+    const ora = g.start.includes("T") ? g.start.slice(11, 16) : "12:00";
+    const hourNum = parseInt(ora.slice(0, 2), 10);
+    const turno = (!isNaN(hourNum) && hourNum >= 17) ? "cena" : "pranzo";
+    const clientName = g.client_nome || g.summary;
+
+    events.push({
+      id: String(g.id),
+      title: g.summary,
+      clientName,
+      tipo: loc === "villa_pagodina" ? "villa_pagodina" : "privato",
+      status: isVerbal ? "opzione" : "confermato",
+      data,
+      ora,
+      turno,
+      invitati: 0,
+      importo: 0,
+      sala: loc,
+      note: g.description || `Sincronizzato da Google Calendar (${g.summary})`,
+      isPending: isVerbal,
+      isGCal: true,
+      isVerbalOption: isVerbal,
+      hasIncompleteData: Boolean(g.has_incomplete_data),
+      location: loc,
+      telefono: g.client_telefono,
+      email: g.client_email,
     });
   });
 
@@ -1087,7 +1130,7 @@ function describeTurno(tp: TurnoPlan): { text: string; tone: "free" | "partial" 
   if (tp.exclusive) {
     const isOption = tp.bianca.tone === "option";
     return {
-      text: `${isOption ? "🟡 Opzione esclusiva tenuta" : "👑 Esclusiva tenuta"} · ${tp.exclusive.clientName}`,
+      text: `${isOption ? "🟡 Opzione esclusiva villa" : "👑 Esclusiva villa"} · ${tp.exclusive.clientName}`,
       tone: isOption ? "partial" : "busy",
     };
   }
@@ -1336,6 +1379,7 @@ export default function CalendarioClient({
   pendingContracts = [],
   quickOptions = [],
   initialMonth,
+  gcalEvents = [],
 }: CalendarioClientProps) {
   const router = useRouter();
   // Supporta parametro mese iniziale (es. 2027-07) o fallback mese corrente.
@@ -1348,12 +1392,90 @@ export default function CalendarioClient({
   });
   const [viewMode, setViewMode] = useState<ViewMode>("griglia");
   const [activeFilter, setActiveFilter] = useState<string>("tutti");
+  const [locationFilter, setLocationFilter] = useState<LocationKey>("tutte");
   const [eventsList, setEventsList] = useState<CalendarEvent[]>(() =>
-    buildEvents(quotes, signedPdfs, pendingContracts, new Date(), quickOptions)
+    buildEvents(quotes, signedPdfs, pendingContracts, new Date(), quickOptions, gcalEvents)
   );
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [editForm, setEditForm] = useState<CalendarEvent | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Modale Associazione CRM per eventi Google Calendar
+  const [associateModalOpen, setAssociateModalOpen] = useState(false);
+  const [assocEvent, setAssocEvent] = useState<CalendarEvent | null>(null);
+  const [assocNome, setAssocNome] = useState("");
+  const [assocCognome, setAssocCognome] = useState("");
+  const [assocEmail, setAssocEmail] = useState("");
+  const [assocTelefono, setAssocTelefono] = useState("");
+  const [assocNote, setAssocNote] = useState("");
+  const [assocPending, setAssocPending] = useState(false);
+  const [assocMessage, setAssocMessage] = useState("");
+
+  const handleOpenAssociateModal = (evt: CalendarEvent) => {
+    setAssocEvent(evt);
+    const clean = (evt.clientName || "").replace(/^\?\s*/, "").replace(/^VP\s*[-:]?\s*/i, "").trim();
+    const parts = clean.split(" ");
+    setAssocNome(parts[0] || "");
+    setAssocCognome(parts.slice(1).join(" ") || "");
+    setAssocTelefono(evt.telefono || "");
+    setAssocEmail(evt.email || "");
+    setAssocNote(evt.note || "");
+    setAssocMessage("");
+    setAssociateModalOpen(true);
+  };
+
+  const handleConfirmAssociate = async () => {
+    if (!assocEvent) return;
+    setAssocPending(true);
+    setAssocMessage("");
+    try {
+      const res = await associateGCalAction(assocEvent.id.replace(/^gcal-/, ""), {
+        nome: assocNome,
+        cognome: assocCognome,
+        email: assocEmail,
+        telefono: assocTelefono,
+        note: assocNote,
+      });
+      if (res.success) {
+        setEventsList((prev) =>
+          prev.map((e) =>
+            e.id === assocEvent.id
+              ? {
+                  ...e,
+                  clientName: `${assocNome} ${assocCognome}`.trim(),
+                  telefono: assocTelefono,
+                  email: assocEmail,
+                  hasIncompleteData: false,
+                }
+              : e
+          )
+        );
+        if (selectedEvent && selectedEvent.id === assocEvent.id) {
+          setSelectedEvent((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  clientName: `${assocNome} ${assocCognome}`.trim(),
+                  telefono: assocTelefono,
+                  email: assocEmail,
+                  hasIncompleteData: false,
+                }
+              : null
+          );
+        }
+        setAssocMessage("✓ Scheda cliente CRM creata e associata!");
+        setTimeout(() => {
+          setAssociateModalOpen(false);
+        }, 1200);
+      } else {
+        setAssocMessage("Errore durante l'associazione.");
+      }
+    } catch (err: any) {
+      setAssocMessage(err?.message || "Errore di connessione.");
+    } finally {
+      setAssocPending(false);
+    }
+  };
 
   // Opzione rapida 7gg: scelta slot, modale compatto e feedback
   const [slotChoice, setSlotChoice] = useState<SlotChoice | null>(null);
@@ -1514,12 +1636,31 @@ export default function CalendarioClient({
   };
 
   const getEventsForDay = (day: Date) => {
-    const base = getEventsForDayRaw(day);
+    let base = getEventsForDayRaw(day);
+
+    if (locationFilter !== "tutte") {
+      base = base.filter((e) => {
+        if (locationFilter === "villa_pagodina") {
+          return e.location === "villa_pagodina" || e.sala === "villa_pagodina" || e.tipo === "villa_pagodina";
+        }
+        if (locationFilter === "sala_tufo") {
+          return e.location === "sala_tufo" || e.sala === "sala_tufo";
+        }
+        if (locationFilter === "sala_bianca") {
+          return e.location === "sala_bianca" || e.sala === "sala_bianca";
+        }
+        if (locationFilter === "laterradegliaranci") {
+          return e.location !== "villa_pagodina" && e.sala !== "villa_pagodina";
+        }
+        return true;
+      });
+    }
+
     if (activeFilter === "tutti") return base;
 
-    return base.filter(e => {
+    return base.filter((e) => {
       if (activeFilter === "wedding") return e.tipo === "wedding";
-      if (activeFilter === "privato") return e.tipo === "privato";
+      if (activeFilter === "privato") return e.tipo === "privato" || e.tipo === "villa_pagodina";
       if (activeFilter === "visita") return e.tipo === "visita";
       if (activeFilter === "esclusiva") {
         return isExclusiveEvent(e);
@@ -1657,7 +1798,7 @@ export default function CalendarioClient({
           <button
             type="button"
             onClick={() => handleOpenEdit(occ)}
-            title={occupantTitle(occ, isOption, `👑 Esclusiva tenuta · ${turnoBadge}`)}
+            title={occupantTitle(occ, isOption, `👑 Esclusiva villa · ${turnoBadge}`)}
             style={{
               display: "block",
               width: "100%",
@@ -1676,7 +1817,7 @@ export default function CalendarioClient({
             }}
           >
             <span style={{ display: "block", fontSize: "0.58rem", fontWeight: 800, letterSpacing: "0.3px", whiteSpace: "nowrap" }}>
-              👑 ESCLUSIVA TENUTA · {turnoBadge}{isOption ? " · opzione" : ""}
+              👑 ESCLUSIVA VILLA · {turnoBadge}{isOption ? " · opzione" : ""}
             </span>
             <span
               style={{
@@ -1725,7 +1866,7 @@ export default function CalendarioClient({
               ? optionStatusLabel(occ)
               : isOption
                 ? `👑 ESCLUSIVA · OPZIONE · ${exclusiveTurnoLabel(occ, turno)}`
-                : `👑 ESCLUSIVA TENUTA · ${exclusiveTurnoLabel(occ, turno)}`}
+                : `👑 ESCLUSIVA VILLA · ${exclusiveTurnoLabel(occ, turno)}`}
           </div>
           <button
             type="button"
@@ -1801,7 +1942,7 @@ export default function CalendarioClient({
               return (
                 <div
                   key={turno}
-                  title={`${name}: esclusiva tenuta · ${tp.exclusive.clientName}`}
+                  title={`${name}: esclusiva villa · ${tp.exclusive.clientName}`}
                   style={{ fontSize: "0.68rem", fontWeight: 800, color: isOption ? AMBER_TEXT : RED_TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                 >
                   {icon} {isOption ? "🟡" : "👑"} {isOption ? "Opzione esclusiva" : "ESCLUSIVA"} · {tp.exclusive.clientName}
@@ -2138,11 +2279,53 @@ export default function CalendarioClient({
 
       </div>
 
+      {/* BARRA SELEZIONE LOCATION (MULTI-STRUTTURA: TDA / VILLA PAGODINA / SALE) */}
+      <div style={{ background: "#f8fafc", padding: "0.85rem 1.25rem", borderRadius: "16px", border: "1px solid #cbd5e1", marginBottom: "0.75rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.8rem", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span style={{ fontSize: "0.82rem", fontWeight: 800, color: "#1e293b", textTransform: "uppercase", letterSpacing: "1px" }}>
+            📍 Location / Struttura:
+          </span>
+        </div>
+
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          {[
+            { key: "tutte", label: "🌐 Tutte le Location" },
+            { key: "laterradegliaranci", label: "🍊 La Terra degli Aranci (Principale)" },
+            { key: "villa_pagodina", label: "🏡 Villa Pagodina" },
+            { key: "sala_bianca", label: "🏛️ Sala Bianca" },
+            { key: "sala_tufo", label: "🍷 Sala Tufo" },
+          ].map((loc) => {
+            const isSel = locationFilter === loc.key;
+            return (
+              <button
+                key={loc.key}
+                type="button"
+                onClick={() => setLocationFilter(loc.key as LocationKey)}
+                style={{
+                  padding: "0.45rem 0.95rem",
+                  borderRadius: "20px",
+                  border: isSel ? "2px solid #0f172a" : "1px solid #cbd5e1",
+                  background: isSel ? "#0f172a" : "#ffffff",
+                  color: isSel ? "#ffffff" : "#334155",
+                  fontWeight: 700,
+                  fontSize: "0.82rem",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  boxShadow: isSel ? "0 2px 6px rgba(0,0,0,0.12)" : "none",
+                }}
+              >
+                {loc.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* BARRA FILTRI RAPIDI PER CATEGORIA */}
       <div style={{ background: "#ffffff", padding: "1rem 1.25rem", borderRadius: "16px", border: "1px solid #e8e2d9", marginBottom: "1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", boxShadow: "0 4px 14px rgba(0,0,0,0.02)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <span style={{ fontSize: "0.82rem", fontWeight: 800, color: "#1e1b18", textTransform: "uppercase", letterSpacing: "1px" }}>
-            Filtra Visualizzazione:
+            Filtra Tipologia:
           </span>
         </div>
 
@@ -2340,7 +2523,7 @@ export default function CalendarioClient({
               const hints =
                 plan.state === "parziale" || plan.state === "opzione" ? getFreeHints(plan).slice(0, 2) : [];
               const isHighlighted = highlightIso === plan.iso;
-              const chipSource = activeFilter === "tutti" ? plan.visits : getEventsForDay(day);
+              const chipSource = activeFilter === "tutti" && locationFilter === "tutte" ? plan.visits : getEventsForDay(day);
 
               return (
                 <div
@@ -2426,14 +2609,46 @@ export default function CalendarioClient({
                         const isPending = Boolean(evt.isPending || evt.status === "opzione");
                         const isSigned = Boolean(evt.isSigned || evt.status === "firmato");
                         const isExclusive = isExclusiveEvent(evt);
-                        const toneStyle: CSSProperties = isVisita
+                        const isGCal = Boolean(evt.isGCal);
+                        const isVerbal = Boolean(evt.isVerbalOption);
+                        const isVP = evt.location === "villa_pagodina";
+
+                        let toneStyle: CSSProperties = isVisita
                           ? VISIT_CHIP
                           : isExclusive || isSigned
                             ? SIGNED_MINI
                             : OPTION_MINI;
+
+                        if (isGCal) {
+                          if (isVP) {
+                            toneStyle = {
+                              ...toneStyle,
+                              background: "#f5f3ff",
+                              border: "1px solid #c4b5fd",
+                              color: "#6b21a8",
+                            };
+                          } else if (isVerbal) {
+                            toneStyle = {
+                              ...toneStyle,
+                              background: "#fffbeb",
+                              border: "1px dashed #d97706",
+                              color: "#92400e",
+                            };
+                          } else {
+                            toneStyle = {
+                              ...toneStyle,
+                              background: "#f0fdf4",
+                              border: "1px solid #86efac",
+                              color: "#166534",
+                            };
+                          }
+                        }
+
                         const chipText = isVisita
                           ? `🕒 ${evt.ora} Visita · ${evt.clientName}`
-                          : `${isExclusive ? "👑 " : isPending ? "⏳ " : ""}${evt.turno === "cena" ? "Cena" : "Pranzo"} · ${evt.clientName}`;
+                          : isGCal
+                            ? `${isVerbal ? "❓ " : isVP ? "🏡 VP · " : "📅 "}${evt.clientName}`
+                            : `${isExclusive ? "👑 " : isPending ? "⏳ " : ""}${evt.turno === "cena" ? "Cena" : "Pranzo"} · ${evt.clientName}`;
                         return (
                           <button
                             key={evt.id}
@@ -2580,6 +2795,71 @@ export default function CalendarioClient({
               {selectedEvent.title}
             </h2>
 
+            {/* Blocco Evento Google Calendar Ibrido */}
+            {selectedEvent.isGCal && (
+              <div style={{
+                background: selectedEvent.location === "villa_pagodina" ? "#faf5ff" : "#fffbeb",
+                border: selectedEvent.location === "villa_pagodina" ? "1.5px solid #c084fc" : `1.5px dashed ${COLOR_PENDING}`,
+                borderRadius: "14px",
+                padding: "1rem 1.1rem",
+                marginBottom: "1.4rem"
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                  <span style={{ fontWeight: 800, color: selectedEvent.location === "villa_pagodina" ? "#7e22ce" : "#b45f0c" }}>
+                    {selectedEvent.location === "villa_pagodina" ? "🏡 VILLA PAGODINA (GCal)" : "📅 SINCRONIZZATO DA GOOGLE CALENDAR"}
+                  </span>
+                  {selectedEvent.isVerbalOption && (
+                    <span style={{ background: "#fef3c7", color: "#92400e", padding: "2px 8px", borderRadius: "8px", fontSize: "0.75rem", fontWeight: 700 }}>
+                      ⚠️ Opzione Verbale (?)
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ fontSize: "0.88rem", color: "#2c2a27", lineHeight: 1.5, marginBottom: "0.8rem" }}>
+                  <div><strong>Contatto / Titolo:</strong> {selectedEvent.clientName}</div>
+                  {selectedEvent.telefono && (
+                    <div><strong>Telefono:</strong> <a href={`tel:${selectedEvent.telefono}`} style={{ color: "#ea580c" }}>{selectedEvent.telefono}</a></div>
+                  )}
+                  {selectedEvent.note && (
+                    <div style={{ marginTop: "4px", fontStyle: "italic", color: "#57534e" }}>
+                      &ldquo;{selectedEvent.note}&rdquo;
+                    </div>
+                  )}
+                </div>
+
+                {selectedEvent.hasIncompleteData ? (
+                  <div style={{ background: "#fff", border: "1px solid #fed7aa", borderRadius: "10px", padding: "0.75rem", marginTop: "0.5rem" }}>
+                    <div style={{ fontSize: "0.82rem", color: "#c2410c", fontWeight: 700, marginBottom: "0.4rem" }}>
+                      ⚠️ Dati anagrafici CRM incompleti
+                    </div>
+                    <p style={{ margin: "0 0 0.6rem 0", fontSize: "0.8rem", color: "#78716c" }}>
+                      L&apos;evento blocca la data a calendario, ma non è ancora associato a una scheda cliente completa nel CRM.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAssociateModal(selectedEvent)}
+                      style={{
+                        padding: "0.6rem 1rem",
+                        borderRadius: "10px",
+                        border: "none",
+                        background: "linear-gradient(135deg, #e58c2c 0%, #c2410c 100%)",
+                        color: "#fff",
+                        fontWeight: 700,
+                        fontSize: "0.85rem",
+                        cursor: "pointer",
+                      }}
+                    >
+                      ⚡ Associa / Crea Scheda Cliente CRM
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ fontSize: "0.82rem", color: "#166534", fontWeight: 700 }}>
+                    ✓ Scheda cliente CRM associata e validata.
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Blocco opzione veloce 7gg da calendario: conversione in contratto con 1 click */}
             {selectedEvent.isQuickOption && (
               <div style={{
@@ -2650,12 +2930,12 @@ export default function CalendarioClient({
                 </div>
                 <div style={{ fontSize: "0.9rem", color: "#2c2a27", marginBottom: "0.75rem" }}>
                   {selectedEvent.scadenza && (
-                    <>Data scadenza opzione: <strong>{formatDateOnly(selectedEvent.scadenza)}</strong> · </>
+                    <>Limite revoca contratto (7gg): <strong>{formatDateOnly(selectedEvent.scadenza)}</strong> · </>
                   )}
                   {typeof selectedEvent.giorniRimanenti === "number" && (
                     selectedEvent.scaduta
-                      ? <strong style={{ color: "#b91c1c" }}>SCADUTA</strong>
-                      : <>Mancano <strong>{selectedEvent.giorniRimanenti} giorni</strong></>
+                      ? <strong style={{ color: "#b91c1c" }}>REVOCATO AUTOMATICAMENTE</strong>
+                      : <>Mancano <strong>{selectedEvent.giorniRimanenti} giorni</strong> alla revoca automatica</>
                   )}
                 </div>
 
@@ -2701,7 +2981,7 @@ export default function CalendarioClient({
                 </div>
                 <div style={{ fontSize: "0.9rem", color: "#2c2a27", marginBottom: selectedEvent.signedPdfUrl ? "0.75rem" : 0 }}>
                   {selectedEvent.tipoEsclusiva === "esclusiva"
-                    ? `Formula: Esclusiva tenuta — riservata SOLO per ${exclusiveTurnoLabel(selectedEvent, selectedEvent.turno === "cena" ? "cena" : "pranzo")}. L'altro turno resta libero e prenotabile.`
+                    ? `Formula: Esclusiva villa — riservata SOLO per ${exclusiveTurnoLabel(selectedEvent, selectedEvent.turno === "cena" ? "cena" : "pranzo")}. L'altro turno resta libero e prenotabile.`
                     : `Formula: Semi-esclusiva (turno ${selectedEvent.turno === "cena" ? "cena" : "pranzo"}).`}
                 </div>
                 {selectedEvent.signedPdfUrl ? (
@@ -2958,6 +3238,137 @@ export default function CalendarioClient({
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* MODALE ASSOCIAZIONE EVENTO GCAL A CLIENTE CRM */}
+      {associateModalOpen && (
+        <div style={MODAL_OVERLAY} onClick={() => !assocPending && setAssociateModalOpen(false)}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "#faf8f5",
+              width: "100%",
+              maxWidth: "500px",
+              borderRadius: "20px",
+              border: "1px solid #e8e2d9",
+              borderTop: "4px solid #e58c2c",
+              padding: "1.8rem",
+              boxShadow: "0 24px 60px rgba(0,0,0,0.25)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.8rem" }}>
+              <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "1.5px", color: "#e58c2c", fontWeight: 800 }}>
+                SINCRONIZZAZIONE IBRIDA GCAL &bull; CRM
+              </span>
+              <button
+                type="button"
+                onClick={() => setAssociateModalOpen(false)}
+                style={{ background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer", color: "#78716c" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <h3 style={{ margin: "0 0 0.4rem 0", fontFamily: "Georgia, serif", fontSize: "1.35rem", color: "#1e1b18" }}>
+              Associa a Scheda Cliente CRM
+            </h3>
+            <p style={{ margin: "0 0 1.2rem 0", fontSize: "0.85rem", color: "#64748b" }}>
+              Crea o collega l&apos;anagrafica cliente nel gestionale per questo evento proveniente da Google Calendar ({assocEvent?.title}).
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.9rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
+                    Nome:
+                  </label>
+                  <input
+                    type="text"
+                    value={assocNome}
+                    onChange={(e) => setAssocNome(e.target.value)}
+                    style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
+                    Cognome:
+                  </label>
+                  <input
+                    type="text"
+                    value={assocCognome}
+                    onChange={(e) => setAssocCognome(e.target.value)}
+                    style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
+                    Telefono / WhatsApp:
+                  </label>
+                  <input
+                    type="text"
+                    value={assocTelefono}
+                    onChange={(e) => setAssocTelefono(e.target.value)}
+                    style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
+                    Email:
+                  </label>
+                  <input
+                    type="email"
+                    value={assocEmail}
+                    onChange={(e) => setAssocEmail(e.target.value)}
+                    placeholder="sposi@email.it"
+                    style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid #cbd5e1" }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", marginBottom: "4px" }}>
+                  Note Gestionali / Accordi:
+                </label>
+                <textarea
+                  rows={2}
+                  value={assocNote}
+                  onChange={(e) => setAssocNote(e.target.value)}
+                  style={{ width: "100%", padding: "0.6rem", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "0.85rem" }}
+                />
+              </div>
+
+              {assocMessage && (
+                <div style={{ padding: "0.6rem", borderRadius: "8px", fontSize: "0.85rem", fontWeight: 700, background: assocMessage.startsWith("✓") ? "#dcfce7" : "#fee2e2", color: assocMessage.startsWith("✓") ? "#166534" : "#991b1b" }}>
+                  {assocMessage}
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: "0.7rem", marginTop: "0.5rem" }}>
+                <button
+                  type="button"
+                  disabled={assocPending}
+                  onClick={() => setAssociateModalOpen(false)}
+                  style={{ padding: "0.75rem 1.2rem", background: "#f5f0e8", border: "none", borderRadius: "10px", fontWeight: 700, color: "#78716c", cursor: "pointer" }}
+                >
+                  Annulla
+                </button>
+                <button
+                  type="button"
+                  disabled={assocPending}
+                  onClick={handleConfirmAssociate}
+                  style={{ flex: 1, padding: "0.75rem 1.2rem", background: "linear-gradient(135deg, #e58c2c 0%, #c2410c 100%)", border: "none", borderRadius: "10px", color: "#fff", fontWeight: 800, cursor: assocPending ? "wait" : "pointer" }}
+                >
+                  {assocPending ? "Salvataggio nel CRM..." : "✓ Salva & Associa nel CRM"}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

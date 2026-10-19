@@ -55,13 +55,13 @@ const ROBERTO_FAQS = [
     topic: "parcheggio",
     keywords: ["parcheggio", "auto", "posti", "custodito", "macchine", "arrivo"],
     answer:
-      "La Terra degli Aranci dispone di soluzioni di parcheggio interne ed esterne convenzionate custodite situate proprio di fronte all'ingresso della tenuta, per una capienza complessiva di oltre 100 posti auto. Gli ospiti possono accostare davanti all'ingresso per far scendere i passeggeri prima di parcheggiare."
+      "La Terra degli Aranci dispone di soluzioni di parcheggio interne ed esterne convenzionate custodite situate proprio di fronte all'ingresso della struttura, per una capienza complessiva di oltre 100 posti auto. Gli ospiti possono accostare davanti all'ingresso per far scendere i passeggeri prima di parcheggiare."
   },
   {
     topic: "animali",
     keywords: ["animali", "cane", "cani", "pet", "dog"],
     answer:
-      "I cani di piccola taglia sono benvenuti durante gli eventi, purché tenuti al guinzaglio nel rispetto degli altri ospiti e della tenuta. È inoltre possibile richiedere un servizio professionale di dog sitting convenzionato."
+      "I cani di piccola taglia sono benvenuti durante gli eventi, purché tenuti al guinzaglio nel rispetto degli altri ospiti e della location. È inoltre possibile richiedere un servizio professionale di dog sitting convenzionato."
   },
   {
     topic: "sostenibilita",
@@ -157,7 +157,7 @@ function getLocalFallbackAnswer(query: string, clientName: string = "Gentile Osp
     }
   }
 
-  return `Grazie per il vostro messaggio, ${clientName}! A La Terra degli Aranci ogni evento è un percorso sartoriale immerso nel verde tra Vomero e Posillipo. Ho annotato i dettagli nel vostro Wedding Diary: il nostro staff ed io siamo pronti ad approfondire ogni vostro desiderio speciale. Per dettagli operativi personalizzati potete sempre concordare un appuntamento in tenuta con Roberto Sola. 🌿🍊`;
+  return `Grazie per il vostro messaggio, ${clientName}! A La Terra degli Aranci ogni evento è un percorso sartoriale immerso nel verde tra Vomero e Posillipo. Ho annotato i dettagli nel vostro Wedding Diary: il nostro staff ed io siamo pronti ad approfondire ogni vostro desiderio speciale. Per dettagli operativi personalizzati potete sempre concordare un appuntamento in struttura con Roberto Sola. 🌿🍊`;
 }
 
 export async function POST(req: NextRequest) {
@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
 
     if (geminiApiKey) {
       try {
-        const systemPrompt = `Sei l'AI Concierge ufficiale de "La Terra degli Aranci", prestigiosa tenuta per eventi e matrimoni a Napoli (Piazzetta Santo Stefano 7, tra Vomero e Posillipo), diretta dall'Ing. Roberto Sola.
+        const systemPrompt = `Sei l'AI Concierge ufficiale de "La Terra degli Aranci", prestigiosa location per eventi e matrimoni a Napoli (Piazzetta Santo Stefano 7, tra Vomero e Posillipo), diretta dall'Ing. Roberto Sola.
 Il tuo tono di voce è caloroso, accogliente, elegante, botanico e rassicurante.
 LA TUA KNOWLEDGE BASE È ASSOLUTAMENTE BLINDATA: DEVI ATTENERTI RIGOROSAMENTE AI SEGUENTI FATTI SENZA MAI ALLUCINARE O INVENTARE:
 ${ROBERTO_FAQS.map(f => `- ${f.topic.toUpperCase()}: ${f.answer}`).join("\n")}

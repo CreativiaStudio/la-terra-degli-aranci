@@ -104,8 +104,8 @@ const TABS: Array<{ id: CassaTab; label: string; icon: string }> = [
 ];
 
 const COMPANY_LABELS: Record<string, string> = {
-  santo_stefano: "Tenuta Santo Stefano S.r.l. (Roberto)",
-  iovino: "Iovino Banqueting S.r.l. (Rosaria)",
+  santo_stefano: "Santo Stefano S.r.l.",
+  iovino: "Iovino Banqueting S.r.l.",
 };
 
 const METHOD_LABELS: Record<string, string> = {
@@ -222,7 +222,27 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
   };
 
   /* -------------------------- Registro Incassi -------------------------- */
+  const [incassiQuery, setIncassiQuery] = useState("");
   const [incassoOpen, setIncassoOpen] = useState(false);
+
+  const filteredPayments = useMemo(() => {
+    const needle = incassiQuery.trim().toLowerCase();
+    if (!needle) return payments;
+    return payments.filter((p) => {
+      const haystack = [
+        p.eventoLabel,
+        p.data_incasso,
+        formatDate(p.data_incasso),
+        p.metodo,
+        METHOD_LABELS[p.metodo] || "",
+        COMPANY_LABELS[p.incassato_da] || "",
+        p.riferimento || "",
+        p.note || "",
+        p.registrato_da || ""
+      ].join(" ").toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [payments, incassiQuery]);
   const [incQuoteId, setIncQuoteId] = useState(eventOptions[0]?.id || "");
   const [incData, setIncData] = useState(todayIso());
   const [incImporto, setIncImporto] = useState("");
@@ -389,24 +409,41 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
               <h2 style={{ margin: 0, color: "#1e1b18", fontSize: "1.3rem" }}>💰 Registro Cronologico Incassi Reali</h2>
               <small style={{ color: "#8a847c" }}>
                 {payments.length} movimenti registrati · {payments.filter((p) => p.stato === "valido").length} validi
+                {incassiQuery && ` (filtrati: ${filteredPayments.length})`}
               </small>
             </div>
-            <button
-              type="button"
-              onClick={openIncasso}
-              style={{
-                padding: "0.7rem 1.3rem",
-                background: "linear-gradient(135deg, #e58c2c 0%, #d17a22 100%)",
-                color: "white",
-                border: "none",
-                borderRadius: "10px",
-                fontWeight: 700,
-                cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(229,140,44,0.3)",
-              }}
-            >
-              + Registra Incasso
-            </button>
+            <div style={{ display: "flex", gap: "0.8rem", alignItems: "center", flexWrap: "wrap" }}>
+              <input
+                type="search"
+                value={incassiQuery}
+                onChange={(e) => setIncassiQuery(e.target.value)}
+                placeholder="🔍 Filtra per Data o Sposi..."
+                style={{
+                  padding: "0.6rem 0.9rem",
+                  borderRadius: "10px",
+                  border: "1px solid #dcd7cf",
+                  fontSize: "0.88rem",
+                  minWidth: "260px",
+                  outline: "none",
+                }}
+              />
+              <button
+                type="button"
+                onClick={openIncasso}
+                style={{
+                  padding: "0.7rem 1.3rem",
+                  background: "linear-gradient(135deg, #e58c2c 0%, #d17a22 100%)",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "10px",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  boxShadow: "0 4px 12px rgba(229,140,44,0.3)",
+                }}
+              >
+                + Registra Incasso
+              </button>
+            </div>
           </div>
 
           <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
@@ -423,14 +460,14 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
               </tr>
             </thead>
             <tbody>
-              {payments.length === 0 ? (
+              {filteredPayments.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ padding: "2.5rem", textAlign: "center", color: "#94a3b8" }}>
-                    Nessun incasso registrato. Usa “+ Registra Incasso” per iniziare.
+                    {incassiQuery ? `Nessun incasso trovato per "${incassiQuery}".` : "Nessun incasso registrato. Usa “+ Registra Incasso” per iniziare."}
                   </td>
                 </tr>
               ) : (
-                payments.map((p) => {
+                filteredPayments.map((p) => {
                   const annullato = p.stato === "annullato";
                   return (
                     <tr key={p.id} style={{ borderBottom: "1px solid #f0eee9", opacity: annullato ? 0.55 : 1 }}>
@@ -1004,7 +1041,7 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                 <label style={{ display: "flex", flexDirection: "column", gap: "0.35rem", fontSize: "0.85rem", color: "#514d48", fontWeight: 600 }}>
                   Incassato da
                   <select value={incCompany} onChange={(e) => setIncCompany(e.target.value as Company)} style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", border: "1px solid #ddd", fontSize: "0.95rem", background: "#fff" }}>
-                    <option value="santo_stefano">Tenuta Santo Stefano S.r.l.</option>
+                    <option value="santo_stefano">Santo Stefano S.r.l.</option>
                     <option value="iovino">Iovino Banqueting S.r.l.</option>
                   </select>
                 </label>

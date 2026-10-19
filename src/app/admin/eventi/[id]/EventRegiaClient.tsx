@@ -898,7 +898,7 @@ function ServiziTab({
           </thead>
           <tbody>
             <tr style={{ background: "#fdf8f1", fontWeight: 700 }}>
-              <td style={{ padding: "0.6rem" }}>🏛️ Canone Fitto Villa — 100% Tenuta Santo Stefano S.r.l.</td>
+              <td style={{ padding: "0.6rem" }}>🏛️ Canone Fitto Villa — 100% Santo Stefano S.r.l.</td>
               <td style={{ padding: "0.6rem", textAlign: "right" }}>1</td>
               <td style={{ padding: "0.6rem", textAlign: "right" }}>{formatEuro(canoneCents / 100)}</td>
               <td style={{ padding: "0.6rem", textAlign: "right" }}>{formatEuro(canoneCents / 100)}</td>
@@ -1385,7 +1385,7 @@ function CassaTab({
           <h4 style={{ margin: "0 0 0.8rem", fontSize: "0.95rem" }}>Ripartizione Fiscale & Societaria</h4>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
             <CompanyCard
-              name="Tenuta Santo Stefano S.r.l."
+              name="Santo Stefano S.r.l."
               spettanza={ledger.spettanza.santo_stefano}
               incassato={ledger.incassato_per.santo_stefano}
               residuo={ledger.residuo_per.santo_stefano}

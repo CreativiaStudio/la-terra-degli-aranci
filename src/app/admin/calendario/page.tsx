@@ -1,6 +1,7 @@
 import { getQuotesFast } from "@/lib/dataHelper";
 import { listPdfsInR2 } from "@/lib/r2";
 import { getPendingContractsLocal, getQuickCalendarOptionsLocal, getStore } from "@/lib/localDb";
+import { getOrSeedGCalEvents } from "@/lib/calendarSyncEngine";
 import CalendarioClient from "./CalendarioClient";
 
 export const dynamic = "force-dynamic";
@@ -107,6 +108,8 @@ export default async function CalendarioPage({
     });
   });
 
+  const gcalEvents = getOrSeedGCalEvents();
+
   return (
     <CalendarioClient
       quotes={quotes}
@@ -114,6 +117,7 @@ export default async function CalendarioPage({
       pendingContracts={pendingContracts}
       quickOptions={getQuickCalendarOptionsLocal()}
       initialMonth={initialMonth}
+      gcalEvents={gcalEvents}
     />
   );
 }

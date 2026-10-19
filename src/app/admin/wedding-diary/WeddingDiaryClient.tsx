@@ -582,7 +582,7 @@ export default function WeddingDiaryClient({ quotes = [], diaries = [] }: Weddin
               </div>
 
               <div>
-                <strong style={{ color: "#514d48" }}>Spazi Riservati nella Tenuta:</strong>
+                <strong style={{ color: "#514d48" }}>Spazi Riservati nella Struttura:</strong>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "6px" }}>
                   {selectedEntry.preferredSpaces.map((s, i) => (
                     <span key={i} style={{ background: "#e8f0fe", color: "#1967d2", padding: "0.3rem 0.7rem", borderRadius: "6px", fontWeight: "500" }}>

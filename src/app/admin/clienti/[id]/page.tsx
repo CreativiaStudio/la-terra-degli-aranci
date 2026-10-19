@@ -311,6 +311,7 @@ export default async function ClienteDettaglioPage({
     telefono: String(client.telefono || ""),
     citta: String(client.citta_di_residenza || client.citta || ""),
     provenienza: String(client.provenienza || ""),
+    professione: String(client.professione || ""),
     codiceFiscale: String(client.codice_fiscale || ""),
     tipoCliente: client.tipo_cliente === "azienda" ? "azienda" : "privato",
     ragioneSociale: String(client.ragione_sociale || ""),

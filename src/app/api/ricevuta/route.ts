@@ -123,7 +123,7 @@ export async function GET(req: NextRequest) {
           : "Saldo finale per il ricevimento presso la location La Terra degli Aranci";
 
     const issuingCompany =
-      step === 1 ? "Tenuta Santo Stefano S.r.l." : "Iovino Banqueting S.r.l.";
+      step === 1 ? "Santo Stefano S.r.l." : "Iovino Banqueting S.r.l.";
 
     const eventYearMatch = /^(\d{4})/.exec(eventDateIso);
     const eventYear = eventYearMatch ? eventYearMatch[1] : String(new Date().getFullYear());

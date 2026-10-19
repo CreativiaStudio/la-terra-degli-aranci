@@ -351,7 +351,7 @@ export default function AppuntamentiClient({ appointments }: AppuntamentiClientP
             Agenda Segreteria & Direzione
           </span>
           <h1 style={{ margin: "0.3rem 0 0", fontFamily: "Georgia, serif", fontSize: "2.1rem", color: "#1e1b18", textAlign: "left" }}>
-            📅 Appuntamenti &amp; Visite in Tenuta
+            📅 Appuntamenti &amp; Visite in Struttura
           </h1>
           <p style={{ margin: "0.3rem 0 0", color: "#6a6764", maxWidth: "720px" }}>
             La tabella di lavoro quotidiana di Roberto e della segreteria: telefonate, sopralluoghi e visite guidate

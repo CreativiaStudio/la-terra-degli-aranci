@@ -1,6 +1,41 @@
 {
   "clients": [
     {
+      "id": "3e86e3f2-9186-470a-bfcf-3037d674ef6a",
+      "nome": "Paolo",
+      "cognome": "Ferrara",
+      "email": "paolo.ferrara50@gmail.com",
+      "telefono": "347 220 9081",
+      "sposera_nome": "Elena",
+      "sposera_cognome": "Prova",
+      "provenienza": "Tablet Segreteria (Visita)",
+      "created_at": "2026-10-09T09:05:42.696Z",
+      "tipo_cliente": "privato"
+    },
+    {
+      "id": "663867c9-62d4-4f3a-bd66-a489affe3df1",
+      "nome": "Giulia",
+      "cognome": "De Angelis",
+      "email": "g.deangelis@azienda.it",
+      "telefono": "340 552 1180",
+      "sposera_nome": "",
+      "sposera_cognome": "",
+      "provenienza": "Tablet Segreteria (Visita)",
+      "created_at": "2026-10-09T09:04:05.551Z"
+    },
+    {
+      "id": "client-1791534338756",
+      "nome": "Davide",
+      "cognome": "Nappi",
+      "sposera_nome": "Serena",
+      "sposera_cognome": "De Angelis",
+      "email": "davide.serena2027@gmail.com",
+      "telefono": "+39 349 9887766",
+      "codice_fiscale": "NPPDBD90A01F839X",
+      "provenienza": "Napoli",
+      "created_at": "2026-10-09T08:25:38.756Z"
+    },
+    {
       "id": "client-demo1",
       "nome": "Valerio",
       "cognome": "De Simone",
@@ -271,6 +306,145 @@
     }
   ],
   "quotes": [
+    {
+      "id": "59bec2a3-8a7b-4437-9d36-74ad1d86f440",
+      "client_id": "3e86e3f2-9186-470a-bfcf-3037d674ef6a",
+      "tipo_evento": "wedding",
+      "tipo_cliente": "privato",
+      "ragione_sociale": "",
+      "partita_iva": "",
+      "sdi": "",
+      "pec": "",
+      "data_evento": "2027-07-15",
+      "turno": "pranzo",
+      "tipo_esclusiva": "semi_esclusiva",
+      "spazi_riservati": [
+        "Sala Bianca",
+        "Giardino Mediterraneo (Agrumeto)"
+      ],
+      "canale_contratto": "accordo_diretto",
+      "source": "admin_rapido",
+      "fase_contratto": "accordo_diretto",
+      "opzione": {
+        "attiva": true,
+        "tipo": "semi_esclusiva",
+        "data_inizio": "2026-10-09T09:10:26.978Z",
+        "scadenza": "2026-10-16T09:10:26.978Z",
+        "turno": "pranzo",
+        "spazi": [
+          "Sala Bianca",
+          "Giardino Mediterraneo (Agrumeto)"
+        ],
+        "canale": "accordo_diretto"
+      },
+      "numero_ospiti": 0,
+      "items": [
+        {
+          "id": 1791537026978,
+          "descrizione": "Canone Fitto Struttura",
+          "quantita": 1,
+          "prezzo_unitario": 7000,
+          "splitKey": "ss100",
+          "totale": 7000
+        }
+      ],
+      "sconto_fisso": 0,
+      "prezzo": 7000,
+      "totale": 7000,
+      "totale_calcolato": 7000,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "note_visita_segreteria": "",
+      "status": "inviato",
+      "created_at": "2026-10-09T09:10:26.984Z",
+      "updated_at": "2026-10-09T09:10:26.984Z",
+      "clients": {
+        "id": "3e86e3f2-9186-470a-bfcf-3037d674ef6a",
+        "nome": "Paolo",
+        "cognome": "Ferrara",
+        "email": "paolo.ferrara50@gmail.com",
+        "telefono": "347 220 9081",
+        "sposera_nome": "Elena",
+        "sposera_cognome": "Prova",
+        "provenienza": "Tablet Segreteria (Visita)",
+        "created_at": "2026-10-09T09:05:42.696Z",
+        "tipo_cliente": "privato"
+      }
+    },
+    {
+      "id": "quote-sim-1791534338756",
+      "client_id": "client-1791534338756",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-09-18",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Giardino delle Promesse",
+        "Sala Bianca",
+        "Terrazza"
+      ],
+      "formula_opzione": "esclusiva",
+      "numero_ospiti": 130,
+      "canale_contratto": "accordo_diretto",
+      "fase_contratto": "accordo_diretto",
+      "source": "admin_rapido",
+      "items": [
+        {
+          "id": "item-1",
+          "descrizione": "Canone Concessione Villa in Esclusiva (Pranzo)",
+          "quantita": 1,
+          "prezzo_unitario": 4500,
+          "splitKey": "ss100",
+          "splitLabel": "100% Santo Stefano",
+          "totale": 4500
+        },
+        {
+          "id": "item-2",
+          "descrizione": "Menu Nozze Mandarancio Gran Buffet & Banchetto (130 Ospiti)",
+          "quantita": 130,
+          "prezzo_unitario": 140,
+          "splitKey": "40_60",
+          "splitLabel": "40% Santo Stefano / 60% Iovino",
+          "totale": 18200
+        },
+        {
+          "id": "item-extra-1",
+          "descrizione": "Angolo Spritz & Aperitivi (Accoglienza Agrumeto)",
+          "quantita": 1,
+          "prezzo_unitario": 600,
+          "splitKey": "angle",
+          "splitLabel": "€100 Santo Stefano, resto Iovino",
+          "totale": 600
+        },
+        {
+          "id": "item-extra-2",
+          "descrizione": "Fontane Luminose Fredde (Taglio Torta)",
+          "quantita": 1,
+          "prezzo_unitario": 500,
+          "splitKey": "ss50",
+          "splitLabel": "€50 Santo Stefano, resto Iovino",
+          "totale": 500
+        }
+      ],
+      "sconto_fisso": 0,
+      "prezzo": 23800,
+      "totale": 23800,
+      "totale_calcolato": 23800,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "firmato",
+      "data_firma": "2026-10-09T08:25:38.756Z",
+      "signed_at": "2026-10-09T08:25:38.756Z",
+      "signed_contract": {
+        "pdf_url": "/contracts/simulazione-quote-sim-1791534338756.pdf",
+        "signed_by": "Davide Nappi & Serena De Angelis",
+        "signed_at": "2026-10-09T08:25:38.756Z"
+      },
+      "note_visita_segreteria": "Contratto formalizzato in esclusiva pranzo.",
+      "created_at": "2026-10-09T08:25:38.756Z",
+      "updated_at": "2026-10-09T08:25:38.761Z"
+    },
     {
       "id": "quote-demo1",
       "client_id": "client-demo1",
@@ -1875,9 +2049,118 @@
         "open_bar_cocktails": "Gin Mare, Vodka Belvedere, Mojito all'Arancio"
       },
       "updated_at": "2026-10-05T18:00:00.000Z"
+    },
+    {
+      "client_id": "663867c9-62d4-4f3a-bd66-a489affe3df1",
+      "answers": {
+        "style_mood": "",
+        "preferred_spaces": [],
+        "ceremony_type": "",
+        "music_preference": "",
+        "dietary_notes": "",
+        "general_notes": "",
+        "target_dates": "",
+        "open_bar_cocktails": "L'After Party & Lounge",
+        "tour_service_preferences": "L'After Party & Lounge"
+      },
+      "id": "22683ee8-6d60-496b-8f3b-6a6b7ff77cbb",
+      "updated_at": "2026-10-09T09:04:05.567Z"
+    },
+    {
+      "client_id": "3e86e3f2-9186-470a-bfcf-3037d674ef6a",
+      "target_dates": "2027-07-15, 2027-07-14, 2027-07-16, 2027-07-13",
+      "answers": {
+        "style_mood": "Minimal Moderno",
+        "preferred_spaces": [
+          "Sala Bianca"
+        ],
+        "ceremony_type": "",
+        "music_preference": "",
+        "dietary_notes": "prova",
+        "general_notes": "",
+        "target_dates": "2027-07-15, 2027-07-14, 2027-07-16, 2027-07-13",
+        "tour_service_preferences": "Angolo Mozzarella Live (Show Cooking), Angolo Spritz & Cocktail Bar d'Accoglienza, Champagneria & Bollicine d'Élite, Carretto delle Graffette Calde al Momento, Open Bar Illimitato, Spot Colorati & Cielo Stellato di Lucine in Giardino, Rito Civile in Villa nel Giardino delle Promesse, Animazione Bambini con Area Giochi Riservata, Sala Bianca, Angolo Sigari & Rum",
+        "open_bar_cocktails": "Angolo Mozzarella Live (Show Cooking), Angolo Spritz & Cocktail Bar d'Accoglienza, Champagneria & Bollicine d'Élite, Carretto delle Graffette Calde al Momento, Open Bar Illimitato, Spot Colorati & Cielo Stellato di Lucine in Giardino, Rito Civile in Villa nel Giardino delle Promesse, Animazione Bambini con Area Giochi Riservata, Angolo Sigari & Rum",
+        "guest_count_estimate": "60"
+      },
+      "id": "26df007c-b755-4d86-9ff4-5d2b4091d50f",
+      "updated_at": "2026-10-09T09:07:45.937Z"
     }
   ],
   "quote_changes": [
+    {
+      "id": "allegato-b-1791534338761",
+      "quote_id": "quote-sim-1791534338756",
+      "numero_variazione": 1,
+      "tipo": "allegato_b_servizi",
+      "totale_before": 22700,
+      "totale_after": 23800,
+      "delta_totale": 1100,
+      "items_before": [
+        {
+          "id": "item-1",
+          "descrizione": "Canone Concessione Villa in Esclusiva (Pranzo)",
+          "quantita": 1,
+          "prezzo_unitario": 4500,
+          "splitKey": "ss100",
+          "splitLabel": "100% Santo Stefano",
+          "totale": 4500
+        },
+        {
+          "id": "item-2",
+          "descrizione": "Menu Nozze Mandarancio Gran Buffet & Banchetto (130 Ospiti)",
+          "quantita": 130,
+          "prezzo_unitario": 140,
+          "splitKey": "40_60",
+          "splitLabel": "40% Santo Stefano / 60% Iovino",
+          "totale": 18200
+        }
+      ],
+      "items_after": [
+        {
+          "id": "item-1",
+          "descrizione": "Canone Concessione Villa in Esclusiva (Pranzo)",
+          "quantita": 1,
+          "prezzo_unitario": 4500,
+          "splitKey": "ss100",
+          "splitLabel": "100% Santo Stefano",
+          "totale": 4500
+        },
+        {
+          "id": "item-2",
+          "descrizione": "Menu Nozze Mandarancio Gran Buffet & Banchetto (130 Ospiti)",
+          "quantita": 130,
+          "prezzo_unitario": 140,
+          "splitKey": "40_60",
+          "splitLabel": "40% Santo Stefano / 60% Iovino",
+          "totale": 18200
+        },
+        {
+          "id": "item-extra-1",
+          "descrizione": "Angolo Spritz & Aperitivi (Accoglienza Agrumeto)",
+          "quantita": 1,
+          "prezzo_unitario": 600,
+          "splitKey": "angle",
+          "splitLabel": "€100 Santo Stefano, resto Iovino",
+          "totale": 600
+        },
+        {
+          "id": "item-extra-2",
+          "descrizione": "Fontane Luminose Fredde (Taglio Torta)",
+          "quantita": 1,
+          "prezzo_unitario": 500,
+          "splitKey": "ss50",
+          "splitLabel": "€50 Santo Stefano, resto Iovino",
+          "totale": 500
+        }
+      ],
+      "status": "confermato",
+      "data_firma": "2026-10-09T08:25:38.761Z",
+      "confirmed_at": "2026-10-09T08:25:38.761Z",
+      "signed_by": "Davide & Serena",
+      "note": "Approvato Allegato B per Angolo Spritz e Fontane Luminose Fredde.",
+      "created_at": "2026-10-09T08:25:38.761Z"
+    },
     {
       "id": "37740837-2950-48e5-a9bf-21ad9191c18a",
       "quote_id": "quote-demo3",
@@ -5000,7 +5283,24 @@
       "stato": "confermato",
       "note": "Evento aziendale di fine anno (convention + cena). Referente amministrazione. Richiede proiettore e palco.",
       "created_at": "2026-10-08T07:34:23.905Z",
-      "id": "apt-5f103b0f"
+      "id": "apt-5f103b0f",
+      "preferenze": {
+        "stileMood": "",
+        "spaziSelezionati": [],
+        "tipoCerimonia": "",
+        "serviziInteresse": [
+          "L'After Party & Lounge"
+        ],
+        "preferenzeServizi": [
+          "L'After Party & Lounge"
+        ],
+        "dateCandidate": [],
+        "mesePreferenza": "",
+        "musicaNote": "",
+        "celiaciNote": "",
+        "noteGenerali": "",
+        "updated_at": "2026-10-09T09:04:05.568Z"
+      }
     },
     {
       "tipo": "wedding",
@@ -5031,14 +5331,56 @@
       "dataOra": "2026-10-09T10:00",
       "dataAppuntamento": "2026-10-09",
       "orarioAppuntamento": "10:00",
-      "dataEventoPresunta": "Aprile 2027",
+      "dataEventoPresunta": "15/07/2027, 14/07/2027, 16/07/2027, 13/07/2027",
       "interesse": "semi_esclusiva",
       "ospitiPrevisti": 60,
       "canale": "passaparola",
       "stato": "da_confermare",
       "note": "Cinquantesimo compleanno a sorpresa organizzato dalla moglie. Sopralluogo per allestimento.",
       "created_at": "2026-10-08T07:34:23.905Z",
-      "id": "apt-bccd8e90"
+      "id": "apt-bccd8e90",
+      "preferenze": {
+        "stileMood": "Minimal Moderno",
+        "spaziSelezionati": [
+          "Sala Bianca"
+        ],
+        "tipoCerimonia": "",
+        "serviziInteresse": [
+          "Angolo Mozzarella Live (Show Cooking)",
+          "Angolo Spritz & Cocktail Bar d'Accoglienza",
+          "Champagneria & Bollicine d'Élite",
+          "Carretto delle Graffette Calde al Momento",
+          "Open Bar Illimitato",
+          "Spot Colorati & Cielo Stellato di Lucine in Giardino",
+          "Rito Civile in Villa nel Giardino delle Promesse",
+          "Animazione Bambini con Area Giochi Riservata",
+          "Angolo Sigari & Rum",
+          "Sala Bianca"
+        ],
+        "preferenzeServizi": [
+          "Angolo Mozzarella Live (Show Cooking)",
+          "Angolo Spritz & Cocktail Bar d'Accoglienza",
+          "Champagneria & Bollicine d'Élite",
+          "Carretto delle Graffette Calde al Momento",
+          "Open Bar Illimitato",
+          "Spot Colorati & Cielo Stellato di Lucine in Giardino",
+          "Rito Civile in Villa nel Giardino delle Promesse",
+          "Animazione Bambini con Area Giochi Riservata",
+          "Sala Bianca",
+          "Angolo Sigari & Rum"
+        ],
+        "dateCandidate": [
+          "2027-07-15",
+          "2027-07-14",
+          "2027-07-16",
+          "2027-07-13"
+        ],
+        "mesePreferenza": "2027-07",
+        "musicaNote": "",
+        "celiaciNote": "prova",
+        "noteGenerali": "",
+        "updated_at": "2026-10-09T09:07:45.938Z"
+      }
     },
     {
       "tipo": "wedding",
@@ -5117,7 +5459,81 @@
       "note": "Visita effettuata: molto interessati, inviato preventivo esclusiva da ricontattare entro la settimana.",
       "created_at": "2026-10-08T07:34:23.905Z",
       "id": "apt-0026a3a9"
+    },
+    {
+      "id": "apt-24d8f2ab",
+      "tipo": "wedding",
+      "nome": "Davide",
+      "cognome": "Nappi",
+      "partnerNome": "Serena",
+      "partnerCognome": "De Angelis",
+      "telefono": "+39 349 9887766",
+      "email": "davide.serena2027@gmail.com",
+      "dataOra": "2026-10-10T11:30",
+      "dataAppuntamento": "2026-10-10",
+      "orarioAppuntamento": "11:30",
+      "dataEventoPresunta": "2027-09-18",
+      "interesse": "esclusiva",
+      "ospitiPrevisti": 130,
+      "canale": "sito_web",
+      "stato": "confermato",
+      "note": "Coppia molto interessata all Agrumeto per rito civile all aperto e Sala Bianca per il ricevimento. Vorrebbero inserire l Angolo Spritz e i Fuochi Freddi per il taglio torta.",
+      "created_at": "2026-10-09T08:25:08.415Z"
+    },
+    {
+      "id": "apt-35c2d892",
+      "tipo": "wedding",
+      "nome": "Davide",
+      "cognome": "Nappi",
+      "partnerNome": "Serena",
+      "partnerCognome": "De Angelis",
+      "telefono": "+39 349 9887766",
+      "email": "davide.serena2027@gmail.com",
+      "dataOra": "2026-10-10T11:30",
+      "dataAppuntamento": "2026-10-10",
+      "orarioAppuntamento": "11:30",
+      "dataEventoPresunta": "2027-09-18",
+      "interesse": "esclusiva",
+      "ospitiPrevisti": 130,
+      "canale": "sito_web",
+      "stato": "confermato",
+      "note": "Coppia molto interessata all Agrumeto per rito civile all aperto e Sala Bianca per il ricevimento. Vorrebbero inserire l Angolo Spritz e i Fuochi Freddi per il taglio torta.",
+      "created_at": "2026-10-09T08:25:38.750Z"
     }
   ],
-  "service_tickets": []
+  "service_tickets": [
+    {
+      "id": "ticket-sim-1791534338758",
+      "quote_id": "quote-sim-1791534338756",
+      "client_id": "client-1791534338756",
+      "status": "approvato",
+      "sposi_names": "Davide Nappi & Serena De Angelis",
+      "items": [
+        {
+          "serviceId": "ANG01",
+          "code": "ANG01",
+          "name": "Angolo Spritz & Aperitivi",
+          "categoria": "Mixology & Beverage",
+          "price": 600,
+          "splitKey": "angle",
+          "splitLabel": "€100 Santo Stefano, resto Iovino",
+          "notes": "Desideriamo posizionarlo sotto gli aranci centenari durante l accoglienza."
+        },
+        {
+          "serviceId": "EXT22",
+          "code": "EXT22",
+          "name": "Fontane Luminose Fredde (Taglio Torta)",
+          "categoria": "Scenografie & Fuochi",
+          "price": 500,
+          "splitKey": "ss50",
+          "splitLabel": "€50 Santo Stefano, resto Iovino",
+          "notes": "8 fontane sul bordo piscina/terrazza."
+        }
+      ],
+      "note": "Abbiamo scelto questi 2 servizi aggiuntivi per arricchire il nostro matrimonio!",
+      "created_at": "2026-10-09T08:25:38.758Z",
+      "updated_at": "2026-10-09T08:25:38.761Z",
+      "allegato_b_id": "allegato-b-1791534338761"
+    }
+  ]
 }

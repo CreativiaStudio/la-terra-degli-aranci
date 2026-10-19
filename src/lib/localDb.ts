@@ -130,6 +130,51 @@ export interface ServiceTicket {
   updated_at?: string;
 }
 
+/** Voce singola di un Preventivo Parallelo Extra. */
+export interface ExtraServiceItem {
+  id: string;
+  descrizione: string;
+  quantita: number;
+  prezzo_unitario: number;
+  totale: number;
+  ripartizione: 'santo_stefano' | 'iovino' | '40_60' | '50_50';
+  note?: string;
+}
+
+/**
+ * Preventivo Parallelo Servizi Extra (riservato Direzione, invisibile nell'area sposi).
+ * Gestisce la contabilità extra e la stampa cartacea per firma in struttura.
+ */
+export interface ExtraQuote {
+  id: string;
+  quote_id: string;
+  items: ExtraServiceItem[];
+  totale: number;
+  totale_santo_stefano: number;
+  totale_iovino: number;
+  note_interne?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+/** Evento importato/sincronizzato da Google Calendar (TDA o Villa Pagodina). */
+export interface GoogleCalendarEvent {
+  id: string;
+  gcal_id?: string;
+  summary: string;
+  description?: string;
+  location?: 'villa_pagodina' | 'sala_bianca' | 'sala_tufo' | 'laterradegliaranci';
+  start: string;
+  end: string;
+  is_verbal_confirmation: boolean; // true se inizia con '?'
+  client_id?: string;
+  client_nome?: string;
+  client_telefono?: string;
+  client_email?: string;
+  has_incomplete_data: boolean;
+  imported_at: string;
+}
+
 export interface LocalStore {
   clients: any[];
   quotes: any[];
@@ -156,6 +201,10 @@ export interface LocalStore {
   appointments?: Appointment[];
   /** Ticket Richiesta Servizi inviati dagli Sposi dall'Area Riservata. */
   service_tickets?: ServiceTicket[];
+  /** Preventivi paralleli dei servizi extra ad uso esclusivo della Direzione. */
+  extra_quotes?: ExtraQuote[];
+  /** Eventi sincronizzati da Google Calendar (TDA e Villa Pagodina). */
+  google_calendar_events?: GoogleCalendarEvent[];
 }
 
 export function getStore(): LocalStore {
@@ -228,7 +277,7 @@ export function getStore(): LocalStore {
   }
 }
 
-function saveStore(store: LocalStore) {
+export function saveStore(store: LocalStore) {
   const dataFile = getDataFilePath();
   try {
     fs.writeFileSync(dataFile, JSON.stringify(store, null, 2), 'utf8');
@@ -2586,5 +2635,84 @@ export function updateServiceTicketStatusLocal(
   saveStore(store);
   return ticket;
 }
+
+/** Recupera il preventivo parallelo extra per un determinato preventivo/evento. */
+export function getExtraQuoteLocal(quoteId: string): ExtraQuote | null {
+  const store = getStore();
+  const search = String(quoteId || '').trim().toLowerCase();
+  if (!search) return null;
+  return (store.extra_quotes || []).find((eq) => {
+    const qid = String(eq.quote_id || '').trim().toLowerCase();
+    return qid === search || qid.startsWith(search) || search.startsWith(qid);
+  }) || null;
+}
+
+/** Salva o aggiorna un preventivo parallelo extra. */
+export function saveExtraQuoteLocal(quoteId: string, data: Partial<ExtraQuote>): ExtraQuote {
+  const store = getStore();
+  if (!Array.isArray(store.extra_quotes)) store.extra_quotes = [];
+  const search = String(quoteId || '').trim().toLowerCase();
+  let existing = store.extra_quotes.find((eq) => {
+    const qid = String(eq.quote_id || '').trim().toLowerCase();
+    return qid === search || qid.startsWith(search) || search.startsWith(qid);
+  });
+
+  const items = data.items || existing?.items || [];
+  let totaleSS = 0;
+  let totaleIovino = 0;
+  let totaleGlobale = 0;
+
+  for (const it of items) {
+    const tot = (it.quantita || 1) * (it.prezzo_unitario || 0);
+    totaleGlobale += tot;
+    if (it.ripartizione === 'santo_stefano') totaleSS += tot;
+    else if (it.ripartizione === 'iovino') totaleIovino += tot;
+    else if (it.ripartizione === '40_60') {
+      totaleSS += tot * 0.4;
+      totaleIovino += tot * 0.6;
+    } else if (it.ripartizione === '50_50') {
+      totaleSS += tot * 0.5;
+      totaleIovino += tot * 0.5;
+    }
+  }
+
+  if (existing) {
+    existing.items = items;
+    existing.totale = totaleGlobale;
+    existing.totale_santo_stefano = totaleSS;
+    existing.totale_iovino = totaleIovino;
+    if (data.note_interne !== undefined) existing.note_interne = data.note_interne;
+    existing.updated_at = new Date().toISOString();
+  } else {
+    existing = {
+      id: crypto.randomUUID(),
+      quote_id: quoteId,
+      items,
+      totale: totaleGlobale,
+      totale_santo_stefano: totaleSS,
+      totale_iovino: totaleIovino,
+      note_interne: data.note_interne || '',
+      created_at: new Date().toISOString(),
+    };
+    store.extra_quotes.push(existing);
+  }
+
+  saveStore(store);
+  return existing;
+}
+
+/** Recupera gli eventi importati da Google Calendar. */
+export function getGoogleCalendarEventsLocal(): GoogleCalendarEvent[] {
+  const store = getStore();
+  return (store.google_calendar_events || []).slice();
+}
+
+/** Salva o aggiorna il set di eventi Google Calendar. */
+export function saveGoogleCalendarEventsLocal(events: GoogleCalendarEvent[]): void {
+  const store = getStore();
+  store.google_calendar_events = events;
+  saveStore(store);
+}
+
 
 

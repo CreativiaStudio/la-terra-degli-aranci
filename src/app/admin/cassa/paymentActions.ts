@@ -71,7 +71,7 @@ function formatEuroCents(cents: number): string {
 /** Etichetta leggibile della società incassante. */
 function companyLabel(company: Company): string {
   return company === 'santo_stefano'
-    ? 'Tenuta Santo Stefano S.r.l.'
+    ? 'Santo Stefano S.r.l.'
     : 'Iovino Banqueting S.r.l.';
 }
 

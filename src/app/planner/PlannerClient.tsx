@@ -111,9 +111,9 @@ function unique(values: string[]): string[] {
 /* Wedding/Event Planner — derivazione eventi REALI da quote & diary   */
 /* ------------------------------------------------------------------ */
 
-/** Etichette leggibili per le chiavi-formula degli spazi della tenuta. */
+/** Etichette leggibili per le chiavi-formula degli spazi della struttura. */
 const SPACE_LABELS: Record<string, string> = {
-  esclusiva: "Tenuta in Esclusiva Totale",
+  esclusiva: "Esclusiva Totale Villa",
   semi_esclusiva: "Semi-Esclusiva",
   sala_bianca: "Sala Bianca",
   sala_tufo: "Sala Tufo",
@@ -190,7 +190,7 @@ function resolveCoppia(client: any, quote: any): string {
   return [nome, cognome].filter(Boolean).join(" ").trim() || "Coppia";
 }
 
-/** Spazi riservati della quote o dal diary, con etichette leggibili, o default tenuta. */
+/** Spazi riservati della quote o dal diary, con etichette leggibili, o default esclusiva. */
 function resolveSpazi(quote: any, answers: any): string[] {
   const labelify = (value: string): string =>
     SPACE_LABELS[norm(value)] || value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -198,7 +198,7 @@ function resolveSpazi(quote: any, answers: any): string[] {
     firstDefined(quote?.spazi_riservati, answers?.preferred_spaces, quote?.spazi_selezionati)
   );
   const mapped = unique(raw.map(labelify).filter(Boolean));
-  return mapped.length > 0 ? mapped : ["Tenuta in Esclusiva Totale"];
+  return mapped.length > 0 ? mapped : ["Esclusiva Totale Villa"];
 }
 
 /** Palette cromatica dalle risposte reali del diary (o dichiarata nello stile). */
@@ -473,7 +473,7 @@ const INITIAL_EVENTS: PlannerEvent[] = [
     tipo: "wedding",
     dataEvento: "2026-10-15",
     ospiti: 150,
-    spazi: ["Tenuta in Esclusiva Totale"],
+    spazi: ["Esclusiva Totale Villa"],
     rito: "Rito Simbolico al Tramonto",
     statoAi: true,
     telefono: "+39 335 1234567",
@@ -937,7 +937,7 @@ export default function PlannerClient({
                 📖 Wedding Diary &amp; Preferenze Sincronizzate
               </h3>
               <p style={{ margin: "0.3rem 0 0", color: "#57534e", fontSize: "0.95rem", maxWidth: "840px" }}>
-                Quadro unico Sposi ↔ Segreteria: stile, spazi della tenuta, rito, musica, note alimentari
+                Quadro unico Sposi ↔ Segreteria: stile, spazi della struttura, rito, musica, note alimentari
                 (Iovino Banqueting) e date candidate. Include anche le coppie in{" "}
                 <strong>opzione / pre-firma</strong> che hanno già compilato il Diary nel portale.
               </p>

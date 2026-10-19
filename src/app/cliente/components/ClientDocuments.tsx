@@ -362,6 +362,32 @@ export default function ClientDocuments({
             </tbody>
           </table>
         </div>
+
+        {/* Nota Accordo Servizi Extra Cartacei (Decisione 1 - Opzione A) */}
+        {!isHistoricalDashboard && (
+          <div
+            style={{
+              marginTop: "1.2rem",
+              padding: "0.9rem 1.2rem",
+              background: "#fcfaf7",
+              borderRadius: "12px",
+              border: "1px dashed #d8cfc4",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              fontSize: "0.86rem",
+              color: "#6b6357",
+              lineHeight: 1.5,
+            }}
+          >
+            <span style={{ fontSize: "1.1rem" }}>📋</span>
+            <span>
+              {isEng
+                ? "For any additional accessory services agreed separately with the Management, please refer to the hardcopy detail document issued by La Terra degli Aranci."
+                : "Per eventuali servizi accessori ed extra concordati a parte con la Direzione, fare riferimento al documento di dettaglio cartaceo rilasciato da La Terra degli Aranci."}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 2.4 VETRINA RICHIESTE SERVIZI (Wishlist) */}

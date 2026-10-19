@@ -308,7 +308,7 @@ export default function PendingContractsList({ initialContracts }: PendingContra
                         border: `1px solid ${esclusiva ? "#c7d2fe" : "#bbf7d0"}`,
                       }}
                     >
-                      {esclusiva ? "Esclusiva intera tenuta" : "Semi-esclusiva"}
+                      {esclusiva ? "Esclusiva intera struttura" : "Semi-esclusiva"}
                     </span>
                   </div>
                 </div>

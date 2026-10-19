@@ -240,7 +240,7 @@ export default function ClientPortalWrapper({
               {isHistorical
                 ? (isEng 
                     ? "Welcome to the Exclusive Ecosystem Club. Access priority 48h booking and 20% discounts for seasonal galas and dinners, or revisit your historical moments."
-                    : "Benvenuti nel Club Esclusivo La Terra degli Aranci. Accedete con prelazione 48h e tariffe convenzionate (-20%) per tutti i concerti e le cene di gala in tenuta, e consultate il vostro archivio dei ricordi.")
+                    : "Benvenuti nel Club Esclusivo La Terra degli Aranci. Accedete con prelazione 48h e tariffe convenzionate (-20%) per tutti i concerti e le cene di gala presso la struttura, e consultate il vostro archivio dei ricordi.")
                 : isPrivato
                 ? (isEng
                     ? "Welcome to your personal space. Organize your private party, banquet formula, and timing with our event team."

@@ -212,7 +212,7 @@ export const ReceiptPdfTemplate = ({
 
   const Footer = () => (
     <View style={styles.footer} fixed>
-      <Text>Tenuta Santo Stefano S.r.l.{'\n'}Via Piave, 128 - 80126 Napoli (NA) | P.IVA 08341921213</Text>
+      <Text>Santo Stefano S.r.l.{'\n'}Via Piave, 128 - 80126 Napoli (NA) | P.IVA 08341921213</Text>
       <Text>La Terra degli Aranci{'\n'}Piazzetta S. Stefano, 7 - Napoli (Vomero)</Text>
       <Text>+39 081 714 87 68{'\n'}info@laterradegliaranci.it</Text>
     </View>
@@ -221,7 +221,7 @@ export const ReceiptPdfTemplate = ({
   return (
     <Document
       title={`Quietanza di Pagamento ${receiptNumber}`}
-      author="Tenuta Santo Stefano S.r.l. - La Terra degli Aranci"
+      author="Santo Stefano S.r.l. - La Terra degli Aranci"
       subject="Quietanza di Pagamento / Ricevuta Acconto"
       creator="La Terra degli Aranci"
     >
@@ -232,7 +232,7 @@ export const ReceiptPdfTemplate = ({
             {logoRightPath ? (
               <Image src={logoRightPath} style={{ width: 150, height: 32, objectFit: 'contain', marginBottom: 4 }} />
             ) : null}
-            <Text style={styles.companyName}>Tenuta Santo Stefano S.r.l.</Text>
+            <Text style={styles.companyName}>Santo Stefano S.r.l.</Text>
             <Text style={styles.companyMeta}>Sede Legale: Via Piave, 128 - 80126 Napoli (NA) | P.IVA: 08341921213</Text>
             <Text style={styles.companyLocation}>Location: La Terra degli Aranci - Piazzetta S. Stefano, 7, Napoli (Vomero)</Text>
           </View>
@@ -341,7 +341,7 @@ export const ReceiptPdfTemplate = ({
           <View style={styles.stampBlock}>
             <Text style={styles.stampTitle}>TIMBRO DIGITALE</Text>
             <Text style={styles.stampCompany}>Firma Elettronica Certificata</Text>
-            <Text style={styles.stampMeta}>Tenuta Santo Stefano S.r.l.</Text>
+            <Text style={styles.stampMeta}>Santo Stefano S.r.l.</Text>
             <Text style={styles.stampMeta}>Documento generato digitalmente e verificabile</Text>
           </View>
         </View>

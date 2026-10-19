@@ -499,6 +499,27 @@ export default function PreventiviOverviewClient({
                               </button>
 
                               <Link
+                                href={`/admin/preventivi/${quote.id}/extra`}
+                                style={{ textDecoration: "none" }}
+                              >
+                                <button
+                                  type="button"
+                                  title="Preventivo Parallelo Servizi Extra (Solo Direzione)"
+                                  style={{
+                                    padding: "0.45rem 0.8rem",
+                                    borderRadius: "8px",
+                                    border: "1px solid #fed7aa",
+                                    background: "#fffaf0",
+                                    color: "#c2410c",
+                                    fontSize: "0.82rem",
+                                    fontWeight: 700,
+                                    cursor: "pointer",
+                                  }}
+                                >
+                                  ➕ Extra
+                                </button>
+                              </Link>
+                              <Link
                                 href={`/admin/contratti/converti?quote_id=${quote.id}`}
                                 style={{ textDecoration: "none" }}
                               >

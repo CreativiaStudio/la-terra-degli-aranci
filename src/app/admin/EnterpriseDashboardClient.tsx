@@ -62,7 +62,7 @@ export default function EnterpriseDashboardClient({ quotes, signedPdfs = [] }: E
             Pannello di Controllo Direzionale
           </h1>
           <p style={{ margin: "0.4rem 0 0 0", color: "#666", fontSize: "0.98rem" }}>
-            Benvenuti Roberto e Rosaria. Panoramica completa della tenuta: schede visita dal parco, preventivi, split banqueting 60/40 e contratti digitali.
+            Benvenuti Roberto e Rosaria. Panoramica completa della struttura: schede visita dal parco, preventivi, split banqueting 60/40 e contratti digitali.
           </p>
         </div>
 
@@ -411,7 +411,7 @@ export default function EnterpriseDashboardClient({ quotes, signedPdfs = [] }: E
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
             <span style={{ fontSize: "1.2rem" }}>🏛️</span>
             <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "1.5px", color: "#e58c2c", fontWeight: 800 }}>
-              Tenuta Santo Stefano S.r.l. (40%)
+              Santo Stefano S.r.l. (40%)
             </span>
           </div>
           <h3 style={{ margin: "0 0 0.4rem 0", fontSize: "1.3rem", color: "#1e1b18" }}>

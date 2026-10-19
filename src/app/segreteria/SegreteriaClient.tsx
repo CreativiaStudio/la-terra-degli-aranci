@@ -59,7 +59,7 @@ const SPAZI_OPZIONI = [
   "After Party Lounge",
 ];
 
-const CERIMONIA_OPZIONI = ["Rito Simbolico in Tenuta", "Cerimonia in Chiesa", "Solo Ricevimento"];
+const CERIMONIA_OPZIONI = ["Rito Simbolico in Location", "Cerimonia in Chiesa", "Solo Ricevimento"];
 
 const SERVIZI_OPZIONI = [
   "Open Bar Illimitato",
@@ -73,7 +73,7 @@ const SERVIZI_OPZIONI = [
 ];
 
 /* ------------------------------------------------------------------ */
-/* Tour Fotografico Servizi — spazi tenuta + servizi esclusivi TDA     */
+/* Tour Fotografico Servizi — spazi struttura + servizi esclusivi TDA  */
 /* ------------------------------------------------------------------ */
 
 type TourCategory = "spazi" | "gastronomia" | "scenografie" | "rito" | "openbar" | "musica";
@@ -90,7 +90,7 @@ interface TourItem {
 
 const TOUR_CATEGORIES: { key: TourCategory | "tutti"; label: string }[] = [
   { key: "tutti", label: "🌟 Tutti" },
-  { key: "spazi", label: "🏛️ Spazi Tenuta" },
+  { key: "spazi", label: "🏛️ Spazi Struttura" },
   { key: "gastronomia", label: "🍽️ Gastronomia & Angoli" },
   { key: "scenografie", label: "✨ Scenografie & Fuochi" },
   { key: "rito", label: "💍 Rito Civile" },
@@ -105,7 +105,7 @@ function galleryOf(...names: string[]): string[] {
 }
 
 /**
- * Catalogo del Tour Fotografico Servizi: i 6 spazi della tenuta + i servizi
+ * Catalogo del Tour Fotografico Servizi: i 6 spazi della struttura + i servizi
  * più amati ed emozionanti del catalogo TDA, con foto HD e gallerie.
  */
 const TOUR_ITEMS: TourItem[] = [
@@ -844,7 +844,7 @@ export default function SegreteriaClient({
           👋 Benvenuta in Segreteria
         </h1>
         <p style={{ margin: "0.35rem 0 0", color: "#6a6764", maxWidth: "760px", fontSize: "1rem" }}>
-          Qui trovi tutte le visite e gli appuntamenti in agenda. Durante il giro della tenuta,
+          Qui trovi tutte le visite e gli appuntamenti in agenda. Durante la visita della struttura,
           annota le preferenze degli sposi: le ritroveranno già pronte nella loro Area Riservata.
         </p>
       </div>
