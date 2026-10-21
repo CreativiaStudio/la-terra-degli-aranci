@@ -9,6 +9,7 @@ import {
   setClientSessionCookie,
 } from "@/lib/magicLinkAuth";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
+import { getOpenDayLeadAndDiary } from "@/lib/openDayCloudSync";
 import DiarioClientView from "./DiarioClientView";
 
 export const revalidate = 0;
@@ -60,7 +61,9 @@ export default async function OpenDayDiarioPage({ searchParams }: PageProps) {
     redirect("/openday");
   }
 
-  let client = clients.find((c) => c.id === targetClientId);
+  // Risoluzione cliente prima su cloud R2 (persistente e condiviso), poi su localDb
+  const cloudData = await getOpenDayLeadAndDiary(targetClientId);
+  let client = cloudData.client || clients.find((c) => c.id === targetClientId);
 
   // Se non trovato tramite ID cliente, controlla se corrisponde a una quote
   let quote = quotes.find(
@@ -75,7 +78,7 @@ export default async function OpenDayDiarioPage({ searchParams }: PageProps) {
     redirect("/openday");
   }
 
-  const initialDiary = getWeddingDiaryLocal(client.id);
+  const initialDiary = cloudData.diary || getWeddingDiaryLocal(client.id);
   const partnerShareToken = createDiaryShareToken(client.id);
 
   return (

@@ -1,34 +1,49 @@
 import React from "react";
 import Link from "next/link";
 import { getStore, getWeddingDiaryLocal } from "@/lib/localDb";
-import { getOpenDayStats } from "@/lib/openDayTracker";
 import { computeDiaryProgress } from "@/app/cliente/components/weddingDiaryFields";
 import { createDiaryShareToken } from "@/lib/magicLinkAuth";
+import { getOpenDayAdminData } from "@/lib/openDayCloudSync";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function AdminOpenDayDashboardPage() {
+  const cloudData = await getOpenDayAdminData();
   const store = getStore();
-  const stats = getOpenDayStats();
-  const clients = store.clients || [];
+  const localClients = (store.clients || []).filter(
+    (c: any) =>
+      c?.provenienza === "QR Code Open Day" ||
+      (c?.tags && c.tags.includes("Open Day"))
+  );
 
-  // Filtra i lead provenienti dall'Open Day
-  const openDayClients = clients
-    .filter(
-      (c: any) =>
-        c?.provenienza === "QR Code Open Day" ||
-        (c?.tags && c.tags.includes("Open Day"))
-    )
-    .map((c: any) => {
+  // Unione dedup tra Cloudflare R2 (persistente globale) e localDb
+  const clientMap = new Map<string, any>();
+  for (const c of cloudData.openDayClients) {
+    clientMap.set(c.id, c);
+  }
+  for (const c of localClients) {
+    if (!clientMap.has(c.id)) {
       const diary = getWeddingDiaryLocal(c.id);
-      const progress = computeDiaryProgress(diary?.answers);
-      return {
+      clientMap.set(c.id, {
         ...c,
-        diaryProgress: progress,
+        diaryProgress: computeDiaryProgress(diary?.answers),
         diaryAnswers: diary?.answers || {},
-      };
-    });
+      });
+    }
+  }
+
+  const openDayClients = Array.from(clientMap.values());
+  const totalScans = Math.max(cloudData.stats.totalScans, openDayClients.length > 0 ? openDayClients.length : 0);
+  const totalRegistered = openDayClients.length;
+  const conversionRate = totalScans > 0 ? Math.round((totalRegistered / totalScans) * 100) : 0;
+
+  const stats = {
+    totalScans,
+    totalRegistered,
+    conversionRate,
+    recentScans: cloudData.stats.recentScans || [],
+  };
 
   return (
     <div style={{ padding: "2rem", maxWidth: "1280px", margin: "0 auto", fontFamily: "'Outfit', sans-serif", color: "#2B2B2B" }}>

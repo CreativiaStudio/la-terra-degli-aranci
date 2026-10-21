@@ -15,6 +15,7 @@ import {
 import { dispatchServiceTicketNotification } from "@/lib/notificationDispatcher";
 import { getClientSessionFromCookie } from "@/lib/magicLinkAuth";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
+import { saveWeddingDiaryCloud } from "@/lib/openDayCloudSync";
 
 /**
  * Payload del Wedding Diary.
@@ -78,6 +79,8 @@ export async function saveWeddingDiaryAction(data: SaveWeddingDiaryPayload): Pro
     }
 
     const updated = saveWeddingDiaryLocal(data);
+    // Sincronizzazione automatica persistente su Cloudflare R2 (accessibile da tutti i nodi Vercel)
+    saveWeddingDiaryCloud(data.client_id, data.answers || {}).catch(() => {});
     return { success: true, data: updated };
   } catch (error: any) {
     return { success: false, error: error?.message || "Errore durante il salvataggio" };
