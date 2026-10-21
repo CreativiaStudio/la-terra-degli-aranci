@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   getAllQuotesLocal,
   getLocalStore,
@@ -51,7 +51,12 @@ export default async function EventRegiaPage({
     | "ospiti";
 
   const quote = findQuote(id);
-  if (!quote) return notFound();
+  if (!quote) {
+    if (id.startsWith("client-") || id.startsWith("od-")) {
+      redirect(`/openday/diario?id=${id}`);
+    }
+    return notFound();
+  }
 
   const store = getLocalStore();
   const fullId = String(quote.id || "").toLowerCase();

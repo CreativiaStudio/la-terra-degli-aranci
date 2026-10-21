@@ -14,6 +14,7 @@
  */
 
 import { getStore, type LocalStore } from "@/lib/localDb";
+import { getOpenDayCloudState } from "@/lib/openDayCloudSync";
 
 /* ------------------------------------------------------------------ */
 /* Tipi pubblici                                                       */
@@ -99,7 +100,7 @@ function getQuotes(store: LocalStore): StoreQuote[] {
   return Array.isArray(store.quotes) ? (store.quotes as StoreQuote[]) : [];
 }
 
-/** Risolve il nome dello sposo/cliente a partire da una quote id. */
+/** Risolve il nome dello sposo/cliente a partire da una quote id o client id. */
 function resolveQuoteName(store: LocalStore, quoteId: string, fallback = "Cliente TDA"): string {
   const search = String(quoteId || "").trim().toLowerCase();
   if (!search) return fallback;
@@ -113,9 +114,73 @@ function resolveQuoteName(store: LocalStore, quoteId: string, fallback = "Client
   const client =
     quote?.clients ||
     getClients(store).find((c) => c && quote?.client_id && c.id === quote.client_id) ||
+    getClients(store).find((c) => c && c.id && (c.id === search || c.id.toLowerCase() === search)) ||
     {};
 
   return fullName(client.nome, client.cognome) || fallback;
+}
+
+/** Risolve in modo ricco e accurato il nome della coppia per la notifica del Wedding Diary. */
+function resolveDiaryCoupleName(store: LocalStore, diary: any, openDayLeads: any[] = []): string {
+  const ans = diary?.answers || {};
+  
+  // 1. Dalle risposte dirette del form
+  const sposo = fullName(ans.sposo_nome, ans.sposo_cognome);
+  const sposa = fullName(ans.sposa_nome, ans.sposa_cognome);
+  if (sposo && sposa) return `${sposo} & ${sposa}`;
+  if (sposo) return sposo;
+  if (sposa) return sposa;
+  if (ans.nomiSposi) return String(ans.nomiSposi).trim();
+  if (ans.nome_coppia) return String(ans.nome_coppia).trim();
+
+  // 2. Da Cloudflare R2 (Open Day leads)
+  const cid = String(diary.client_id || diary.quote_id || "").trim();
+  const cidLower = cid.toLowerCase();
+  const odLead = openDayLeads.find(l => String(l.id || "").toLowerCase() === cidLower || String(l.email || "").toLowerCase() === cidLower);
+  if (odLead && odLead.nome) return odLead.nome;
+
+  // 3. Da store.clients (anagrafica clienti locale)
+  const client = (store.clients || []).find((c: any) => String(c.id || "").toLowerCase() === cidLower);
+  if (client) {
+    const main = fullName(client.nome, client.cognome);
+    const partner = fullName(client.sposera_nome, client.sposera_cognome);
+    if (main && partner) return `${main} & ${partner}`;
+    if (main) return main;
+  }
+
+  // 4. Da store.quotes
+  const quoteName = resolveQuoteName(store, cid, "");
+  if (quoteName) return quoteName;
+
+  if (ans.nome) return fullName(ans.nome, ans.cognome);
+
+  return "Coppia Sposi";
+}
+
+/** Risolve la destinazione corretta del link evitando categoricamente 404. */
+function resolveDiaryLink(store: LocalStore, diary: any): string {
+  const qid = String(diary.quote_id || "").trim();
+  const cid = String(diary.client_id || "").trim();
+
+  // Se esiste una quote reale corrispondente a qid o cid, usa la regia evento
+  const quotes = getQuotes(store);
+  const matchedQuote = quotes.find(q => {
+    const id = String(q.id || "").toLowerCase();
+    const clId = String(q.client_id || "").toLowerCase();
+    return (qid && id === qid.toLowerCase()) || (cid && (id === cid.toLowerCase() || clId === cid.toLowerCase()));
+  });
+
+  if (matchedQuote) {
+    return `/admin/eventi/${matchedQuote.id}?tab=diario`;
+  }
+
+  // Se è un lead Open Day o cliente registrato senza preventivo ancora emesso
+  const targetId = cid || qid;
+  if (targetId) {
+    return `/openday/diario?id=${targetId}`;
+  }
+
+  return "/admin/wedding-diary";
 }
 
 /* ------------------------------------------------------------------ */
@@ -127,7 +192,11 @@ function resolveQuoteName(store: LocalStore, quoteId: string, fallback = "Client
  * più recente alla più vecchia.
  */
 export async function getAdminNotificationsAction(): Promise<AdminNotification[]> {
-  const store = getStore();
+  const [store, cloudState] = await Promise.all([
+    Promise.resolve(getStore()),
+    getOpenDayCloudState().catch(() => ({ leads: [] })),
+  ]);
+  const openDayLeads = Array.isArray(cloudState?.leads) ? cloudState.leads : [];
   const notifications: AdminNotification[] = [];
 
   /* 1) Ticket Richiesta Servizi ------------------------------------- */
@@ -285,26 +354,59 @@ export async function getAdminNotificationsAction(): Promise<AdminNotification[]
   }
 
   /* 5) Wedding Diary aggiornati di recente -------------------------- */
-  const diaries = Array.isArray(store.wedding_diaries) ? store.wedding_diaries : [];
-  for (const diary of diaries) {
-    if (!diary) continue;
+  // Uniamo i diari locali con i lead aggiornati su Cloudflare R2
+  const localDiaries = Array.isArray(store.wedding_diaries) ? store.wedding_diaries : [];
+  const diaryMap = new Map<string, any>();
 
+  for (const d of localDiaries) {
+    if (!d) continue;
+    const key = String(d.client_id || d.id || "").trim();
+    if (key) diaryMap.set(key, d);
+  }
+
+  for (const lead of openDayLeads) {
+    if (!lead || !lead.id) continue;
+    const hasAnswers = lead.diaryAnswers && Object.keys(lead.diaryAnswers).length > 0;
+    const hasProgress = Boolean(lead.diaryProgress && lead.diaryProgress > 0);
+    if (hasAnswers || hasProgress) {
+      if (!diaryMap.has(lead.id)) {
+        diaryMap.set(lead.id, {
+          id: lead.id,
+          client_id: lead.id,
+          answers: lead.diaryAnswers || {},
+          completion_rate: lead.diaryProgress || 0,
+          updated_at: lead.updated_at || lead.ultimo_accesso_openday || lead.created_at,
+        });
+      } else {
+        const existing = diaryMap.get(lead.id);
+        const r2Time = toTime(lead.updated_at || lead.ultimo_accesso_openday);
+        const locTime = toTime(existing.updated_at);
+        if (r2Time > locTime) {
+          diaryMap.set(lead.id, {
+            ...existing,
+            answers: { ...existing.answers, ...(lead.diaryAnswers || {}) },
+            completion_rate: lead.diaryProgress || existing.completion_rate,
+            updated_at: lead.updated_at || existing.updated_at,
+          });
+        }
+      }
+    }
+  }
+
+  for (const diary of diaryMap.values()) {
     const updatedAt = diary.updated_at || diary.created_at;
     if (!isRecent(updatedAt, DIARY_RECENT_DAYS)) continue;
 
-    const name =
-      resolveQuoteName(store, String(diary.quote_id || diary.client_id || ""), "") ||
-      fullName(diary?.answers?.nome, diary?.answers?.cognome) ||
-      "Coppia";
-    const quoteId = String(diary.quote_id || diary.client_id || "").trim();
+    const coupleName = resolveDiaryCoupleName(store, diary, openDayLeads);
+    const link = resolveDiaryLink(store, diary);
 
     notifications.push({
-      id: `diary:${diary.id || quoteId || String(updatedAt || "")}`,
+      id: `diary:${diary.id || diary.client_id || String(updatedAt || "")}`,
       tipo: "diary",
       titolo: "Wedding Diary aggiornato",
-      messaggio: `${name} ha aggiornato le preferenze del proprio Wedding Diary`,
+      messaggio: `${coupleName} ha aggiornato le preferenze del proprio Wedding Diary`,
       data: String(updatedAt || ""),
-      link: quoteId ? `/admin/eventi/${quoteId}` : "/admin/wedding-diary",
+      link,
       badgeLabel: "Diary",
       badgeColor: "#6d28d9",
       badgeBg: "#ede9fe",
