@@ -1,5 +1,6 @@
 import { getStore } from "@/lib/localDb";
 import { getQuotesFast } from "@/lib/dataHelper";
+import { getOpenDayAdminData } from "@/lib/openDayCloudSync";
 import { computeEventLedger } from "@/lib/eventLedger";
 import { deriveEventStage } from "@/lib/eventStage";
 import ClientiClient, { type ClienteRow, type ClienteEventoRow } from "./ClientiClient";
@@ -72,7 +73,11 @@ function matchesSignedContract(record: any, quote: any): boolean {
 }
 
 export default async function ClientiPage() {
-  const [store, quotes] = await Promise.all([Promise.resolve(getStore()), getQuotesFast()]);
+  const [store, quotes, openDayData] = await Promise.all([
+    Promise.resolve(getStore()),
+    getQuotesFast(),
+    getOpenDayAdminData().catch(() => ({ openDayClients: [] }))
+  ]);
   const today = new Date().toISOString().slice(0, 10);
 
   /* Indici in memoria per pagamenti e variazioni (evita N letture del file). */
@@ -94,7 +99,7 @@ export default async function ClientiPage() {
     else changesByQuote.set(key, [c]);
   }
 
-  /* Unione clienti: anagrafica locale + snapshot presenti nelle quote (Supabase). */
+  /* Unione clienti: anagrafica locale + snapshot presenti nelle quote (Supabase) + Open Day Cloud R2. */
   const clientMap = new Map<string, any>();
   for (const c of store.clients || []) {
     if (c && c.id) clientMap.set(String(c.id), c);
@@ -102,6 +107,21 @@ export default async function ClientiPage() {
   for (const q of quotes) {
     const cid = String(q?.client_id || q?.clients?.id || "").trim();
     if (cid && !clientMap.has(cid) && q?.clients) clientMap.set(cid, q.clients);
+  }
+  for (const od of openDayData?.openDayClients || []) {
+    if (od && od.id && !clientMap.has(od.id)) {
+      clientMap.set(od.id, {
+        id: od.id,
+        nome: od.nome,
+        cognome: od.cognome || '',
+        email: od.email,
+        telefono: od.telefono,
+        provenienza: od.provenienza || 'QR Code Open Day',
+        created_at: od.created_at,
+        tipo_cliente: 'wedding',
+        tags: od.tags || ['Open Day'],
+      });
+    }
   }
 
   /* Raggruppa le quote per client_id. */

@@ -38,11 +38,11 @@ async function loadQuote(quoteId: string): Promise<any | null> {
   if (local) return local;
 
   return {
-    id: quoteId || "demo-test",
-    client_id: quoteId || "demo-test",
+    id: quoteId || "preview-roberto-sola",
+    client_id: quoteId || "client-roberto-sola",
     tipo_evento: "wedding",
-    data_evento: "2027-06-18",
-    numero_ospiti: 100,
+    data_evento: "2027-09-25",
+    numero_ospiti: 120,
     items: [
       { id: "1", descrizione: "Affitto Villa in Esclusiva & Menu Wedding Base", prezzo_unitario: 14000, quantita: 1 },
       { id: "2", descrizione: "Confettata Elegante Completa", prezzo_unitario: 450, quantita: 1 },
@@ -52,9 +52,9 @@ async function loadQuote(quoteId: string): Promise<any | null> {
     totale_calcolato: 15200,
     status: "firmato",
     clients: {
-      nome: "Demo",
-      cognome: "Test (Elena)",
-      email: "sposi@laterradegliaranci.it"
+      nome: "Roberto Sola",
+      cognome: "e Rosaria",
+      email: "ing.roberto.sola@gmail.com"
     }
   };
 }

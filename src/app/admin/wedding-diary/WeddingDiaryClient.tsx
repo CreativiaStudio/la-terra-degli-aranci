@@ -5,6 +5,7 @@ import React, { useState, useMemo } from "react";
 interface WeddingDiaryClientProps {
   quotes: any[];
   diaries?: any[];
+  openDayClients?: any[];
 }
 
 interface WeddingEntry {
@@ -24,7 +25,7 @@ interface WeddingEntry {
   hasAiUpdate: boolean;
 }
 
-export default function WeddingDiaryClient({ quotes = [], diaries = [] }: WeddingDiaryClientProps) {
+export default function WeddingDiaryClient({ quotes = [], diaries = [], openDayClients = [] }: WeddingDiaryClientProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTab, setFilterTab] = useState<"all" | "completed" | "pending">("all");
   const [selectedEntry, setSelectedEntry] = useState<WeddingEntry | null>(null);
@@ -130,8 +131,32 @@ export default function WeddingDiaryClient({ quotes = [], diaries = [] }: Weddin
       });
     });
 
+    // 3. Add Open Day clients with diary answers (Cloudflare R2 live)
+    openDayClients.forEach((od: any) => {
+      const ans = od?.diaryAnswers && typeof od.diaryAnswers === "object" ? od.diaryAnswers : {};
+      const hasAns = Object.keys(ans).length > 0 || (od.diaryProgress && od.diaryProgress > 0);
+      if (!hasAns) return;
+
+      list.push({
+        id: od.id,
+        quoteId: undefined,
+        coupleNames: od.nome || "Coppia Open Day",
+        eventDate: od.dataSognata || ans.data_matrimonio_desiderata || od.periodoSognato || "Data da definire",
+        guestsCount: ans.numero_invitati_previsto || "100",
+        status: `openday_${od.diaryProgress || 0}%`,
+        palette: Array.isArray(ans.palette_colori) ? ans.palette_colori.join(", ") : (ans.palette_colori || "Arancio TDA, Verde Parco"),
+        style: ans.stile_matrimonio || "In definizione tramite Wedding Diary",
+        dietaryNotes: ans.intolleranze_alimentari || "Nessuna intolleranza segnalata al momento",
+        preferredSpaces: ["Parco Botanico", "Agrumeto Storico", "Sala Tufo"],
+        musicPreferences: `${ans.genere_musica_aperitivo || ""} - Taglio Torta: ${ans.brano_taglio_torta || "Coldplay"}`.trim(),
+        notes: `Registrato via QR Code Open Day. Avanzamento: ${od.diaryProgress || 0}%. WhatsApp: ${od.telefono}`,
+        updatedAt: od.updated_at,
+        hasAiUpdate: true
+      });
+    });
+
     return list;
-  }, [quotes, diaries]);
+  }, [quotes, diaries, openDayClients]);
 
   // Filtering
   const filteredEntries = useMemo(() => {

@@ -950,16 +950,8 @@ function buildEvents(
     });
   });
 
-  // Luglio 2027 è il mese demo: lo arricchiamo SEMPRE con casi realistici,
-  // così la griglia di Luglio 2027 resta viva anche in presenza di dati reali.
-  const julyDemo = buildJuly2027DemoEvents();
-
-  // Fallback dimostrativo solo se non esiste alcun dato reale.
-  if (events.length === 0) {
-    return [...buildDemoEvents(reference), ...julyDemo];
-  }
-
-  return [...events, ...julyDemo];
+  // Nessuna iniezione di eventi demo: solo dati reali di preventivi e appuntamenti
+  return events;
 }
 
 /* ------------------------------------------------------------------ */

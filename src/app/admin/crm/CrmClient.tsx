@@ -7,65 +7,21 @@ import { it } from "date-fns/locale";
 interface CrmClientProps {
   quotes: any[];
   signedPdfs: any[];
+  openDayClients?: any[];
 }
 
-// Utenti di prova ricchi per dimostrazione a Roberto Sola
-const DEMO_CRM_CLIENTS = [
-  {
-    id: "demo-test",
-    nome: "Demo",
-    cognome: "Test",
-    sposa_nome: "Elena",
-    sposa_cognome: "Test",
-    email: "demo.test@laterradegliaranci.it",
-    telefono: "+39 333 1234567",
-    tipo_evento: "wedding",
-    data_evento: "2027-09-25",
-    status: "in_visita",
-    fonte_lead: "Richiesta Sito Web - Form Direct",
-    data_primo_contatto: "2026-07-30",
-    totale_preventivo: 15330,
-    sconto: 0,
-    n_ospiti: 100,
-    wedding_diary: {
-      compilato: false,
-      palette_colori: ["#e58c2c", "#2d5a27", "#ffffff"],
-      palette_nomi: ["Arancio TDA", "Verde Natura", "Bianco Spose"],
-      stile_evento: "Matrimonio Esclusivo in Villa",
-      intolleranze: "Nessuna segnalata in prima visita",
-      musica: "Da concordare in trattativa",
-      note_roberto: "Nuovo Lead arrivato oggi per simulazione. In visita nei giardini con la segreteria."
-    }
-  },
-  {
-    id: "demo-sposi-1",
-    nome: "Marco",
-    cognome: "Rossi",
-    sposa_nome: "Elena",
-    sposa_cognome: "Bianchi",
-    email: "marco.rossi.wedding@gmail.com",
-    telefono: "+39 347 1234567",
-    tipo_evento: "wedding",
-    data_evento: "2027-06-18",
-    status: "firmato",
-    fonte_lead: "Google Ads - Sposi Napoli & Campania",
-    data_primo_contatto: "2026-05-14",
-    totale_preventivo: 18500,
-    sconto: 2000,
-    n_ospiti: 120,
-    wedding_diary: {
-      compilato: true,
-      palette_colori: ["#e58c2c", "#2d5a27", "#f5e6d3"],
-      palette_nomi: ["Arancio Warm", "Verde Agrumeto", "Crema Lusso"],
-      stile_evento: "Gourmet Elegante in Giardino con Show Cooking Pizza & Confettata Chic",
-      intolleranze: "4 Celiaci (Gluten Free) + 2 Intolleranti al Lattosio + 1 Menu Baby",
-      musica: "DJ Set Live per Dopocena in Sala Tufo & Sax all'Aperitivo",
-      note_roberto: "Coppia molto esigente ma entusiasta della vista panoramica. Acconto caparra di €5.550 già ricevuto via bonifico."
-    }
+function safeFormatDate(value: any, pattern: string = "dd MMMM yyyy"): string {
+  if (!value) return "In definizione";
+  try {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    return format(d, pattern, { locale: it });
+  } catch {
+    return String(value);
   }
-];
+}
 
-export default function CrmClient({ quotes, signedPdfs }: CrmClientProps) {
+export default function CrmClient({ quotes, signedPdfs, openDayClients = [] }: CrmClientProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedClient, setSelectedClient] = useState<any | null>(null);
 
@@ -100,7 +56,7 @@ export default function CrmClient({ quotes, signedPdfs }: CrmClientProps) {
       <div class="box">
         <h2>Scheda Operativa Cucina & Chef</h2>
         <p class="bold">Evento: ${client.nome} ${client.cognome} ${client.sposa_nome ? `& ${client.sposa_nome} ${client.sposa_cognome}` : ''}</p>
-        <p>Data Evento: <span class="badge">${format(new Date(client.data_evento), 'dd MMMM yyyy', { locale: it })}</span></p>
+        <p>Data Evento: <span class="badge">${safeFormatDate(client.data_evento)}</span></p>
         <p>Totale Ospiti Previsti: <span class="bold">${client.n_ospiti} Pax</span></p>
       </div>
       <div class="box">
@@ -119,7 +75,7 @@ export default function CrmClient({ quotes, signedPdfs }: CrmClientProps) {
       <div class="box">
         <h2>Scheda Operativa Allestimenti & Wedding Planner</h2>
         <p class="bold">Coppia: ${client.nome} ${client.cognome} ${client.sposa_nome ? `& ${client.sposa_nome} ${client.sposa_cognome}` : ''}</p>
-        <p>Data Evento: <span class="badge">${format(new Date(client.data_evento), 'dd MMMM yyyy', { locale: it })}</span></p>
+        <p>Data Evento: <span class="badge">${safeFormatDate(client.data_evento)}</span></p>
         <p>Stile Desiderato: ${client.wedding_diary?.stile_evento}</p>
       </div>
       <div class="box">
@@ -132,8 +88,8 @@ export default function CrmClient({ quotes, signedPdfs }: CrmClientProps) {
     handlePrintOperational(`Scheda Allestimenti - ${client.nome} ${client.cognome}`, html);
   };
 
-  // Combiniamo i dati di prova dimostrativi con i preventivi reali presente nel sistema
-  const realClients = quotes.map(q => {
+  // 1. Mappa preventivi e contratti reali
+  const quoteClients = (quotes || []).map(q => {
     const nomeRaw = (q.clients?.nome || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     const cognomeRaw = (q.clients?.cognome || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     
@@ -146,21 +102,25 @@ export default function CrmClient({ quotes, signedPdfs }: CrmClientProps) {
 
     return {
       id: q.id,
+      clientId: q.client_id || q.clients?.id || q.id,
       nome: q.clients?.nome || 'Cliente',
       cognome: q.clients?.cognome || '',
-      email: q.clients?.email || 'email@dominio.it',
-      telefono: q.clients?.telefono || '+39 366 35683',
+      sposa_nome: q.clients?.sposera_nome || '',
+      sposa_cognome: q.clients?.sposera_cognome || '',
+      email: q.clients?.email || '',
+      telefono: q.clients?.telefono || '',
       tipo_evento: q.tipo_evento || 'wedding',
-      data_evento: q.data_evento || '2027-01-22',
-      status: isFirmato ? 'firmato' : q.status,
-      fonte_lead: 'Sito Web / Richiesta Preventivo Direct',
-      data_primo_contatto: q.created_at ? q.created_at.slice(0, 10) : '2026-07-22',
-      totale_preventivo: Number(q.totale_calcolato),
+      data_evento: q.data_evento || 'In definizione',
+      status: isFirmato ? 'firmato' : q.status || 'inviato',
+      fonte_lead: q.source === 'tablet_segreteria' ? 'Tablet Segreteria' : 'Preventivo Ecosistema TDA',
+      data_primo_contatto: q.created_at ? q.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      totale_preventivo: Number(q.totale_calcolato || 0),
       sconto: Number(q.sconto_fisso || 0),
       n_ospiti: q.numero_ospiti || 100,
       pdf_url: signedMatch ? signedMatch.url : null,
       wedding_diary: {
         compilato: isFirmato,
+        progress: isFirmato ? 100 : 30,
         palette_colori: ["#e58c2c", "#2d5a27", "#ffffff"],
         palette_nomi: ["Arancio TDA", "Verde Natura", "Bianco Spose"],
         stile_evento: q.tipo_evento === 'wedding' ? "Matrimonio Esclusivo in Villa" : "Evento Privato",
@@ -171,7 +131,55 @@ export default function CrmClient({ quotes, signedPdfs }: CrmClientProps) {
     };
   });
 
-  const allClients = realClients;
+  // 2. Mappa lead qualificati registrati via Open Day (Cloudflare R2)
+  const odClients = (openDayClients || []).map((od: any) => {
+    const ans = od.diaryAnswers || {};
+    return {
+      id: od.id,
+      clientId: od.id,
+      nome: od.nome || 'Coppia Sposi',
+      cognome: od.cognome || '',
+      sposa_nome: ans.sposa_nome || '',
+      sposa_cognome: ans.sposa_cognome || '',
+      email: od.email || ans.sposo_email || ans.sposa_email || '',
+      telefono: od.telefono || ans.sposo_telefono || ans.sposa_telefono || '',
+      tipo_evento: 'wedding',
+      data_evento: od.dataSognata || ans.data_matrimonio_desiderata || od.periodoSognato || 'In definizione',
+      status: 'openday_lead',
+      fonte_lead: od.provenienza || 'QR Code Open Day',
+      data_primo_contatto: od.created_at ? od.created_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+      totale_preventivo: 0,
+      sconto: 0,
+      n_ospiti: ans.numero_invitati_previsto || 100,
+      pdf_url: null,
+      wedding_diary: {
+        compilato: Boolean(od.diaryProgress && od.diaryProgress > 0),
+        progress: od.diaryProgress || 0,
+        palette_colori: ans.palette_colori || ["#e58c2c", "#2d5a27"],
+        palette_nomi: ["Arancio TDA", "Verde Parco"],
+        stile_evento: ans.stile_matrimonio || "In definizione",
+        intolleranze: ans.intolleranze_alimentari || "Nessuna segnalata",
+        musica: ans.genere_musica_aperitivo || "Da concordare",
+        note_roberto: `Registrato via QR Code Open Day. Avanzamento Wedding Diary: ${od.diaryProgress || 0}%.`,
+        answers: ans,
+      }
+    };
+  });
+
+  // Unione dedup (priorità ai contratti firmati/preventivi, poi Open Day)
+  const clientMap = new Map<string, any>();
+  for (const c of quoteClients) {
+    const key = (c.email || c.id).toLowerCase();
+    clientMap.set(key, c);
+  }
+  for (const c of odClients) {
+    const key = (c.email || c.id).toLowerCase();
+    if (!clientMap.has(key)) {
+      clientMap.set(key, c);
+    }
+  }
+
+  const allClients = Array.from(clientMap.values());
 
   const filteredClients = allClients.filter(c => {
     if (!searchQuery.trim()) return true;
@@ -247,22 +255,26 @@ export default function CrmClient({ quotes, signedPdfs }: CrmClientProps) {
                     </span>
                     <span>•</span>
                     <span style={{ fontWeight: 600, color: "#514d48" }}>
-                      📅 {c.data_evento ? format(new Date(c.data_evento), 'dd MMM yyyy', { locale: it }) : 'Da definire'}
+                      📅 {c.data_evento ? safeFormatDate(c.data_evento, 'dd MMM yyyy') : 'Da definire'}
                     </span>
                   </div>
                 </td>
 
                 {/* Contatti */}
                 <td style={{ padding: "0.75rem 0.6rem" }}>
-                  <small style={{ display: "block", color: "#6a6764", fontSize: "0.76rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.email}</small>
-                  <a
-                    href={`https://wa.me/${c.telefono.replace(/[^0-9]/g, '')}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ fontSize: "0.74rem", color: "#16a34a", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.15rem", whiteSpace: "nowrap" }}
-                  >
-                    📱 {c.telefono}
-                  </a>
+                  <small style={{ display: "block", color: "#6a6764", fontSize: "0.76rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.email || '—'}</small>
+                  {c.telefono ? (
+                    <a
+                      href={`https://wa.me/${c.telefono.replace(/[^0-9]/g, '')}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ fontSize: "0.74rem", color: "#16a34a", fontWeight: 700, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.15rem", whiteSpace: "nowrap" }}
+                    >
+                      📱 {c.telefono}
+                    </a>
+                  ) : (
+                    <span style={{ fontSize: "0.74rem", color: "#aaa" }}>Nessun telefono</span>
+                  )}
                 </td>
 
                 {/* Origine Lead */}
@@ -271,20 +283,20 @@ export default function CrmClient({ quotes, signedPdfs }: CrmClientProps) {
                     title={c.fonte_lead}
                     style={{
                       fontSize: "0.72rem",
-                      background: "#f5f0e8",
-                      border: "1px solid #e8e2d9",
+                      background: c.status === 'openday_lead' ? "#f0fdf4" : "#f5f0e8",
+                      border: `1px solid ${c.status === 'openday_lead' ? "#bbf7d0" : "#e8e2d9"}`,
                       padding: "0.2rem 0.45rem",
                       borderRadius: "6px",
-                      color: "#544e45",
+                      color: c.status === 'openday_lead' ? "#166534" : "#544e45",
                       fontWeight: 600,
-                      maxWidth: "115px",
+                      maxWidth: "140px",
                       display: "inline-block",
                       whiteSpace: "nowrap",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                     }}
                   >
-                    🎯 {c.fonte_lead}
+                    {c.status === 'openday_lead' ? '🌿 QR Open Day' : `🎯 ${c.fonte_lead}`}
                   </span>
                 </td>
 
@@ -296,17 +308,41 @@ export default function CrmClient({ quotes, signedPdfs }: CrmClientProps) {
                     fontSize: "0.7rem",
                     fontWeight: 800,
                     whiteSpace: "nowrap",
-                    background: c.status === 'firmato' ? '#f0fdf4' : c.status === 'in_trattativa' ? '#fff7ed' : '#f0f9ff',
-                    color: c.status === 'firmato' ? '#15803d' : c.status === 'in_trattativa' ? '#c2410c' : '#0369a1',
-                    border: `1px solid ${c.status === 'firmato' ? '#bbf7d0' : c.status === 'in_trattativa' ? '#ffedd5' : '#bae6fd'}`,
+                    background: c.status === 'firmato' ? '#f0fdf4' : c.status === 'openday_lead' ? '#ecfdf5' : c.status === 'in_trattativa' ? '#fff7ed' : '#f0f9ff',
+                    color: c.status === 'firmato' ? '#15803d' : c.status === 'openday_lead' ? '#047857' : c.status === 'in_trattativa' ? '#c2410c' : '#0369a1',
+                    border: `1px solid ${c.status === 'firmato' ? '#bbf7d0' : c.status === 'openday_lead' ? '#a7f3d0' : c.status === 'in_trattativa' ? '#ffedd5' : '#bae6fd'}`,
                   }}>
-                    {c.status === 'firmato' ? '✍️ FIRMATO' : c.status === 'in_trattativa' ? 'TRATTATIVA' : 'VISITA'}
+                    {c.status === 'firmato' ? '✍️ FIRMATO' : c.status === 'openday_lead' ? `💍 DIARIO ${c.wedding_diary?.progress || 0}%` : c.status === 'in_trattativa' ? 'TRATTATIVA' : 'VISITA'}
                   </span>
                 </td>
 
                 {/* Tasti Azione Ecosistema Sincronizzati */}
                 <td style={{ padding: "0.75rem 0.6rem", textAlign: "right", whiteSpace: "nowrap" }}>
                   <div style={{ display: "inline-flex", gap: "0.3rem", alignItems: "center", justifyContent: "flex-end" }}>
+                    {c.status === 'openday_lead' && (
+                      <a
+                        href={`/openday/diario?id=${c.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Apri Wedding Diary Coppia"
+                        style={{
+                          padding: "0.4rem 0.65rem",
+                          background: "#ecfdf5",
+                          color: "#047857",
+                          border: "1px solid #a7f3d0",
+                          borderRadius: "7px",
+                          fontSize: "0.76rem",
+                          fontWeight: 700,
+                          textDecoration: "none",
+                          whiteSpace: "nowrap",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "0.2rem",
+                        }}
+                      >
+                        📖 Diario {c.wedding_diary?.progress || 0}%
+                      </a>
+                    )}
                     <a
                       href={`/admin/project-builder/segreteria?session=${c.id}`}
                       target="_blank"
@@ -445,7 +481,7 @@ export default function CrmClient({ quotes, signedPdfs }: CrmClientProps) {
                   Status: {selectedClient.status.toUpperCase()}
                 </span>
                 <span style={{ color: "#777", fontSize: "0.9rem" }}>
-                  Data Evento: <strong>{format(new Date(selectedClient.data_evento), 'dd MMMM yyyy', { locale: it })}</strong>
+                  Data Evento: <strong>{safeFormatDate(selectedClient.data_evento)}</strong>
                 </span>
               </div>
 

@@ -21,14 +21,14 @@ export const dynamic = "force-dynamic";
 
 const DEMO_ID = "demo-firmato";
 
-// Dati demo degli sposi con contratto firmato (usati quando il preventivo non è trovato).
+// Dati ufficiali della Direzione (usati come fallback di cortesia solo se il preventivo non è trovato).
 const DEMO = {
-  clientName: "Marco Rossi & Sofia Esposito",
+  clientName: "Roberto Sola & Rosaria Iovino",
   eventType: "Matrimonio",
-  eventDate: "2027-06-18",
-  total: 15200,
+  eventDate: "2027-09-25",
+  total: 18500,
   caparra: 1500,
-  secondo: 3000,
+  secondo: 3500,
 };
 
 /** Formatta una data ISO (o già italiana) in formato italiano "gg/mm/aaaa". */

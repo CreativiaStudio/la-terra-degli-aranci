@@ -171,17 +171,18 @@ export default async function ClientPortalPage({ searchParams }: PageProps) {
     };
   } else if (!selectedQuote) {
     selectedQuote = {
-      id: searchId || "demo-test",
-      client_id: searchId || "demo-test",
+      id: searchId || "roberto-sola-preview",
+      client_id: searchId || "client-roberto-sola",
       tipo_evento: "wedding",
-      data_evento: "2027-06-18",
-      totale_calcolato: 15200,
+      data_evento: "2027-09-25",
+      totale_calcolato: 18500,
       status: "firmato",
       clients: {
-        id: searchId || "demo-test",
-        nome: "Demo",
-        cognome: "Test (Elena)",
-        email: "sposi@laterradegliaranci.it",
+        id: searchId || "client-roberto-sola",
+        nome: "Roberto Sola",
+        cognome: "e Rosaria",
+        email: "ing.roberto.sola@gmail.com",
+        telefono: "+39 333 460 4065",
       },
     };
   }
