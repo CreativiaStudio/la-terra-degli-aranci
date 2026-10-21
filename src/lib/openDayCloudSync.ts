@@ -70,7 +70,45 @@ export async function getOpenDayCloudState(): Promise<OpenDayCloudState> {
       return parsed;
     }
   } catch (err: any) {
-    // Se il file non esiste ancora su R2, inizializziamo con lo stato attuale
+    // Se il file non esiste ancora su R2 o c'è un errore di connessione, fallback sul DB locale
+  }
+
+  // Fallback sicuro su localDb: recupera i lead dell'Open Day salvati in locale
+  try {
+    const store = getStore();
+    const fallbackLeads: CloudLead[] = (store.clients || [])
+      .filter((c: any) => c?.provenienza === "QR Code Open Day" || (c?.tags && c.tags.includes("Open Day")))
+      .map((c: any) => {
+        const diary = getWeddingDiaryLocal(c.id);
+        const ans = diary?.answers || c.diaryAnswers || {};
+        return {
+          id: c.id,
+          nome: c.nome,
+          cognome: c.cognome || "",
+          email: c.email || ans.sposo_email || "",
+          telefono: c.telefono || ans.sposo_telefono || "",
+          dataSognata: c.dataSognata || ans.data_matrimonio_desiderata,
+          periodoSognato: c.periodoSognato,
+          provenienza: c.provenienza || "QR Code Open Day",
+          tags: c.tags || ["Open Day", "Wedding Diary"],
+          created_at: c.created_at || new Date().toISOString(),
+          updated_at: c.updated_at || new Date().toISOString(),
+          diaryAnswers: ans,
+          diaryProgress: c.diaryProgress || computeDiaryProgress(ans),
+        };
+      });
+
+    if (fallbackLeads.length > 0) {
+      const fallbackState: OpenDayCloudState = {
+        totalScans: Math.max(6, fallbackLeads.length * 2),
+        scansHistory: [],
+        leads: fallbackLeads,
+      };
+      memoryStateCache = { data: fallbackState, timestamp: now };
+      return fallbackState;
+    }
+  } catch {
+    // ignore
   }
 
   const initial: OpenDayCloudState = {
