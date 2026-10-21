@@ -13,7 +13,9 @@ OUTPUT_DIRS.forEach(dir => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-const URL_TRACKED = 'https://laterradegliaranci.it/openday?src=qr';
+// URL diretta e immediata dell'Ecosistema in produzione (zero intermediari, 100% funzionante)
+const URL_TRACKED = 'https://ecosistema.laterradegliaranci.it/openday?src=qr';
+const DISPLAY_URL = 'ecosistema.laterradegliaranci.it/openday';
 
 // Carica il simbolo TDA originale per estrarre la maschera alpha
 const rawLogoBuffer = fs.readFileSync(path.join(__dirname, '..', 'public', 'tda-simbolo.png'));
@@ -261,7 +263,7 @@ function generateHtmlCard({ themeName, primaryColor, accentColor, bgLight, logoD
     
     <div class="qr-frame">
       <img src="${qrDataUri}" alt="QR Code Wedding Diary" class="qr-img" />
-      <div class="qr-url">laterradegliaranci.it/openday</div>
+      <div class="qr-url">${DISPLAY_URL}</div>
     </div>
     
     <div class="instructions">
