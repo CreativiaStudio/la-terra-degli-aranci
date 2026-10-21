@@ -181,6 +181,24 @@ export default function CrmClient({ quotes, signedPdfs, openDayClients = [] }: C
 
   const allClients = Array.from(clientMap.values());
 
+  // Apertura automatica della Scheda 360° se si proviene da /admin/openday con ?client=...
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const targetId = (params.get("client") || params.get("id") || "").trim().toLowerCase();
+    if (targetId && allClients.length > 0) {
+      const matched = allClients.find(
+        (c) =>
+          String(c.id).toLowerCase() === targetId ||
+          String(c.clientId || "").toLowerCase() === targetId ||
+          (c.email && c.email.toLowerCase() === targetId)
+      );
+      if (matched) {
+        setSelectedClient(matched);
+      }
+    }
+  }, [allClients]);
+
   const filteredClients = allClients.filter(c => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();

@@ -155,6 +155,22 @@ export default async function AdminOpenDayDashboardPage() {
           </div>
         </div>
 
+        {/* Funnel CRM & Statistiche */}
+        <div style={{ background: "#ffffff", padding: "1.4rem", borderRadius: "18px", border: "1px solid #E8E2D8", boxShadow: "0 4px 16px rgba(0,0,0,0.03)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+            <span style={{ fontSize: "0.85rem", color: "#6A6764", fontWeight: 600 }}>Evoluzione Lead nel CRM</span>
+            <span style={{ fontSize: "1.2rem" }}>📊</span>
+          </div>
+          <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "#1e1b18" }}>
+            {openDayClients.length}
+          </div>
+          <div style={{ fontSize: "0.78rem", color: "#2D5A27", marginTop: "0.3rem", fontWeight: 600 }}>
+            <Link href="/admin/statistiche?preset=openday" style={{ color: "#2D5A27", textDecoration: "none" }}>
+              Analisi tassi chiusura in Statistiche →
+            </Link>
+          </div>
+        </div>
+
       </div>
 
       {/* Tabella Coppie Sposi */}
@@ -198,7 +214,18 @@ export default async function AdminOpenDayDashboardPage() {
                     <td style={{ padding: "1rem", fontWeight: 600, color: "#2B2B2B" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                         <span>💍</span>
-                        <span>{c.nome} {c.cognome || ""}</span>
+                        <Link
+                          href={`/admin/crm?client=${c.id}`}
+                          style={{
+                            color: "#1e1b18",
+                            textDecoration: "none",
+                            fontWeight: 700,
+                            borderBottom: "1px dashed #e58c2c",
+                          }}
+                          title="Apri Scheda Cliente 360° nel CRM"
+                        >
+                          {c.nome} {c.cognome || ""}
+                        </Link>
                       </div>
                       <div style={{ fontSize: "0.74rem", color: "#8E8880", marginTop: "0.2rem" }}>
                         Registrato: {new Date(c.created_at).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
@@ -228,7 +255,27 @@ export default async function AdminOpenDayDashboardPage() {
                     </td>
 
                     <td style={{ padding: "1rem", textAlign: "right" }}>
-                      <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+                      <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", flexWrap: "wrap" }}>
+                        <Link
+                          href={`/admin/crm?client=${c.id}`}
+                          style={{
+                            padding: "0.4rem 0.85rem",
+                            borderRadius: "8px",
+                            background: "#1e1b18",
+                            color: "#ffffff",
+                            textDecoration: "none",
+                            fontSize: "0.8rem",
+                            fontWeight: 700,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "0.3rem",
+                            boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
+                          }}
+                          title="Apri Scheda CRM 360° della Coppia"
+                        >
+                          👥 Scheda CRM 360°
+                        </Link>
+
                         <Link
                           href={`/openday/diario?id=${c.id}`}
                           target="_blank"
