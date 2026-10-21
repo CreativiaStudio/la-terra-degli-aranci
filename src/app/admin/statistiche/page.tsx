@@ -1,7 +1,7 @@
 import { getStatisticheDashboard } from "@/lib/statisticheEngine";
 import { getQuotesFast } from "@/lib/dataHelper";
 import { getOpenDayAdminData } from "@/lib/openDayCloudSync";
-import { getStore } from "@/lib/localDb";
+import { getStore, getGoogleCalendarEventsLocal } from "@/lib/localDb";
 import StatisticheClient from "./StatisticheClient";
 
 export const revalidate = 0;
@@ -14,6 +14,7 @@ export default async function StatistichePage() {
     getOpenDayAdminData().catch(() => ({ stats: { totalScans: 0 }, openDayClients: [] })),
   ]);
   const store = getStore();
+  const gcalEvents = getGoogleCalendarEventsLocal();
 
   return (
     <div className="container" style={{ paddingTop: "2rem" }}>
@@ -22,6 +23,7 @@ export default async function StatistichePage() {
         rawQuotes={quotes || []}
         appointments={store.appointments || []}
         openDayData={openDayData}
+        gcalEvents={gcalEvents || []}
       />
     </div>
   );
