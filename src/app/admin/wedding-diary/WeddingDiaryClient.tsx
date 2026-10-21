@@ -130,42 +130,6 @@ export default function WeddingDiaryClient({ quotes = [], diaries = [] }: Weddin
       });
     });
 
-    // Fallback demonstration entries if list is empty
-    if (list.length === 0) {
-      list.push(
-        {
-          id: "demo-1",
-          coupleNames: "Roberto Sola & Partner",
-          eventDate: "2027-01-22",
-          guestsCount: 120,
-          status: "firmato",
-          palette: "Arancio Warm, Verde Agrumeto, Crema Lusso",
-          style: "Gourmet Moderno con Show Cooking Pizza & Confettata Chic in Giardino",
-          dietaryNotes: "3 Ospiti Celiaci (Gluten Free) + 2 Vegetariani",
-          preferredSpaces: ["Giardino Agavi", "Sala Tufo", "Corte Aranci"],
-          musicPreferences: "Arpa per cerimonia, Jazz band aperitivo, DJ dopocena",
-          notes: "Richiesta particolare: taglio torta scenografico con fontane luminose",
-          updatedAt: new Date().toISOString(),
-          hasAiUpdate: true
-        },
-        {
-          id: "demo-2",
-          coupleNames: "Mario Pepe & Partner",
-          eventDate: "2027-05-18",
-          guestsCount: 95,
-          status: "confermato",
-          palette: "Blu Notte, Oro Lusso, Avorio",
-          style: "Ricevimento Elegante Serale con DJ Set in Sala Tufo & Cocktail Bar Dopocena",
-          dietaryNotes: "Nessuna allergia segnalata al momento",
-          preferredSpaces: ["Terrazza Belvedere", "Sala Tufo"],
-          musicPreferences: "DJ Set & Sax Live",
-          notes: "Aperitivo al tramonto con vista Golfo",
-          updatedAt: new Date().toISOString(),
-          hasAiUpdate: false
-        }
-      );
-    }
-
     return list;
   }, [quotes, diaries]);
 

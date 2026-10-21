@@ -414,9 +414,34 @@ export default function WeddingDiaryForm({
             }}
           />
         </div>
-        {!isReadOnly && (
-          <small style={{ display: "block", marginTop: "0.5rem", color: "#9b958d", fontSize: "0.76rem" }}>✨ {t.noSubmit}</small>
-        )}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+          {!isReadOnly && (
+            <small style={{ color: "#9b958d", fontSize: "0.76rem" }}>✨ {t.noSubmit}</small>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              const allOpen = Object.values(openSections).every(Boolean);
+              setOpenSections(
+                Object.fromEntries(WEDDING_DIARY_SECTIONS.map((s) => [s.id, !allOpen]))
+              );
+            }}
+            style={{
+              background: "transparent",
+              border: "1px solid #ded7cd",
+              borderRadius: "8px",
+              padding: "0.25rem 0.6rem",
+              fontSize: "0.76rem",
+              color: "#6a6764",
+              cursor: "pointer",
+              fontWeight: 500,
+            }}
+          >
+            {Object.values(openSections).every(Boolean)
+              ? isEng ? "▲ Collapse all sections" : "▲ Chiudi tutte le sezioni"
+              : isEng ? "▼ Expand all sections" : "▼ Espandi tutte le sezioni"}
+          </button>
+        </div>
       </div>
 
       {/* Sezioni */}
@@ -429,6 +454,7 @@ export default function WeddingDiaryForm({
           return (
             <section
               key={section.id}
+              id={`section-${section.id}`}
               style={{
                 border: "1px solid #eee7de",
                 borderRadius: "14px",
@@ -642,6 +668,77 @@ export default function WeddingDiaryForm({
                       </div>
                     );
                   })}
+
+                  {/* Navigatore / Prosegui Sezione Successiva per non bloccarsi */}
+                  {index < WEDDING_DIARY_SECTIONS.length - 1 ? (
+                    <div
+                      style={{
+                        marginTop: "0.8rem",
+                        paddingTop: "1.2rem",
+                        borderTop: "1px dashed #e3dace",
+                        display: "flex",
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextSection = WEDDING_DIARY_SECTIONS[index + 1];
+                          if (nextSection) {
+                            setOpenSections((prev) => ({ ...prev, [nextSection.id]: true }));
+                            setTimeout(() => {
+                              const el = document.getElementById(`section-${nextSection.id}`);
+                              if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                            }, 50);
+                          }
+                        }}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "0.5rem",
+                          background: "linear-gradient(90deg, #e58c2c 0%, #d47b1e 100%)",
+                          color: "#ffffff",
+                          border: "none",
+                          borderRadius: "10px",
+                          padding: "0.7rem 1.3rem",
+                          fontWeight: 600,
+                          fontSize: "0.9rem",
+                          cursor: "pointer",
+                          boxShadow: "0 2px 8px rgba(229,140,44,0.25)",
+                        }}
+                      >
+                        <span>
+                          {isEng ? "Continue to" : "Prosegui a"}:{" "}
+                          {isEng
+                            ? WEDDING_DIARY_SECTIONS[index + 1].titleEn
+                            : WEDDING_DIARY_SECTIONS[index + 1].titleIt}
+                        </span>
+                        <span style={{ fontSize: "1.1rem" }}>➔</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        marginTop: "1rem",
+                        padding: "1.2rem",
+                        background: "#f0fdf4",
+                        border: "1px solid #bbf7d0",
+                        borderRadius: "12px",
+                        textAlign: "center",
+                        color: "#166534",
+                      }}
+                    >
+                      <div style={{ fontSize: "1.5rem", marginBottom: "0.25rem" }}>🌿🍊</div>
+                      <div style={{ fontWeight: 700, fontSize: "1.05rem" }}>
+                        {isEng ? "Wedding Diary Complete!" : "Complimenti! Tutte le sezioni completate"}
+                      </div>
+                      <p style={{ margin: "0.3rem 0 0 0", fontSize: "0.86rem", color: "#15803d" }}>
+                        {isEng
+                          ? "Your preferences have been saved and shared with the Management of La Terra degli Aranci."
+                          : "Le vostre preferenze sono salvate automaticamente e custodite con cura dalla Direzione de La Terra degli Aranci."}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </section>

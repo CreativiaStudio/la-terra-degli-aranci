@@ -171,7 +171,7 @@ export default function CrmClient({ quotes, signedPdfs }: CrmClientProps) {
     };
   });
 
-  const allClients = [...DEMO_CRM_CLIENTS, ...realClients];
+  const allClients = realClients;
 
   const filteredClients = allClients.filter(c => {
     if (!searchQuery.trim()) return true;
@@ -196,14 +196,6 @@ export default function CrmClient({ quotes, signedPdfs }: CrmClientProps) {
             Panoramica completa di tutti i contatti: da dove provengono, preventivi, contratti firmati e Wedding Diary.
           </p>
         </div>
-
-        <button 
-          type="button" 
-          onClick={() => setSelectedClient(DEMO_CRM_CLIENTS[0])}
-          style={{ padding: "0.7rem 1.3rem", background: "#e58c2c", color: "white", border: "none", borderRadius: "10px", fontWeight: "bold", cursor: "pointer", boxShadow: "0 4px 12px rgba(229,140,44,0.3)" }}
-        >
-          ⭐ Apri Scheda Demo Sposi (Marco & Elena)
-        </button>
       </div>
 
       {/* Control Bar & Search */}
