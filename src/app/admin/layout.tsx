@@ -17,6 +17,7 @@ interface NavItem {
  */
 const PILLARS: NavItem[] = [
   { href: "/admin", label: "Appuntamenti", icon: "📅" },
+  { href: "/admin/openday", label: "Open Day Live", icon: "🌿" },
   { href: "/admin/contratti", label: "Contratti", icon: "✍️" },
   { href: "/admin/eventi", label: "Eventi", icon: "💍" },
   { href: "/admin/cassa", label: "Cassa", icon: "💶" },
