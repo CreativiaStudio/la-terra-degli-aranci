@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { saveWeddingDiaryAction } from "../actions";
+import { saveWeddingDiaryAction, getWeddingDiaryAction } from "../actions";
 import {
   WEDDING_DIARY_SECTIONS,
   WEDDING_DIARY_FIELD_COUNT,
@@ -180,6 +180,58 @@ export default function WeddingDiaryForm({
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
   }, [isReadOnly, persist]);
+
+  /* Sincronizzazione multi-dispositivo in tempo reale (Partner Sync a 2 telefoni) */
+  useEffect(() => {
+    if (isReadOnly || typeof window === "undefined" || !clientId) return;
+
+    let isFetching = false;
+    const syncLatest = async () => {
+      // Non sincronizzare se l'utente sta scrivendo o ha salvataggi in sospeso
+      if (isFetching || pendingRef.current || saveState === "saving") return;
+      isFetching = true;
+      try {
+        const res = await getWeddingDiaryAction(clientId);
+        if (res?.success && res.data?.answers && mountedRef.current) {
+          const serverAnswers = res.data.answers;
+          setAnswers((prev) => {
+            let changed = false;
+            const updated = { ...prev };
+            Object.entries(serverAnswers).forEach(([k, v]) => {
+              // Aggiorna solo i campi inseriti o modificati dal partner sull'altro telefono
+              if (JSON.stringify(prev[k]) !== JSON.stringify(v)) {
+                updated[k] = v;
+                changed = true;
+              }
+            });
+            if (changed) {
+              answersRef.current = updated;
+              return updated;
+            }
+            return prev;
+          });
+        }
+      } catch {
+        // Nessun disturbo all'utente in caso di micro-disconnessione
+      } finally {
+        isFetching = false;
+      }
+    };
+
+    // Polling discreto ogni 10 secondi + sync istantaneo al risveglio dello schermo (visibilitychange)
+    const interval = setInterval(syncLatest, 10000);
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void syncLatest();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [clientId, isReadOnly, saveState]);
 
   /* ------------------------------------------------------------------ *
    * Aggiornamento campi (autosave immediato o debounced)

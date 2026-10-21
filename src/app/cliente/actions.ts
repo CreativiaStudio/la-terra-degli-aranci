@@ -15,7 +15,7 @@ import {
 import { dispatchServiceTicketNotification } from "@/lib/notificationDispatcher";
 import { getClientSessionFromCookie } from "@/lib/magicLinkAuth";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
-import { saveWeddingDiaryCloud } from "@/lib/openDayCloudSync";
+import { saveWeddingDiaryCloud, getOpenDayLeadAndDiary } from "@/lib/openDayCloudSync";
 
 /**
  * Payload del Wedding Diary.
@@ -98,13 +98,15 @@ export async function getWeddingDiaryAction(clientId: string) {
     const staffCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
     const staffSession = staffCookie ? await verifySessionToken(staffCookie) : null;
     const isAdmin = staffSession?.role === "admin";
+    const isOpenDay = clientId.startsWith("client-od-") || clientId.startsWith("client-roberto");
 
-    const isAuthorized = isAdmin || (clientSession && clientSession.clientId === clientId);
+    const isAuthorized = isAdmin || (clientSession && clientSession.clientId === clientId) || isOpenDay;
     if (!isAuthorized) {
       return { success: false, data: null, error: "Non autorizzato" };
     }
 
-    const data = getWeddingDiaryLocal(clientId);
+    const cloud = await getOpenDayLeadAndDiary(clientId);
+    const data = cloud.diary || getWeddingDiaryLocal(clientId);
     return { success: true, data };
   } catch (error: any) {
     return { success: false, data: null };
