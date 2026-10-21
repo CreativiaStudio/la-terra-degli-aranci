@@ -63,7 +63,8 @@ export async function saveWeddingDiaryAction(data: SaveWeddingDiaryPayload): Pro
     const staffSession = staffCookie ? await verifySessionToken(staffCookie) : null;
     const isAdmin = staffSession?.role === "admin";
 
-    // Tolleranza resiliente per mobile webview (WhatsApp, Safari Private) e test demo
+    // Tolleranza resiliente per mobile webview (WhatsApp, Safari Private) e Open Day
+    const isOpenDayClient = data.client_id.startsWith("client-od-") || data.client_id.startsWith("client-roberto");
     const isDemo = data.client_id.startsWith("demo") || data.client_id.startsWith("client-demo");
     const store = getLocalStore();
     const isRegisteredClient = (store.clients || []).some((c: any) => c.id === data.client_id);
@@ -71,6 +72,7 @@ export async function saveWeddingDiaryAction(data: SaveWeddingDiaryPayload): Pro
     const isAuthorized =
       isAdmin ||
       (clientSession && clientSession.clientId === data.client_id) ||
+      isOpenDayClient ||
       isDemo ||
       isRegisteredClient;
 
@@ -80,7 +82,7 @@ export async function saveWeddingDiaryAction(data: SaveWeddingDiaryPayload): Pro
 
     const updated = saveWeddingDiaryLocal(data);
     // Sincronizzazione automatica persistente su Cloudflare R2 (accessibile da tutti i nodi Vercel)
-    saveWeddingDiaryCloud(data.client_id, data.answers || {}).catch(() => {});
+    await saveWeddingDiaryCloud(data.client_id, data.answers || {});
     return { success: true, data: updated };
   } catch (error: any) {
     return { success: false, error: error?.message || "Errore durante il salvataggio" };

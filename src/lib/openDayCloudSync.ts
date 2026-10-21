@@ -133,13 +133,14 @@ export async function recordOpenDayScanCloud(source: string = "qr", userAgent?: 
  * Registra o aggancia un Lead proveniente dal form Open Day su Cloudflare R2.
  */
 export async function registerOrFindOpenDayLeadCloud(input: {
-  nomiSposi: string;
+  nomiSposi?: string;
+  nomi?: string;
   email: string;
   telefono: string;
   dataSognata?: string;
   periodoSognato?: string;
 }) {
-  const rawNomi = (input.nomiSposi || "").trim();
+  const rawNomi = (input.nomiSposi || input.nomi || "").trim();
   const rawEmail = (input.email || "").trim().toLowerCase();
   const rawPhone = (input.telefono || "").trim();
 

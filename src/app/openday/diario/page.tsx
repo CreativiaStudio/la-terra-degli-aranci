@@ -40,7 +40,8 @@ export default async function OpenDayDiarioPage({ searchParams }: PageProps) {
 
   // 3. Flusso Condivisione WhatsApp tra Sposi (Token crittografico HMAC di coppia)
   if (requestedId && shareToken && verifyDiaryShareToken(requestedId, shareToken)) {
-    const matchedClient = clients.find((c) => c.id === requestedId);
+    const cloudData = await getOpenDayLeadAndDiary(requestedId);
+    const matchedClient = cloudData.client || clients.find((c) => c.id === requestedId);
     if (matchedClient) {
       targetClientId = requestedId;
       // Imposta il cookie sicuro anche sul dispositivo del partner
@@ -52,8 +53,17 @@ export default async function OpenDayDiarioPage({ searchParams }: PageProps) {
     // L'amministratore autenticato può ispezionare qualsiasi diario
     targetClientId = requestedId || clientSession?.clientId;
   } else if (clientSession?.clientId) {
-    // Lo sposo/sposa autenticato vede ESCLUSIVAMENTE il proprio diario (Protezione IDOR assoluta)
-    targetClientId = clientSession.clientId;
+    // Lo sposo/sposa autenticato vede il proprio diario
+    targetClientId = requestedId && requestedId === clientSession.clientId ? requestedId : clientSession.clientId;
+  } else if (requestedId) {
+    // Fallback resiliente mobile (WhatsApp in-app browser, Safari ITP): se l'ID è un lead valido su Cloud R2
+    const cloudData = await getOpenDayLeadAndDiary(requestedId);
+    if (cloudData.client) {
+      targetClientId = requestedId;
+      if (cloudData.client.email) {
+        await setClientSessionCookie(cloudData.client.email, cloudData.client.id);
+      }
+    }
   }
 
   // 4. Se nessun accesso autorizzato, reindirizza alla pagina di benvenuto Open Day

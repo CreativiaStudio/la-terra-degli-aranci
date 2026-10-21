@@ -1,6 +1,57 @@
 {
   "clients": [
     {
+      "id": "client-od-1792582428038",
+      "nome": "Matteo Esposito & Alessia Ferrara",
+      "cognome": "",
+      "email": "matteo.esposito.test@gmail.com",
+      "telefono": "+393339988776",
+      "dataSognata": "2027-06-20",
+      "periodoSognato": "Giugno 2027",
+      "provenienza": "QR Code Open Day",
+      "tags": [
+        "Open Day",
+        "Wedding Diary"
+      ],
+      "created_at": "2026-10-21T11:33:48.038Z",
+      "updated_at": "2026-10-21T11:34:39.617Z",
+      "ultimo_accesso_openday": "2026-10-21T11:34:39.617Z",
+      "diaryAnswers": {
+        "sposo_nome": "Matteo",
+        "sposo_cognome": "Esposito",
+        "sposa_nome": "Alessia",
+        "sposa_cognome": "Ferrara",
+        "sposo_telefono": "+39 333 9988776",
+        "sposo_email": "matteo.esposito.test@gmail.com",
+        "data_matrimonio_desiderata": "2027-06-20",
+        "numero_invitati_previsto": 130,
+        "tipo_rito": "civile_in_villa",
+        "orario_preferito": "tramonto_cena",
+        "palette_colori": [
+          "#E58C2C",
+          "#2D5A27"
+        ],
+        "stile_matrimonio": "Botanico Elegante & Luci d'Autore",
+        "allestimenti_floreali": "Agrumi, ulivo e peonie bianche",
+        "profumazione_ambienti": "Zagara e fiori d'arancio",
+        "stile_servizio": "Buffet gourmet iniziale e servizio al tavolo in agrumeto",
+        "vino_preferito": "Greco di Tufo e Aglianico",
+        "angoli_speciali": [
+          "Show cooking pizza",
+          "Friggitoria napoletana espressa",
+          "Confettata chic"
+        ],
+        "torta_nuziale_desiderata": "Millefoglie espressa con fragoline di bosco",
+        "genere_musica_aperitivo": "Jazz & Bossa Nova dal vivo",
+        "brano_ingresso_sposi": "Fix You - Coldplay",
+        "brano_ingresso_torta": "A Sky Full of Stars - Coldplay",
+        "intolleranze_alimentari": "3 celiaci, 1 vegetariano",
+        "esigenze_particolari": "Tavoli rotondi larghi per famiglie",
+        "note_diario": "Siamo rimasti incantati dalla vista panoramica dal parco!"
+      },
+      "diaryProgress": 4
+    },
+    {
       "id": "0a462b53-e984-4902-9562-e9d0dd776af8",
       "nome": "Mario",
       "cognome": "Pepe",
@@ -27,7 +78,101 @@
   ],
   "quotes": [],
   "signed_contracts": [],
-  "wedding_diaries": [],
+  "wedding_diaries": [
+    {
+      "client_id": "client-od-1792582428038",
+      "answers": {
+        "sposo_nome": "Matteo",
+        "sposo_cognome": "Esposito",
+        "sposa_nome": "Alessia",
+        "sposa_cognome": "Ferrara",
+        "sposo_telefono": "+39 333 9988776",
+        "sposo_email": "matteo.esposito.test@gmail.com",
+        "data_matrimonio_desiderata": "2027-06-20",
+        "numero_invitati_previsto": 130,
+        "tipo_rito": "civile_in_villa",
+        "orario_preferito": "tramonto_cena",
+        "palette_colori": [
+          "#E58C2C",
+          "#2D5A27"
+        ],
+        "stile_matrimonio": "Botanico Elegante & Luci d'Autore",
+        "allestimenti_floreali": "Agrumi, ulivo e peonie bianche",
+        "profumazione_ambienti": "Zagara e fiori d'arancio",
+        "stile_servizio": "Buffet gourmet iniziale e servizio al tavolo in agrumeto",
+        "vino_preferito": "Greco di Tufo e Aglianico",
+        "angoli_speciali": [
+          "Show cooking pizza",
+          "Friggitoria napoletana espressa",
+          "Confettata chic"
+        ],
+        "torta_nuziale_desiderata": "Millefoglie espressa con fragoline di bosco",
+        "genere_musica_aperitivo": "Jazz & Bossa Nova dal vivo",
+        "brano_ingresso_sposi": "Fix You - Coldplay",
+        "brano_ingresso_torta": "A Sky Full of Stars - Coldplay",
+        "intolleranze_alimentari": "3 celiaci, 1 vegetariano",
+        "esigenze_particolari": "Tavoli rotondi larghi per famiglie",
+        "note_diario": "Siamo rimasti incantati dalla vista panoramica dal parco!",
+        "inizio_evento": "Pomeriggio",
+        "la_nostra_data_perfetta": "2027-06-20",
+        "partecipazioni_e_inviti": "Coordinate con il tema dell'evento",
+        "rito_simbolico": [
+          "In villa"
+        ],
+        "musica_e_atmosfera_del_rito_simbolico": [
+          "Canzone per l'ingresso della sposa"
+        ],
+        "canzone_ingresso_sposa": "River Flows in You - Yiruma",
+        "ci_prepareremo": "Insieme, per vivere ogni momento",
+        "abito_della_sposa": "Romantico",
+        "abito_dello_sposo": "Moderno",
+        "Stile_evento": [
+          "Botanico",
+          "Elegante e raffinato"
+        ],
+        "colori_e_dettagli": [
+          "Toni caldi (arancio, terracotta, ocra)",
+          "Verde bosco e salvia"
+        ],
+        "fiori_e_allestimenti": [
+          "Agrumi e foliage"
+        ],
+        "luci_e_atmosfere": [
+          "Cielo stellato di micro-led"
+        ],
+        "rito_religioso": "Cattolico",
+        "dettagli_che_fanno_la_differenza": [
+          "Profumazione personalizzata degli ambienti"
+        ],
+        "il_nostro_menu": [
+          "Buffet dinamico con isole tematiche"
+        ],
+        "vino_e_brindisi": [
+          "Vini campani DOC",
+          "Bollicine italiane per il brindisi"
+        ],
+        "wedding_cake_e_dolci": [
+          "Millefoglie a vista con frutti di bosco",
+          "Angolo cubano e sigari"
+        ],
+        "colonna_sonora": [
+          "Band live per l'aperitivo",
+          "DJ set per il dopocena"
+        ],
+        "primo_ballo_insieme": "Perfect - Ed Sheeran",
+        "bomboniere_e_ringraziamenti": [
+          "Gastronomica (olio, miele, confetture...)",
+          "Botanica (piantine, semi...)"
+        ],
+        "viaggio_di_nozze": [
+          "Un paradiso tropicale"
+        ]
+      },
+      "completion_rate": 54,
+      "id": "07fa58d4-7bf4-42a4-bcab-91d1a10bb90f",
+      "updated_at": "2026-10-21T11:34:40.607Z"
+    }
+  ],
   "quote_changes": [],
   "project_builder_sessions": [],
   "services_catalog": [
