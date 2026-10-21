@@ -8,6 +8,8 @@ import * as QRCode from "qrcode";
 import { ReceiptPdfTemplate } from "@/lib/pdf/ReceiptPdfTemplate";
 import { getQuoteLocal, getAllQuotesLocal } from "@/lib/localDb";
 import { isoToItalian } from "@/lib/dateInput";
+import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
+import { verifyClientSessionToken } from "@/lib/magicLinkAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +81,21 @@ export async function GET(req: NextRequest) {
       if (!quote) {
         const prefix = quoteId.toLowerCase();
         quote = getAllQuotesLocal().find((q) => String(q.id || "").toLowerCase().startsWith(prefix)) || null;
+      }
+      if (!quote) {
+        return NextResponse.json({ error: "Preventivo non trovato" }, { status: 404 });
+      }
+
+      // Verifica autorizzazione: admin o cliente proprietario del preventivo
+      const staffCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
+      const staffSession = staffCookie ? await verifySessionToken(staffCookie) : null;
+      const clientCookie = req.cookies.get("tda_client_session")?.value;
+      const clientSession = clientCookie ? verifyClientSessionToken(clientCookie) : null;
+      const isAdmin = staffSession?.role === "admin";
+      const isOwner = clientSession?.clientId === quote.client_id || (quote.clients?.email && clientSession?.email?.toLowerCase() === quote.clients.email.toLowerCase());
+
+      if (!isAdmin && !isOwner) {
+        return NextResponse.json({ error: "Accesso non autorizzato" }, { status: 403 });
       }
     }
 

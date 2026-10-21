@@ -165,6 +165,33 @@ export async function clearClientSessionCookie() {
 }
 
 /**
+ * Genera un token HMAC firmato per la condivisione WhatsApp del Wedding Diary tra partner.
+ * Consente al partner di visualizzare e modificare il diario senza password.
+ */
+export function createDiaryShareToken(clientId: string): string {
+  if (!clientId) return "";
+  return crypto
+    .createHmac("sha256", MAGIC_SECRET)
+    .update(`openday_diary_share:${clientId}`)
+    .digest("hex")
+    .slice(0, 32);
+}
+
+/**
+ * Verifica la firma HMAC del token di condivisione WhatsApp in tempo costante.
+ */
+export function verifyDiaryShareToken(clientId: string, token: string): boolean {
+  if (!clientId || !token) return false;
+  const expected = createDiaryShareToken(clientId);
+  if (!expected || expected.length !== token.length) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Rimuove i token scaduti
  */
 function cleanupExpiredTokens() {

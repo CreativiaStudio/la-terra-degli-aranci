@@ -53,7 +53,7 @@ export default async function PreventivoPublicPage({ params }: { params: Promise
             Proposta per il Vostro {quote.tipo_evento === 'wedding' ? 'Ricevimento di Matrimonio' : 'Evento Privato'}
           </h1>
           <p style={{ color: "#777", fontSize: "1.1rem", maxWidth: "600px", margin: "0 auto" }}>
-            Un percorso unico immerso nel parco botanico tra Posillipo e il Vomero, curato in ogni minimo dettaglio.
+            Un Giardino di Emozioni nel Cuore di Napoli, curato in ogni minimo dettaglio.
           </p>
         </div>
 

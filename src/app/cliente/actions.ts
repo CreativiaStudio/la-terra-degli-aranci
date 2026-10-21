@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import {
   saveWeddingDiaryLocal,
   getWeddingDiaryLocal,
@@ -12,6 +13,8 @@ import {
   type ServiceTicketItem,
 } from "@/lib/localDb";
 import { dispatchServiceTicketNotification } from "@/lib/notificationDispatcher";
+import { getClientSessionFromCookie } from "@/lib/magicLinkAuth";
+import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
 
 /**
  * Payload del Wedding Diary.
@@ -52,6 +55,18 @@ export async function saveWeddingDiaryAction(data: SaveWeddingDiaryPayload): Pro
       return { success: false, error: "client_id mancante" };
     }
 
+    // Blindatura sicurezza IDOR: verifica che chi scrive sia admin o il proprietario del diario
+    const clientSession = await getClientSessionFromCookie();
+    const cookieStore = await cookies();
+    const staffCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+    const staffSession = staffCookie ? await verifySessionToken(staffCookie) : null;
+    const isAdmin = staffSession?.role === "admin";
+
+    const isAuthorized = isAdmin || (clientSession && clientSession.clientId === data.client_id);
+    if (!isAuthorized) {
+      return { success: false, error: "Accesso non autorizzato: sessione non valida per questo diario" };
+    }
+
     const updated = saveWeddingDiaryLocal(data);
     return { success: true, data: updated };
   } catch (error: any) {
@@ -61,6 +76,19 @@ export async function saveWeddingDiaryAction(data: SaveWeddingDiaryPayload): Pro
 
 export async function getWeddingDiaryAction(clientId: string) {
   try {
+    if (!clientId) return { success: false, data: null };
+
+    const clientSession = await getClientSessionFromCookie();
+    const cookieStore = await cookies();
+    const staffCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+    const staffSession = staffCookie ? await verifySessionToken(staffCookie) : null;
+    const isAdmin = staffSession?.role === "admin";
+
+    const isAuthorized = isAdmin || (clientSession && clientSession.clientId === clientId);
+    if (!isAuthorized) {
+      return { success: false, data: null, error: "Non autorizzato" };
+    }
+
     const data = getWeddingDiaryLocal(clientId);
     return { success: true, data };
   } catch (error: any) {

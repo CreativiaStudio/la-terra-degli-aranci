@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getStore, getWeddingDiaryLocal } from "@/lib/localDb";
 import { getOpenDayStats } from "@/lib/openDayTracker";
 import { computeDiaryProgress } from "@/app/cliente/components/weddingDiaryFields";
+import { createDiaryShareToken } from "@/lib/magicLinkAuth";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -233,7 +234,7 @@ export default async function AdminOpenDayDashboardPage() {
                         {c.telefono && (
                           <a
                             href={`https://wa.me/${c.telefono.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                              `Gentili ${c.nome}, grazie per la visita a La Terra degli Aranci! Ecco il vostro Wedding Diary custodito: https://ecosistema.laterradegliaranci.it/openday/diario?id=${c.id}`
+                              `Gentili ${c.nome}, grazie per la visita a La Terra degli Aranci! Ecco il vostro Wedding Diary custodito: https://ecosistema.laterradegliaranci.it/openday/diario?id=${c.id}&share=${createDiaryShareToken(c.id)}`
                             )}`}
                             target="_blank"
                             rel="noopener noreferrer"

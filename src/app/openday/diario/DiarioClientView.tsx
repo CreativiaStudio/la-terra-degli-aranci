@@ -8,21 +8,24 @@ interface DiarioClientViewProps {
   client: any;
   quote?: any;
   initialDiary?: any;
+  shareToken?: string;
 }
 
 export default function DiarioClientView({
   client,
   quote,
   initialDiary,
+  shareToken,
 }: DiarioClientViewProps) {
   const [progress, setProgress] = useState<number>(() =>
     computeDiaryProgress(initialDiary?.answers)
   );
 
   const clientName = client?.nome ? `${client.nome} ${client.cognome || ""}`.trim() : "Sposi";
+  const shareParam = shareToken ? `&share=${encodeURIComponent(shareToken)}` : "";
   const shareUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/openday/diario?id=${client.id}`
-    : `https://ecosistema.laterradegliaranci.it/openday/diario?id=${client.id}`;
+    ? `${window.location.origin}/openday/diario?id=${client.id}${shareParam}`
+    : `https://ecosistema.laterradegliaranci.it/openday/diario?id=${client.id}${shareParam}`;
 
   const handleShareWhatsApp = () => {
     const text = encodeURIComponent(
@@ -238,7 +241,7 @@ export default function DiarioClientView({
         </span>
         <span>•</span>
         <span style={{ color: "#8E8880" }}>
-          La Terra degli Aranci
+          La Terra degli Aranci • Un Giardino di Emozioni
         </span>
       </div>
     </div>

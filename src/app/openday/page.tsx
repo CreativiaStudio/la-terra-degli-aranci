@@ -456,7 +456,7 @@ export default function OpenDayWelcomePage() {
           La Terra degli Aranci • Napoli
         </p>
         <p style={{ margin: "0.2rem 0 0 0", fontSize: "0.74rem" }}>
-          Il Parco Botanico per Eventi tra Posillipo e il Vomero
+          Un Giardino di Emozioni nel Cuore di Napoli
         </p>
       </footer>
     </div>

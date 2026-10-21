@@ -92,6 +92,11 @@ export default function DemoRoleSwitcher() {
   const [minimized, setMinimized] = useState(false);
   const [switchingTo, setSwitchingTo] = useState<string | null>(null);
 
+  // Blindatura assoluta di sicurezza: mai visibile ai clienti o al di fuori di /admin
+  if (!pathname || !pathname.startsWith("/admin")) {
+    return null;
+  }
+
   // Determina il ruolo attivo dalla rotta o parametri
   const getActiveRoleId = () => {
     if (pathname.startsWith("/admin")) return "admin";

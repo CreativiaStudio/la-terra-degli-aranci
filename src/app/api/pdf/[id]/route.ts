@@ -5,6 +5,8 @@ import { ContractPdfTemplate } from "@/lib/pdf/ContractPdfTemplate";
 import { getQuotesFast } from "@/lib/dataHelper";
 import { listPdfsInR2 } from "@/lib/r2";
 import { getSignedContractLocal } from "@/lib/localDb";
+import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
+import { verifyClientSessionToken } from "@/lib/magicLinkAuth";
 import path from "path";
 import fs from "fs";
 
@@ -27,9 +29,25 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Cerca il preventivo corrispondente
     const matchingQuote = quotes.find(
       q => q.id.toLowerCase().startsWith(id.toLowerCase()) || q.client_id === id
-    ) || quotes[0];
+    );
 
-    const client = matchingQuote?.clients || { nome: "Cliente", cognome: "TDA" };
+    if (!matchingQuote) {
+      return NextResponse.json({ error: "Preventivo non trovato" }, { status: 404 });
+    }
+
+    // Verifica autorizzazione: admin o cliente titolare del preventivo
+    const staffCookie = req.cookies.get(SESSION_COOKIE_NAME)?.value;
+    const staffSession = staffCookie ? await verifySessionToken(staffCookie) : null;
+    const clientCookie = req.cookies.get("tda_client_session")?.value;
+    const clientSession = clientCookie ? verifyClientSessionToken(clientCookie) : null;
+    const isAdmin = staffSession?.role === "admin";
+    const isOwner = clientSession?.clientId === matchingQuote.client_id || (matchingQuote.clients?.email && clientSession?.email?.toLowerCase() === matchingQuote.clients.email.toLowerCase());
+
+    if (!isAdmin && !isOwner) {
+      return NextResponse.json({ error: "Accesso non autorizzato" }, { status: 403 });
+    }
+
+    const client = matchingQuote.clients || { nome: "Cliente", cognome: "TDA" };
     const nomeRaw = (client.nome || "").toLowerCase().replace(/[^a-z0-9]/g, "");
     const cognomeRaw = (client.cognome || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 

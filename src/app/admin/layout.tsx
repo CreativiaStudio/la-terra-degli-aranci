@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AdminNotificationCenter from "@/components/AdminNotificationCenter";
+import DemoRoleSwitcher from "@/components/DemoRoleSwitcher";
 
 interface NavItem {
   href: string;
@@ -273,6 +274,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       >
         <AdminNotificationCenter />
         {children}
+        <DemoRoleSwitcher />
       </main>
     </div>
   );
