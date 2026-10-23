@@ -8,6 +8,7 @@ import { saveAdminQuickQuoteLocal, markQuickOptionConvertedLocal } from "@/lib/l
 import { saveContractToVault } from "@/lib/contractVault";
 import { isoToItalian } from "@/lib/dateInput";
 import { detectSemiFormula, SEMI_ESCLUSIVA_FORMULE } from "@/lib/contractMeta";
+import { logActivity, logError } from "@/lib/blackbox";
 
 interface QuickContractInput {
   nome: string;
@@ -268,6 +269,21 @@ export async function createQuickContract(data: QuickContractInput) {
       absoluteUrl,
     });
 
+    logActivity({
+      level: "INFO",
+      category: "CONTRATTI",
+      actor: "Direzione Roberto",
+      action: "CONTRATTO_EMESSO",
+      message: `Emissione contratto ${data.tipoEvento} per ${data.nome} ${data.cognome || ""}${data.partnerNome ? ` & ${data.partnerNome}` : ""}: data ${data.dataEvento}, totale €${prezzo} (Opzione 7gg)`,
+      metadata: {
+        quoteId,
+        preventivo,
+        dataEvento: data.dataEvento,
+        prezzo,
+        tipoEsclusiva: data.tipoEsclusiva,
+      },
+    });
+
     return {
       success: true as const,
       url,
@@ -283,6 +299,10 @@ export async function createQuickContract(data: QuickContractInput) {
     };
   } catch (error) {
     console.error("Errore createQuickContract:", error);
+    logError("CONTRATTI", "Direzione Roberto", "ERRORE_CREAZIONE_CONTRATTO", error, {
+      nome: data.nome,
+      dataEvento: data.dataEvento,
+    });
     return {
       success: false as const,
       error:

@@ -250,6 +250,25 @@ function mirrorToSupabase(entry: BlackboxEntry): void {
   }
 }
 
+/** Invia la entry a Cloudflare R2 (fire-and-forget persistente nel cloud). */
+function mirrorToR2(entry: BlackboxEntry): void {
+  try {
+    void import('@/lib/r2').then(async ({ r2Client, BUCKET_NAME }) => {
+      const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+      await r2Client.send(
+        new PutObjectCommand({
+          Bucket: BUCKET_NAME,
+          Key: `blackbox/entries/${entry.id}.json`,
+          Body: JSON.stringify(entry),
+          ContentType: 'application/json',
+        })
+      );
+    }).catch(() => {});
+  } catch {
+    // ignore
+  }
+}
+
 /* ------------------------------------------------------------------ */
 /* API core                                                            */
 /* ------------------------------------------------------------------ */
@@ -283,6 +302,7 @@ export function logActivity(entry: BlackboxLogInput): BlackboxEntry {
   }
 
   mirrorToSupabase(full);
+  mirrorToR2(full);
   return full;
 }
 

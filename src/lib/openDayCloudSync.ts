@@ -2,6 +2,7 @@ import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3
 import { getStore, saveStore, saveWeddingDiaryLocal, getWeddingDiaryLocal } from "./localDb";
 import { normalizePhoneNumber } from "./phoneHelper";
 import { computeDiaryProgress } from "@/app/cliente/components/weddingDiaryFields";
+import { logActivity } from "./blackbox";
 
 // Credenziali Master Cloudflare R2 (certificato operativo su bucket la-terra-degli-aranci)
 const MASTER_ACCOUNT_ID = "cdc3d1bfef17f23cb453fe2737b2ede8";
@@ -161,6 +162,16 @@ export async function recordOpenDayScanCloud(source: string = "qr", userAgent?: 
     }
 
     await saveOpenDayCloudState(state);
+
+    logActivity({
+      level: "INFO",
+      category: "LEAD_VISITA",
+      actor: "Ospite Open Day",
+      action: "QR_CODE_SCANSIONATO",
+      message: `Scansione QR Code Open Day registrata (Totale scansioni: ${state.totalScans})`,
+      metadata: { source, userAgent: userAgent ? userAgent.slice(0, 150) : "Mobile Browser" },
+    });
+
     return { success: true, count: state.totalScans };
   } catch {
     return { success: false, count: 0 };
@@ -252,6 +263,23 @@ export async function registerOrFindOpenDayLeadCloud(input: {
     // ignore
   }
 
+  logActivity({
+    level: "INFO",
+    category: "LEAD_VISITA",
+    actor: "Ospite Open Day",
+    action: isNew ? "LEAD_OPENDAY_REGISTRATO" : "LEAD_OPENDAY_AGGIORNATO",
+    message: `${rawNomi} (${rawEmail}, ${phoneResult.normalized}) si è registrato all'Open Day. Data sognata: ${input.dataSognata || "Da definire"}`,
+    metadata: {
+      clientId: matchedLead.id,
+      nomi: rawNomi,
+      email: rawEmail,
+      telefono: phoneResult.normalized,
+      dataSognata: input.dataSognata,
+      periodoSognato: input.periodoSognato,
+      isNew,
+    },
+  });
+
   return {
     success: true,
     isNew,
@@ -283,6 +311,19 @@ export async function saveWeddingDiaryCloud(clientId: string, answers: Record<st
       client_id: clientId,
       answers: mergedAnswers,
       completion_rate: progress,
+    });
+
+    logActivity({
+      level: "INFO",
+      category: "DIARIO",
+      actor: "Cliente Sposi",
+      action: "WEDDING_DIARY_AGGIORNATO",
+      message: `Wedding Diary aggiornato per cliente ${clientId} (Progresso: ${progress}%)`,
+      metadata: {
+        clientId,
+        diaryProgress: progress,
+        answersCount: Object.keys(mergedAnswers).length,
+      },
     });
 
     return {

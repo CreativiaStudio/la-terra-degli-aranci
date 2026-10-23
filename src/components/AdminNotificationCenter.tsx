@@ -24,6 +24,7 @@ const TYPE_META: Record<AdminNotification["tipo"], { icon: string; label: string
   allegato_b: { icon: "📎", label: "Allegato B" },
   appuntamento: { icon: "📅", label: "Appuntamento" },
   diary: { icon: "💍", label: "Wedding Diary" },
+  openday: { icon: "🌿", label: "Open Day" },
 };
 
 /** Formatta una data in etichetta relativa ("5 min fa", "Oggi", ...). */

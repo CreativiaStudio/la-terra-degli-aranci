@@ -6,6 +6,7 @@ import { uploadPdfToR2, uploadJsonToR2 } from "@/lib/r2";
 import { getServiceSupabase } from "@/lib/supabase";
 import { updateQuoteStatusLocalByPrefix, saveSignedContractLocal, freezeInstallmentsLocalByPrefix, getFinalContractByQuoteLocal, getAllQuotesLocal } from "@/lib/localDb";
 import { generateSignature } from "@/lib/crypto";
+import { logActivity, logError } from "@/lib/blackbox";
 import path from "path";
 import fs from "fs";
 
@@ -30,8 +31,9 @@ const getBase64Image = (filePath: string) => {
 };
 
 export async function POST(req: NextRequest) {
+  let body: any = null;
   try {
-    const body = await req.json();
+    body = await req.json();
 
     // ------------------------------------------------------------------
     // SICUREZZA ENDPOINT (S1 + S2) — PRIMA di qualsiasi effetto collaterale
@@ -199,6 +201,21 @@ export async function POST(req: NextRequest) {
       freezeInstallmentsLocalByPrefix(body.preventivo, caparra, secondoAcconto);
     }
 
+    logActivity({
+      level: "INFO",
+      category: "CONTRATTI",
+      actor: "Cliente Sposi",
+      action: "CONTRATTO_FIRMATO",
+      message: `Contratto ${body.tipo || "wedding"} firmato con successo per preventivo ${body.preventivo} (Totale: €${body.prezzo})`,
+      metadata: {
+        preventivo: body.preventivo,
+        prezzo: body.prezzo,
+        fileUrl,
+        sposo: body.datiCliente?.nome_sposo,
+        sposa: body.datiCliente?.nome_sposa,
+      },
+    });
+
     return NextResponse.json({ 
       success: true, 
       message: "PDF generato e salvato con successo",
@@ -206,6 +223,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error("ERRORE GENERALE:", error);
+    logError("CONTRATTI", "Sistema", "ERRORE_GENERAZIONE_PDF_CONTRATTO", error, {
+      preventivo: body?.preventivo,
+    });
     return NextResponse.json({ success: false, error: "Errore interno durante la generazione del PDF", message: error.message, stack: error.stack }, { status: 500 });
   }
 }

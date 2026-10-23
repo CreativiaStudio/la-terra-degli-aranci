@@ -4,6 +4,7 @@ import { getStore, getWeddingDiaryLocal } from "@/lib/localDb";
 import { computeDiaryProgress } from "@/app/cliente/components/weddingDiaryFields";
 import { createDiaryShareToken } from "@/lib/magicLinkAuth";
 import { getOpenDayAdminData } from "@/lib/openDayCloudSync";
+import OpenDayActionsMenu from "./OpenDayActionsMenu";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -215,25 +216,25 @@ export default async function AdminOpenDayDashboardPage() {
             </div>
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
+          <div style={{ width: "100%", overflow: "visible" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem", textAlign: "left" }}>
               <thead>
                 <tr style={{ borderBottom: "2px solid #E8E2D8", color: "#8E8880", fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                  <th style={{ padding: "0.8rem 1rem" }}>Coppia Sposi</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Contatti (Email / WhatsApp)</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Periodo Sognato</th>
-                  <th style={{ padding: "0.8rem 1rem" }}>Progresso Diario</th>
-                  <th style={{ padding: "0.8rem 1rem", textAlign: "right" }}>Azioni</th>
+                  <th style={{ padding: "0.8rem 0.8rem", width: "26%" }}>Coppia Sposi</th>
+                  <th style={{ padding: "0.8rem 0.8rem", width: "30%" }}>Contatti (Email / WhatsApp)</th>
+                  <th style={{ padding: "0.8rem 0.8rem", width: "18%" }}>Periodo Sognato</th>
+                  <th style={{ padding: "0.8rem 0.8rem", width: "18%" }}>Progresso Diario</th>
+                  <th style={{ padding: "0.8rem 0.8rem", width: "8%", textAlign: "right" }}>Azioni</th>
                 </tr>
               </thead>
               <tbody>
                 {openDayClients.map((c: any) => (
                   <tr key={c.id} style={{ borderBottom: "1px solid #F0EAE1" }}>
-                    <td style={{ padding: "1rem", fontWeight: 600, color: "#2B2B2B" }}>
+                    <td style={{ padding: "0.9rem 0.8rem", fontWeight: 600, color: "#2B2B2B" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                         <span>💍</span>
                         <Link
-                          href={`/admin/crm?client=${c.id}`}
+                          href={`/admin/clienti/${c.id}`}
                           style={{
                             color: "#1e1b18",
                             textDecoration: "none",
@@ -242,7 +243,12 @@ export default async function AdminOpenDayDashboardPage() {
                           }}
                           title="Apri Scheda Cliente 360° nel CRM"
                         >
-                          {c.nome} {c.cognome || ""}
+                          {c.nome} {c.cognome || ""}{" "}
+                          {(c as any).sposera_nome ? (
+                            <span style={{ color: "#c2410c", fontWeight: 700 }}>
+                              &amp; {(c as any).sposera_nome}
+                            </span>
+                          ) : null}
                         </Link>
                       </div>
                       <div style={{ fontSize: "0.74rem", color: "#8E8880", marginTop: "0.2rem" }}>
@@ -250,18 +256,18 @@ export default async function AdminOpenDayDashboardPage() {
                       </div>
                     </td>
 
-                    <td style={{ padding: "1rem" }}>
+                    <td style={{ padding: "0.9rem 0.8rem" }}>
                       <div style={{ fontSize: "0.88rem", color: "#2B2B2B" }}>{c.email}</div>
                       <div style={{ fontSize: "0.8rem", color: "#2D5A27", fontWeight: 600, marginTop: "0.15rem" }}>
                         {c.telefono_display || c.telefono}
                       </div>
                     </td>
 
-                    <td style={{ padding: "1rem", color: "#514D48" }}>
-                      {c.data_evento_sognata || "Da definire"}
+                    <td style={{ padding: "0.9rem 0.8rem", color: "#514D48" }}>
+                      {c.data_evento_sognata || c.dataSognata || "Da definire"}
                     </td>
 
-                    <td style={{ padding: "1rem" }}>
+                    <td style={{ padding: "0.9rem 0.8rem" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                         <div style={{ flex: 1, maxWidth: "100px", height: "6px", background: "#E8E2D8", borderRadius: "999px", overflow: "hidden" }}>
                           <div style={{ width: `${c.diaryProgress}%`, height: "100%", background: c.diaryProgress >= 80 ? "#2D5A27" : "#E58C2C" }} />
@@ -272,103 +278,16 @@ export default async function AdminOpenDayDashboardPage() {
                       </div>
                     </td>
 
-                    <td style={{ padding: "0.8rem 1rem", textAlign: "right", whiteSpace: "nowrap" }}>
-                      <div style={{ display: "inline-flex", justifyContent: "flex-end", alignItems: "center", gap: "0.45rem", whiteSpace: "nowrap" }}>
-                        <Link
-                          href={`/admin/clienti/${c.id}`}
-                          style={{
-                            padding: "0.45rem 0.8rem",
-                            borderRadius: "9px",
-                            background: "#1e1b18",
-                            color: "#ffffff",
-                            textDecoration: "none",
-                            fontSize: "0.8rem",
-                            fontWeight: 700,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "0.35rem",
-                            boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
-                            whiteSpace: "nowrap",
-                          }}
-                          title="Apri Scheda CRM 360° della Coppia"
-                        >
-                          <span>👥</span>
-                          <span>Scheda CRM</span>
-                        </Link>
-
-                        <Link
-                          href={`/admin/contratti?nome=${encodeURIComponent(c.nome)}${(c as any).sposera_nome ? `&partner_nome=${encodeURIComponent((c as any).sposera_nome)}` : ""}&email=${encodeURIComponent(c.email || "")}&telefono=${encodeURIComponent(c.telefono || "")}&data=${encodeURIComponent(c.dataSognata || "")}`}
-                          style={{
-                            padding: "0.45rem 0.8rem",
-                            borderRadius: "9px",
-                            background: "linear-gradient(135deg, #e58c2c 0%, #c2410c 100%)",
-                            color: "#ffffff",
-                            textDecoration: "none",
-                            fontSize: "0.8rem",
-                            fontWeight: 700,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "0.35rem",
-                            boxShadow: "0 2px 6px rgba(229,140,44,0.28)",
-                            whiteSpace: "nowrap",
-                          }}
-                          title="Converti in Contratto Sposi (Opzione 7gg)"
-                        >
-                          <span>✍️</span>
-                          <span>Emetti Contratto</span>
-                        </Link>
-
-                        <Link
-                          href={`/openday/diario?id=${c.id}`}
-                          target="_blank"
-                          style={{
-                            padding: "0.45rem 0.8rem",
-                            borderRadius: "9px",
-                            background: "#FAF8F5",
-                            border: "1px solid #E8E2D8",
-                            color: "#2B2B2B",
-                            textDecoration: "none",
-                            fontSize: "0.8rem",
-                            fontWeight: 600,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: "0.35rem",
-                            whiteSpace: "nowrap",
-                          }}
-                          title="Visualizza Wedding Diary compilato dagli sposi"
-                        >
-                          <span>👁️</span>
-                          <span>Guarda Diario</span>
-                        </Link>
-
-                        {c.telefono && (
-                          <a
-                            href={`https://wa.me/${c.telefono.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                              `Gentili ${c.nome}, grazie per la visita a La Terra degli Aranci! Ecco il vostro Wedding Diary custodito: https://ecosistema.laterradegliaranci.it/openday/diario?id=${c.id}&share=${createDiaryShareToken(c.id)}`
-                            )}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{
-                              width: "32px",
-                              height: "32px",
-                              borderRadius: "9px",
-                              background: "#25D366",
-                              color: "#ffffff",
-                              textDecoration: "none",
-                              fontSize: "1rem",
-                              display: "inline-flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              boxShadow: "0 2px 6px rgba(37,211,102,0.25)",
-                              flexShrink: 0,
-                            }}
-                            title={`Invia Wedding Diary su WhatsApp a ${c.nome} (${c.telefono})`}
-                            aria-label="Contatta su WhatsApp"
-                          >
-                            <span style={{ lineHeight: 1 }}>💬</span>
-                          </a>
-                        )}
-                      </div>
+                    <td style={{ padding: "0.9rem 0.8rem", textAlign: "right", whiteSpace: "nowrap" }}>
+                      <OpenDayActionsMenu
+                        clientId={c.id}
+                        nome={c.nome}
+                        partnerNome={(c as any).sposera_nome}
+                        email={c.email}
+                        telefono={c.telefono}
+                        dataSognata={c.data_evento_sognata || c.dataSognata}
+                        shareToken={createDiaryShareToken(c.id)}
+                      />
                     </td>
                   </tr>
                 ))}

@@ -22,7 +22,7 @@ import { getOpenDayCloudState } from "@/lib/openDayCloudSync";
 
 export interface AdminNotification {
   id: string;
-  tipo: "ticket_servizi" | "contratto_firmato" | "allegato_b" | "appuntamento" | "diary";
+  tipo: "ticket_servizi" | "contratto_firmato" | "allegato_b" | "appuntamento" | "diary" | "openday";
   titolo: string;
   messaggio: string;
   data: string;
@@ -411,6 +411,29 @@ export async function getAdminNotificationsAction(): Promise<AdminNotification[]
       badgeColor: "#6d28d9",
       badgeBg: "#ede9fe",
       priorita: "bassa",
+    });
+  }
+
+  /* 6) Nuove registrazioni Open Day -------------------------------- */
+  for (const lead of openDayLeads) {
+    if (!lead || !lead.id) continue;
+    const regTime = lead.created_at || lead.updated_at;
+    if (!isRecent(regTime, DIARY_RECENT_DAYS)) continue;
+
+    const couple = lead.nome || "Nuova coppia";
+    const dataSognata = lead.dataSognata ? ` · Data sognata: ${lead.dataSognata}` : "";
+
+    notifications.push({
+      id: `openday:${lead.id}`,
+      tipo: "openday",
+      titolo: "Nuova Coppia Open Day",
+      messaggio: `${couple} si è registrata all'Open Day${dataSognata}`,
+      data: String(regTime),
+      link: `/admin/openday`,
+      badgeLabel: "Open Day",
+      badgeColor: "#ea580c",
+      badgeBg: "#ffedd5",
+      priorita: "alta",
     });
   }
 
