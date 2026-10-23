@@ -272,13 +272,13 @@ export default async function AdminOpenDayDashboardPage() {
                       </div>
                     </td>
 
-                    <td style={{ padding: "1rem", textAlign: "right" }}>
-                      <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <td style={{ padding: "0.8rem 1rem", textAlign: "right", whiteSpace: "nowrap" }}>
+                      <div style={{ display: "inline-flex", justifyContent: "flex-end", alignItems: "center", gap: "0.45rem", whiteSpace: "nowrap" }}>
                         <Link
                           href={`/admin/crm?client=${c.id}`}
                           style={{
-                            padding: "0.4rem 0.85rem",
-                            borderRadius: "8px",
+                            padding: "0.45rem 0.8rem",
+                            borderRadius: "9px",
                             background: "#1e1b18",
                             color: "#ffffff",
                             textDecoration: "none",
@@ -286,29 +286,37 @@ export default async function AdminOpenDayDashboardPage() {
                             fontWeight: 700,
                             display: "inline-flex",
                             alignItems: "center",
-                            gap: "0.3rem",
+                            gap: "0.35rem",
                             boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
+                            whiteSpace: "nowrap",
                           }}
                           title="Apri Scheda CRM 360° della Coppia"
                         >
-                          👥 Scheda CRM 360°
+                          <span>👥</span>
+                          <span>Scheda CRM 360°</span>
                         </Link>
 
                         <Link
                           href={`/openday/diario?id=${c.id}`}
                           target="_blank"
                           style={{
-                            padding: "0.4rem 0.8rem",
-                            borderRadius: "8px",
+                            padding: "0.45rem 0.8rem",
+                            borderRadius: "9px",
                             background: "#FAF8F5",
                             border: "1px solid #E8E2D8",
                             color: "#2B2B2B",
                             textDecoration: "none",
                             fontSize: "0.8rem",
                             fontWeight: 600,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "0.35rem",
+                            whiteSpace: "nowrap",
                           }}
+                          title="Visualizza Wedding Diary compilato dagli sposi"
                         >
-                          👁️ Guarda Diario
+                          <span>👁️</span>
+                          <span>Guarda Diario</span>
                         </Link>
 
                         {c.telefono && (
@@ -319,16 +327,23 @@ export default async function AdminOpenDayDashboardPage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{
-                              padding: "0.4rem 0.8rem",
-                              borderRadius: "8px",
+                              width: "32px",
+                              height: "32px",
+                              borderRadius: "9px",
                               background: "#25D366",
                               color: "#ffffff",
                               textDecoration: "none",
-                              fontSize: "0.8rem",
-                              fontWeight: 600,
+                              fontSize: "1rem",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              boxShadow: "0 2px 6px rgba(37,211,102,0.25)",
+                              flexShrink: 0,
                             }}
+                            title={`Invia Wedding Diary su WhatsApp a ${c.nome} (${c.telefono})`}
+                            aria-label="Contatta su WhatsApp"
                           >
-                            💬 WhatsApp
+                            <span style={{ lineHeight: 1 }}>💬</span>
                           </a>
                         )}
                       </div>
