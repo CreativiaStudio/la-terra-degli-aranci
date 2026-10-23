@@ -111,60 +111,78 @@ export default async function AdminOpenDayDashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1.2rem", marginBottom: "2.5rem" }}>
+      <style>{`
+        .openday-kpi-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 1rem;
+          margin-bottom: 2.5rem;
+        }
+        @media (max-width: 1024px) and (min-width: 580px) {
+          .openday-kpi-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 579px) {
+          .openday-kpi-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+      <div className="openday-kpi-grid">
         
         {/* Scansioni */}
-        <div style={{ background: "#ffffff", padding: "1.4rem", borderRadius: "18px", border: "1px solid #E8E2D8", boxShadow: "0 4px 16px rgba(0,0,0,0.03)" }}>
+        <div style={{ background: "#ffffff", padding: "1.25rem 1.15rem", borderRadius: "18px", border: "1px solid #E8E2D8", boxShadow: "0 4px 16px rgba(0,0,0,0.03)", minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.85rem", color: "#6A6764", fontWeight: 600 }}>Scansioni QR Code Rilevate</span>
-            <span style={{ fontSize: "1.2rem" }}>📷</span>
+            <span style={{ fontSize: "0.82rem", color: "#6A6764", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Scansioni QR Code Rilevate</span>
+            <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>📷</span>
           </div>
           <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "#2B2B2B" }}>
             {stats.totalScans}
           </div>
-          <div style={{ fontSize: "0.78rem", color: "#2D5A27", marginTop: "0.3rem", fontWeight: 600 }}>
+          <div style={{ fontSize: "0.78rem", color: "#2D5A27", marginTop: "0.3rem", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {stats.totalScans > 0 ? "🟢 Tracciamento attivo live" : "In attesa delle prime scansioni"}
           </div>
         </div>
 
         {/* Diari Avviati */}
-        <div style={{ background: "#ffffff", padding: "1.4rem", borderRadius: "18px", border: "1px solid #E8E2D8", boxShadow: "0 4px 16px rgba(0,0,0,0.03)" }}>
+        <div style={{ background: "#ffffff", padding: "1.25rem 1.15rem", borderRadius: "18px", border: "1px solid #E8E2D8", boxShadow: "0 4px 16px rgba(0,0,0,0.03)", minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.85rem", color: "#6A6764", fontWeight: 600 }}>Coppie Registrate nel Diario</span>
-            <span style={{ fontSize: "1.2rem" }}>💍</span>
+            <span style={{ fontSize: "0.82rem", color: "#6A6764", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Coppie Registrate nel Diario</span>
+            <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>💍</span>
           </div>
           <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "#E58C2C" }}>
             {openDayClients.length}
           </div>
-          <div style={{ fontSize: "0.78rem", color: "#8E8880", marginTop: "0.3rem" }}>
+          <div style={{ fontSize: "0.78rem", color: "#8E8880", marginTop: "0.3rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             Lead qualificati con nome, email e WhatsApp
           </div>
         </div>
 
         {/* Tasso di Conversione */}
-        <div style={{ background: "#ffffff", padding: "1.4rem", borderRadius: "18px", border: "1px solid #E8E2D8", boxShadow: "0 4px 16px rgba(0,0,0,0.03)" }}>
+        <div style={{ background: "#ffffff", padding: "1.25rem 1.15rem", borderRadius: "18px", border: "1px solid #E8E2D8", boxShadow: "0 4px 16px rgba(0,0,0,0.03)", minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.85rem", color: "#6A6764", fontWeight: 600 }}>Tasso Conversione Scansione ➔ Diario</span>
-            <span style={{ fontSize: "1.2rem" }}>📈</span>
+            <span style={{ fontSize: "0.82rem", color: "#6A6764", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Tasso Conversione Scansione ➔ Diario</span>
+            <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>📈</span>
           </div>
           <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "#2D5A27" }}>
             {stats.totalScans > 0 ? `${Math.round((openDayClients.length / stats.totalScans) * 100)}%` : "—"}
           </div>
-          <div style={{ fontSize: "0.78rem", color: "#8E8880", marginTop: "0.3rem" }}>
+          <div style={{ fontSize: "0.78rem", color: "#8E8880", marginTop: "0.3rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             Efficacia dell'accoglienza in villa
           </div>
         </div>
 
         {/* Funnel CRM & Statistiche */}
-        <div style={{ background: "#ffffff", padding: "1.4rem", borderRadius: "18px", border: "1px solid #E8E2D8", boxShadow: "0 4px 16px rgba(0,0,0,0.03)" }}>
+        <div style={{ background: "#ffffff", padding: "1.25rem 1.15rem", borderRadius: "18px", border: "1px solid #E8E2D8", boxShadow: "0 4px 16px rgba(0,0,0,0.03)", minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.85rem", color: "#6A6764", fontWeight: 600 }}>Evoluzione Lead nel CRM</span>
-            <span style={{ fontSize: "1.2rem" }}>📊</span>
+            <span style={{ fontSize: "0.82rem", color: "#6A6764", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Evoluzione Lead nel CRM</span>
+            <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>📊</span>
           </div>
           <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "#1e1b18" }}>
             {openDayClients.length}
           </div>
-          <div style={{ fontSize: "0.78rem", color: "#2D5A27", marginTop: "0.3rem", fontWeight: 600 }}>
+          <div style={{ fontSize: "0.78rem", color: "#2D5A27", marginTop: "0.3rem", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             <Link href="/admin/statistiche?preset=openday" style={{ color: "#2D5A27", textDecoration: "none" }}>
               Analisi tassi chiusura in Statistiche →
             </Link>
