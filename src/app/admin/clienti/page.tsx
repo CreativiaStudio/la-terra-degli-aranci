@@ -143,6 +143,13 @@ export default async function ClientiPage() {
     const cQuotes = quotesByClient.get(cid) || [];
     const nome = String(client?.nome || "").trim() || "Cliente";
     const cognome = String(client?.cognome || "").trim();
+    const partner = String(
+      client?.sposera_nome ||
+      client?.partnerNome ||
+      client?.partner ||
+      client?.nome_partner ||
+      ""
+    ).trim();
     const email = String(client?.email || "").trim();
     const telefono = String(client?.telefono || "").trim();
 
@@ -213,6 +220,7 @@ export default async function ClientiPage() {
       id: cid,
       nome,
       cognome,
+      partner: partner || undefined,
       email,
       telefono,
       tags,

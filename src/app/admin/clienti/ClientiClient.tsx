@@ -23,6 +23,7 @@ export interface ClienteRow {
   id: string;
   nome: string;
   cognome: string;
+  partner?: string;
   email: string;
   telefono: string;
   /** Tag assegnati: VIP Club TDA, Sposi, Privato, Nuovo. */
@@ -230,7 +231,7 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
     const q = search.trim().toLowerCase();
     if (!q) return clienti;
     return clienti.filter((c) =>
-      `${c.nome} ${c.cognome} ${c.email} ${c.telefono}`.toLowerCase().includes(q)
+      `${c.nome} ${c.cognome} ${c.partner || ""} ${c.email} ${c.telefono}`.toLowerCase().includes(q)
     );
   }, [clienti, search]);
 
@@ -384,9 +385,12 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                         fontWeight: 700,
                         textDecoration: "none",
                       }}
-                      title="Apri Scheda CRM"
+                      title="Apri Scheda CRM 360°"
                     >
                       {c.nome} {c.cognome}
+                      {c.partner ? (
+                        <span style={{ color: "#c2410c", fontWeight: 700 }}> &amp; {c.partner}</span>
+                      ) : null}
                     </Link>
                     <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", marginTop: "0.35rem", alignItems: "center" }}>
                       {c.tags.length === 0 ? (
@@ -522,6 +526,27 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                         }}
                       >
                         👤 Scheda CRM
+                      </Link>
+                      <Link
+                        href={`/admin/contratti?nome=${encodeURIComponent(`${c.nome} ${c.cognome}`.trim())}${c.partner ? `&partner_nome=${encodeURIComponent(c.partner)}` : ""}&email=${encodeURIComponent(c.email || "")}&telefono=${encodeURIComponent(c.telefono || "")}`}
+                        style={{
+                          padding: "0.45rem 0.8rem",
+                          background: "linear-gradient(135deg, #e58c2c 0%, #c2410c 100%)",
+                          color: "#ffffff",
+                          borderRadius: "7px",
+                          fontSize: "0.78rem",
+                          fontWeight: 700,
+                          textDecoration: "none",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "0.3rem",
+                          boxShadow: "0 2px 6px rgba(229,140,44,0.25)",
+                          whiteSpace: "nowrap",
+                        }}
+                        title="Emetti Contratto Rapido (Opzione 7gg)"
+                      >
+                        <span>✍️</span>
+                        <span>Contratto</span>
                       </Link>
                       <button
                         type="button"

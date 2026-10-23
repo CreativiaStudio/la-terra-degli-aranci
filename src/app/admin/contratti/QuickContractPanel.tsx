@@ -93,6 +93,53 @@ function splitNomeCompleto(full: string): { nome: string; cognome: string } {
   return { nome: value.slice(0, idx), cognome: value.slice(idx + 1).trim() };
 }
 
+/**
+ * Estrae nome, cognome dello sposo e del partner supportando:
+ * 1) Parametri espliciti: nome="Mario Rossi" & partner_nome="Elena Bianchi"
+ * 2) Nomi composti congiunti: nome="Mario & Elena" o "Mario e Elena"
+ */
+function parseSposiParams(nomeParam: string | null, partnerParam: string | null): {
+  nome: string;
+  cognome: string;
+  partnerNome: string;
+  partnerCognome: string;
+} {
+  const explicitPartner = (partnerParam ?? "").trim();
+  const rawNome = (nomeParam ?? "").trim();
+
+  let partnerNome = "";
+  let partnerCognome = "";
+  if (explicitPartner) {
+    const s = splitNomeCompleto(explicitPartner);
+    partnerNome = s.nome;
+    partnerCognome = s.cognome;
+  }
+
+  if (!rawNome) {
+    return { nome: "", cognome: "", partnerNome, partnerCognome };
+  }
+
+  if (!partnerNome && /\s+(?:e|&)\s+/i.test(rawNome)) {
+    const parts = rawNome.split(/\s+(?:e|&)\s+/i);
+    const s1 = splitNomeCompleto(parts[0]);
+    const s2 = splitNomeCompleto(parts[1]);
+    return {
+      nome: s1.nome,
+      cognome: s1.cognome,
+      partnerNome: s2.nome,
+      partnerCognome: s2.cognome,
+    };
+  }
+
+  const s1 = splitNomeCompleto(rawNome);
+  return {
+    nome: s1.nome,
+    cognome: s1.cognome,
+    partnerNome,
+    partnerCognome,
+  };
+}
+
 interface GeneratedContract {
   absoluteUrl: string;
   qrCodeDataUrl: string;
@@ -221,19 +268,33 @@ export default function QuickContractPanel() {
   const searchParams = useSearchParams();
 
   const hasPrefilledParams = Boolean(
-    searchParams.get("nome") || searchParams.get("telefono") || searchParams.get("email") || searchParams.get("data")
+    searchParams.get("nome") ||
+      searchParams.get("partner_nome") ||
+      searchParams.get("partner") ||
+      searchParams.get("telefono") ||
+      searchParams.get("email") ||
+      searchParams.get("data")
   );
   // Se arriva da un appuntamento precompilato parte aperto, altrimenti parte chiuso di default.
   const [isOpen, setIsOpen] = useState(hasPrefilledParams);
 
+  const parsedSposi = useMemo(() => {
+    return parseSposiParams(
+      searchParams.get("nome"),
+      searchParams.get("partner_nome") ?? searchParams.get("partner")
+    );
+  }, [searchParams]);
+
   const [tipoEvento, setTipoEvento] = useState<TipoEvento>("wedding");
   const [tipoCliente, setTipoCliente] = useState<TipoCliente>("privato");
-  const [nome, setNome] = useState(() => splitNomeCompleto(searchParams.get("nome") ?? "").nome);
-  const [cognome, setCognome] = useState(() => splitNomeCompleto(searchParams.get("nome") ?? "").cognome);
+  const [nome, setNome] = useState(() => parsedSposi.nome);
+  const [cognome, setCognome] = useState(() => parsedSposi.cognome);
   const [telefono, setTelefono] = useState(() => searchParams.get("telefono") ?? "");
   const [email, setEmail] = useState(() => searchParams.get("email") ?? "");
-  const [partnerNome, setPartnerNome] = useState("");
-  const [partnerCognome, setPartnerCognome] = useState("");
+  const [partnerNome, setPartnerNome] = useState(() => parsedSposi.partnerNome);
+  const [partnerCognome, setPartnerCognome] = useState(
+    () => searchParams.get("partner_cognome") ?? parsedSposi.partnerCognome
+  );
   const [ragioneSociale, setRagioneSociale] = useState("");
   const [partitaIva, setPartitaIva] = useState("");
   const [codiceFiscale, setCodiceFiscale] = useState("");
@@ -266,14 +327,15 @@ export default function QuickContractPanel() {
   const autosaveReadyRef = useRef(false);
 
   // Recupero bozza: all'apertura del form, se esiste una bozza non vuota la
-  // propone all'utente aprendo il form (Ripristina / Scarta).
+  // propone all'utente solo se non stiamo aprendo un cliente specifico tramite URL.
   useEffect(() => {
+    if (hasPrefilledParams) return;
     const draft = readDraft();
     if (draft) {
       setRecoveredDraft(draft);
       setIsOpen(true);
     }
-  }, []);
+  }, [hasPrefilledParams]);
 
   // Autosave continuo dei campi: non sovrascrive mai una bozza in attesa di
   // "Ripristina / Scarta" e non scrive nulla finché il form è vuoto.

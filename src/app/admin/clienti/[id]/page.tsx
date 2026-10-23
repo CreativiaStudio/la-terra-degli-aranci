@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getStore } from "@/lib/localDb";
 import { getQuotesFast } from "@/lib/dataHelper";
+import { getOpenDayAdminData } from "@/lib/openDayCloudSync";
 import { computeEventLedger } from "@/lib/eventLedger";
 import { deriveEventStage } from "@/lib/eventStage";
 import ClienteDettaglioClient from "./ClienteDettaglioClient";
@@ -49,6 +50,8 @@ function buildContractUrl(client: any, quote: any): string {
   const params = new URLSearchParams();
   const nome = [client?.nome, client?.cognome].filter(Boolean).join(" ").trim();
   if (nome) params.set("nome", nome);
+  const partner = client?.sposera_nome || client?.partnerNome || client?.partner;
+  if (partner) params.set("partner_nome", String(partner));
   if (client?.telefono) params.set("telefono", String(client.telefono));
   if (client?.email) params.set("email", String(client.email));
 
@@ -78,8 +81,11 @@ export default async function ClienteDettaglioPage({
   const { id } = await params;
   const store = getStore();
 
-  // Unione delle quote: store locale + fallback Supabase (come la rubrica Club TDA).
-  const quotesFromFast = await getQuotesFast();
+  // Unione dati: store locale + fallback Supabase + Open Day Cloud R2.
+  const [quotesFromFast, openDayData] = await Promise.all([
+    getQuotesFast().catch(() => []),
+    getOpenDayAdminData().catch(() => ({ openDayClients: [] })),
+  ]);
   const quoteMap = new Map<string, any>();
   for (const q of store.quotes || []) {
     if (q && q.id) quoteMap.set(String(q.id), q);
@@ -89,7 +95,7 @@ export default async function ClienteDettaglioPage({
   }
   const quotes: any[] = [...quoteMap.values()];
 
-  // Anagrafica di riferimento: store locale + snapshot presenti nelle quote.
+  // Anagrafica di riferimento: store locale + snapshot presenti nelle quote + Open Day.
   const clientMap = new Map<string, any>();
   for (const c of store.clients || []) {
     if (c && c.id) clientMap.set(String(c.id), c);
@@ -97,6 +103,24 @@ export default async function ClienteDettaglioPage({
   for (const q of quotes) {
     const cid = String(q?.client_id || q?.clients?.id || "").trim();
     if (cid && !clientMap.has(cid) && q?.clients) clientMap.set(cid, q.clients);
+  }
+  for (const od of openDayData?.openDayClients || []) {
+    if (od && od.id && !clientMap.has(od.id)) {
+      clientMap.set(od.id, {
+        id: od.id,
+        nome: od.nome,
+        cognome: od.cognome || "",
+        email: od.email,
+        telefono: od.telefono,
+        provenienza: od.provenienza || "QR Code Open Day",
+        created_at: od.created_at,
+        tipo_cliente: "wedding",
+        tags: od.tags || ["Open Day"],
+        dataSognata: od.dataSognata,
+        diaryAnswers: od.diaryAnswers || {},
+        diaryProgress: od.diaryProgress || 0,
+      });
+    }
   }
   const clients: any[] = [...clientMap.values()];
   const search = String(id || "").trim().toLowerCase();
@@ -306,7 +330,13 @@ export default async function ClienteDettaglioPage({
     id: clientId,
     nome: String(client.nome || ""),
     cognome: String(client.cognome || ""),
-    coniuge: [client.sposera_nome, client.sposera_cognome].filter(Boolean).join(" ").trim(),
+    coniuge: [
+      client.sposera_nome || client.partnerNome || client.partner || client.nome_partner,
+      client.sposera_cognome || client.partnerCognome,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .trim(),
     email: String(client.email || ""),
     telefono: String(client.telefono || ""),
     citta: String(client.citta_di_residenza || client.citta || ""),

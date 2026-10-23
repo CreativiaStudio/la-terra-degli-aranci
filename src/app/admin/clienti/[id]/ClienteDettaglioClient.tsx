@@ -571,6 +571,7 @@ export default function ClienteDettaglioClient({
   const contractDirectUrl = (() => {
     const params = new URLSearchParams();
     if (nomeCompleto) params.set("nome", nomeCompleto);
+    if (cliente.coniuge) params.set("partner_nome", cliente.coniuge);
     if (cliente.telefono) params.set("telefono", cliente.telefono);
     if (cliente.email) params.set("email", cliente.email);
     const query = params.toString();

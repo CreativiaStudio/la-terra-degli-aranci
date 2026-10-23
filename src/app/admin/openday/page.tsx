@@ -275,7 +275,7 @@ export default async function AdminOpenDayDashboardPage() {
                     <td style={{ padding: "0.8rem 1rem", textAlign: "right", whiteSpace: "nowrap" }}>
                       <div style={{ display: "inline-flex", justifyContent: "flex-end", alignItems: "center", gap: "0.45rem", whiteSpace: "nowrap" }}>
                         <Link
-                          href={`/admin/crm?client=${c.id}`}
+                          href={`/admin/clienti/${c.id}`}
                           style={{
                             padding: "0.45rem 0.8rem",
                             borderRadius: "9px",
@@ -293,7 +293,29 @@ export default async function AdminOpenDayDashboardPage() {
                           title="Apri Scheda CRM 360° della Coppia"
                         >
                           <span>👥</span>
-                          <span>Scheda CRM 360°</span>
+                          <span>Scheda CRM</span>
+                        </Link>
+
+                        <Link
+                          href={`/admin/contratti?nome=${encodeURIComponent(c.nome)}${(c as any).sposera_nome ? `&partner_nome=${encodeURIComponent((c as any).sposera_nome)}` : ""}&email=${encodeURIComponent(c.email || "")}&telefono=${encodeURIComponent(c.telefono || "")}&data=${encodeURIComponent(c.dataSognata || "")}`}
+                          style={{
+                            padding: "0.45rem 0.8rem",
+                            borderRadius: "9px",
+                            background: "linear-gradient(135deg, #e58c2c 0%, #c2410c 100%)",
+                            color: "#ffffff",
+                            textDecoration: "none",
+                            fontSize: "0.8rem",
+                            fontWeight: 700,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "0.35rem",
+                            boxShadow: "0 2px 6px rgba(229,140,44,0.28)",
+                            whiteSpace: "nowrap",
+                          }}
+                          title="Converti in Contratto Sposi (Opzione 7gg)"
+                        >
+                          <span>✍️</span>
+                          <span>Emetti Contratto</span>
                         </Link>
 
                         <Link

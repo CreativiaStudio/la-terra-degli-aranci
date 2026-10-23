@@ -23,7 +23,7 @@ const PILLARS: NavItem[] = [
   { href: "/admin/eventi", label: "Eventi", icon: "💍" },
   { href: "/admin/cassa", label: "Cassa", icon: "💶" },
   { href: "/admin/statistiche", label: "Statistiche", icon: "📊" },
-  { href: "/admin/clienti", label: "Club TDA", icon: "👥" },
+  { href: "/admin/clienti", label: "CRM & Clienti", icon: "👥" },
 ];
 
 const SETTINGS: NavItem[] = [
