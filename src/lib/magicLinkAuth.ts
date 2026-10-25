@@ -135,15 +135,19 @@ export function verifyClientSessionToken(cookieValue: string): { email: string; 
  * Imposta il cookie di sessione autenticata per l'Area Cliente
  */
 export async function setClientSessionCookie(email: string, clientId?: string) {
-  const cookieStore = await cookies();
-  const sessionToken = signClientSession(email, clientId);
-  cookieStore.set(SESSION_COOKIE_NAME, sessionToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 30 * 24 * 60 * 60, // 30 giorni
-  });
+  try {
+    const cookieStore = await cookies();
+    const sessionToken = signClientSession(email, clientId);
+    cookieStore.set(SESSION_COOKIE_NAME, sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 30 * 24 * 60 * 60, // 30 giorni
+    });
+  } catch {
+    // Ignora se invocato fuori da Server Action / Route Handler (es. render Server Component)
+  }
 }
 
 /**

@@ -15,6 +15,8 @@
 
 import { getStore, type LocalStore } from "@/lib/localDb";
 import { getOpenDayCloudState } from "@/lib/openDayCloudSync";
+import { computeDiaryProgress } from "@/app/cliente/components/weddingDiaryFields";
+import { createDiaryShareToken } from "@/lib/magicLinkAuth";
 
 /* ------------------------------------------------------------------ */
 /* Tipi pubblici                                                       */
@@ -174,10 +176,11 @@ function resolveDiaryLink(store: LocalStore, diary: any): string {
     return `/admin/eventi/${matchedQuote.id}?tab=diario`;
   }
 
-  // Se è un lead Open Day o cliente registrato senza preventivo ancora emesso
+  // Se è un lead Open Day o cliente registrato senza preventivo ancora emesso (con token HMAC 1-click Roberto)
   const targetId = cid || qid;
   if (targetId) {
-    return `/openday/diario?id=${targetId}`;
+    const share = createDiaryShareToken(targetId);
+    return `/openday/diario?id=${targetId}${share ? `&share=${share}` : ""}`;
   }
 
   return "/admin/wedding-diary";
@@ -400,11 +403,23 @@ export async function getAdminNotificationsAction(): Promise<AdminNotification[]
     const coupleName = resolveDiaryCoupleName(store, diary, openDayLeads);
     const link = resolveDiaryLink(store, diary);
 
+    const clientId = diary.client_id || diary.clientId || diary.id;
+    const progress =
+      typeof diary.progress === "number"
+        ? diary.progress
+        : diary.answers && Object.keys(diary.answers).length > 0
+        ? computeDiaryProgress(diary.answers)
+        : typeof diary.completion_rate === "number"
+        ? diary.completion_rate
+        : typeof diary.diaryProgress === "number"
+        ? diary.diaryProgress
+        : computeDiaryProgress(diary.answers);
+
     notifications.push({
-      id: `diary:${diary.id || diary.client_id || String(updatedAt || "")}`,
+      id: `diary:${clientId}`,
       tipo: "diary",
       titolo: "Wedding Diary aggiornato",
-      messaggio: `${coupleName} ha aggiornato le preferenze del proprio Wedding Diary`,
+      messaggio: `${coupleName}: Wedding Diary aggiornato (Progresso: ${progress}%)`,
       data: String(updatedAt || ""),
       link,
       badgeLabel: "Diary",

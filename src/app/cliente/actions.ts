@@ -13,20 +13,20 @@ import {
   type ServiceTicketItem,
 } from "@/lib/localDb";
 import { dispatchServiceTicketNotification } from "@/lib/notificationDispatcher";
-import { getClientSessionFromCookie } from "@/lib/magicLinkAuth";
+import { getClientSessionFromCookie, verifyDiaryShareToken } from "@/lib/magicLinkAuth";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/session";
 import { saveWeddingDiaryCloud, getOpenDayLeadAndDiary } from "@/lib/openDayCloudSync";
 
 /**
  * Payload del Wedding Diary.
  *
- * Nuovo formato (Area Clienti):
- *   { client_id, quote_id, answers: { campo: valore, ... }, completion_rate: 42 }
+ * Nuovo formato (Area Clienti & Open Day):
+ *   { client_id, quote_id, answers: { campo: valore, ... }, patch: { campo: valore }, shareToken, completion_rate: 42 }
  *
  * Formato legacy (AI Concierge / vecchie schede):
  *   { client_id, palette, style, preferred_spaces, dietary_notes, music_preferences, notes }
  *
- * I due formati sono accettati contemporaneamente e la persistenza è
+ * I formati sono accettati contemporaneamente e la persistenza è
  * non distruttiva: le chiavi non inviate restano memorizzate.
  */
 export interface SaveWeddingDiaryPayload {
@@ -34,6 +34,10 @@ export interface SaveWeddingDiaryPayload {
   quote_id?: string;
   /** Risposte strutturate del questionario: { nome_campo: valore }. */
   answers?: Record<string, any>;
+  /** Patch puntuale del/dei campi appena modificati: { [campo]: valore }. */
+  patch?: Record<string, any>;
+  /** Token HMAC di condivisione di coppia per accesso diretto sicuro. */
+  shareToken?: string;
   /** Percentuale di completamento del Diary (0-100). */
   completion_rate?: number;
   /* --- Campi legacy (retrocompatibilità) --- */
@@ -56,51 +60,47 @@ export async function saveWeddingDiaryAction(data: SaveWeddingDiaryPayload): Pro
       return { success: false, error: "client_id mancante" };
     }
 
-    // Blindatura sicurezza IDOR: verifica che chi scrive sia admin o il proprietario del diario
+    // Blindatura sicurezza IDOR: verifica che chi scrive sia admin, il proprietario con cookie, o il partner con shareToken HMAC
     const clientSession = await getClientSessionFromCookie();
     const cookieStore = await cookies();
     const staffCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
     const staffSession = staffCookie ? await verifySessionToken(staffCookie) : null;
     const isAdmin = staffSession?.role === "admin";
 
-    // Tolleranza resiliente per mobile webview (WhatsApp, Safari Private) e Open Day
-    const isOpenDayClient = data.client_id.startsWith("client-od-") || data.client_id.startsWith("client-roberto");
-    const isDemo = data.client_id.startsWith("demo") || data.client_id.startsWith("client-demo");
-    const store = getLocalStore();
-    const isRegisteredClient = (store.clients || []).some((c: any) => c.id === data.client_id);
-
     const isAuthorized =
       isAdmin ||
-      (clientSession && clientSession.clientId === data.client_id) ||
-      isOpenDayClient ||
-      isDemo ||
-      isRegisteredClient;
+      Boolean(clientSession && clientSession.clientId === data.client_id) ||
+      Boolean(data.shareToken && verifyDiaryShareToken(data.client_id, data.shareToken));
 
     if (!isAuthorized) {
       return { success: false, error: "Accesso non autorizzato: sessione non valida per questo diario" };
     }
 
-    const updated = saveWeddingDiaryLocal(data);
-    // Sincronizzazione automatica persistente su Cloudflare R2 (accessibile da tutti i nodi Vercel)
-    await saveWeddingDiaryCloud(data.client_id, data.answers || {});
+    // Sincronizzazione atomica persistente su Cloudflare R2 con supporto field-level patch
+    const cloudRes = await saveWeddingDiaryCloud(data.client_id, data.answers || {}, data.patch);
+    const updated = cloudRes.success && cloudRes.diary ? cloudRes.diary : saveWeddingDiaryLocal(data);
     return { success: true, data: updated };
   } catch (error: any) {
     return { success: false, error: error?.message || "Errore durante il salvataggio" };
   }
 }
 
-export async function getWeddingDiaryAction(clientId: string) {
+export async function getWeddingDiaryAction(clientId: string, shareToken?: string) {
   try {
     if (!clientId) return { success: false, data: null };
 
+    // Blindatura sicurezza IDOR: solo admin, proprietario sessione cookie o partner con shareToken valido
     const clientSession = await getClientSessionFromCookie();
     const cookieStore = await cookies();
     const staffCookie = cookieStore.get(SESSION_COOKIE_NAME)?.value;
     const staffSession = staffCookie ? await verifySessionToken(staffCookie) : null;
     const isAdmin = staffSession?.role === "admin";
-    const isOpenDay = clientId.startsWith("client-od-") || clientId.startsWith("client-roberto");
 
-    const isAuthorized = isAdmin || (clientSession && clientSession.clientId === clientId) || isOpenDay;
+    const isAuthorized =
+      isAdmin ||
+      Boolean(clientSession && clientSession.clientId === clientId) ||
+      Boolean(shareToken && verifyDiaryShareToken(clientId, shareToken));
+
     if (!isAuthorized) {
       return { success: false, data: null, error: "Non autorizzato" };
     }

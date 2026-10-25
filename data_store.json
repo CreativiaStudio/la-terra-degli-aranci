@@ -1,8 +1,67 @@
 {
   "clients": [
     {
+      "id": "client-od-1792828082684-a0735",
+      "nome": "A & B",
+      "cognome": "",
+      "email": "ab.1792828082674@tda.it",
+      "telefono": "+393331112233",
+      "provenienza": "QR Code Open Day",
+      "tags": [
+        "Open Day",
+        "Wedding Diary"
+      ],
+      "created_at": "2026-10-24T07:48:02.684Z",
+      "updated_at": "2026-10-24T07:48:27.644Z",
+      "ultimo_accesso_openday": "2026-10-24T07:48:27.644Z",
+      "diaryAnswers": {
+        "initial": "hello",
+        "musica": "Jazz"
+      },
+      "diaryProgress": 0
+    },
+    {
+      "id": "client-od-1792828004672-rry2m",
+      "nome": "Fed & Ser",
+      "cognome": "",
+      "email": "f.s@tda.it",
+      "telefono": "+393339900112",
+      "provenienza": "QR Code Open Day",
+      "tags": [
+        "Open Day",
+        "Wedding Diary"
+      ],
+      "created_at": "2026-10-24T07:46:44.672Z",
+      "updated_at": "2026-10-24T07:47:31.833Z",
+      "ultimo_accesso_openday": "2026-10-24T07:47:31.833Z",
+      "diaryAnswers": {
+        "test": 123,
+        "musica": "Jazz"
+      },
+      "diaryProgress": 0
+    },
+    {
+      "id": "client-od-1792827913779-gug8x",
+      "nome": "Test & fresh_1792827932255",
+      "cognome": "",
+      "email": "test.c@tda.it",
+      "telefono": "+393331122334",
+      "provenienza": "QR Code Open Day",
+      "tags": [
+        "Open Day",
+        "Wedding Diary"
+      ],
+      "created_at": "2026-10-24T07:45:13.779Z",
+      "updated_at": "2026-10-24T07:45:32.264Z",
+      "ultimo_accesso_openday": "2026-10-24T07:45:32.264Z",
+      "diaryAnswers": {
+        "musica": "Jazz"
+      },
+      "diaryProgress": 0
+    },
+    {
       "id": "client-od-1792582428038",
-      "nome": "Matteo Esposito & Alessia Ferrara",
+      "nome": "Sofia & Marco",
       "cognome": "",
       "email": "matteo.esposito.test@gmail.com",
       "telefono": "+393339988776",
@@ -14,75 +73,9 @@
         "Wedding Diary"
       ],
       "created_at": "2026-10-21T11:33:48.038Z",
-      "updated_at": "2026-10-21T11:34:39.617Z",
-      "ultimo_accesso_openday": "2026-10-21T11:34:39.617Z",
+      "updated_at": "2026-10-24T07:56:29.394Z",
+      "ultimo_accesso_openday": "2026-10-24T07:56:29.394Z",
       "diaryAnswers": {
-        "sposo_nome": "Matteo",
-        "sposo_cognome": "Esposito",
-        "sposa_nome": "Alessia",
-        "sposa_cognome": "Ferrara",
-        "sposo_telefono": "+39 333 9988776",
-        "sposo_email": "matteo.esposito.test@gmail.com",
-        "data_matrimonio_desiderata": "2027-06-20",
-        "numero_invitati_previsto": 130,
-        "tipo_rito": "civile_in_villa",
-        "orario_preferito": "tramonto_cena",
-        "palette_colori": [
-          "#E58C2C",
-          "#2D5A27"
-        ],
-        "stile_matrimonio": "Botanico Elegante & Luci d'Autore",
-        "allestimenti_floreali": "Agrumi, ulivo e peonie bianche",
-        "profumazione_ambienti": "Zagara e fiori d'arancio",
-        "stile_servizio": "Buffet gourmet iniziale e servizio al tavolo in agrumeto",
-        "vino_preferito": "Greco di Tufo e Aglianico",
-        "angoli_speciali": [
-          "Show cooking pizza",
-          "Friggitoria napoletana espressa",
-          "Confettata chic"
-        ],
-        "torta_nuziale_desiderata": "Millefoglie espressa con fragoline di bosco",
-        "genere_musica_aperitivo": "Jazz & Bossa Nova dal vivo",
-        "brano_ingresso_sposi": "Fix You - Coldplay",
-        "brano_ingresso_torta": "A Sky Full of Stars - Coldplay",
-        "intolleranze_alimentari": "3 celiaci, 1 vegetariano",
-        "esigenze_particolari": "Tavoli rotondi larghi per famiglie",
-        "note_diario": "Siamo rimasti incantati dalla vista panoramica dal parco!"
-      },
-      "diaryProgress": 4
-    },
-    {
-      "id": "0a462b53-e984-4902-9562-e9d0dd776af8",
-      "nome": "Mario",
-      "cognome": "Pepe",
-      "sposera_nome": "Elena",
-      "sposera_cognome": "Dumea",
-      "email": "mariopepe9@hotmail.it",
-      "telefono": "366353837",
-      "codice_fiscale": "PPEMRA89T15F839X",
-      "provenienza": "Admin Rapido",
-      "tags": ["Open Day", "Sposi"],
-      "created_at": "2026-10-02T12:24:12.776Z"
-    },
-    {
-      "id": "client-roberto-sola",
-      "nome": "Roberto",
-      "cognome": "Sola",
-      "sposera_nome": "Rosaria",
-      "sposera_cognome": "Iovino",
-      "email": "ing.roberto.sola@gmail.com",
-      "telefono": "+39 333 460 4065",
-      "codice_fiscale": "SLORBT75A01F839X",
-      "provenienza": "Direzione Generale",
-      "created_at": "2026-10-21T09:00:00.000Z"
-    }
-  ],
-  "quotes": [],
-  "signed_contracts": [],
-  "wedding_diaries": [
-    {
-      "client_id": "client-od-1792582428038",
-      "answers": {
         "sposo_nome": "Matteo",
         "sposo_cognome": "Esposito",
         "sposa_nome": "Alessia",
@@ -169,9 +162,161 @@
           "Un paradiso tropicale"
         ]
       },
+      "diaryProgress": 4
+    },
+    {
+      "id": "0a462b53-e984-4902-9562-e9d0dd776af8",
+      "nome": "Mario",
+      "cognome": "Pepe",
+      "sposera_nome": "Elena",
+      "sposera_cognome": "Dumea",
+      "email": "mariopepe9@hotmail.it",
+      "telefono": "366353837",
+      "codice_fiscale": "PPEMRA89T15F839X",
+      "provenienza": "Admin Rapido",
+      "tags": [
+        "Open Day",
+        "Sposi"
+      ],
+      "created_at": "2026-10-02T12:24:12.776Z"
+    },
+    {
+      "id": "client-roberto-sola",
+      "nome": "Roberto",
+      "cognome": "Sola",
+      "sposera_nome": "Rosaria",
+      "sposera_cognome": "Iovino",
+      "email": "ing.roberto.sola@gmail.com",
+      "telefono": "+39 333 460 4065",
+      "codice_fiscale": "SLORBT75A01F839X",
+      "provenienza": "Direzione Generale",
+      "created_at": "2026-10-21T09:00:00.000Z"
+    }
+  ],
+  "quotes": [],
+  "signed_contracts": [],
+  "wedding_diaries": [
+    {
+      "client_id": "client-od-1792582428038",
+      "answers": {
+        "sposo_nome": "Matteo",
+        "sposo_cognome": "Esposito",
+        "sposa_nome": "Alessia",
+        "sposa_cognome": "Ferrara",
+        "sposo_telefono": "+39 333 9988776",
+        "sposo_email": "matteo.esposito.test@gmail.com",
+        "data_matrimonio_desiderata": "2027-06-20",
+        "numero_invitati_previsto": 130,
+        "tipo_rito": "civile_in_villa",
+        "orario_preferito": "tramonto_cena",
+        "palette_colori": [
+          "#E58C2C",
+          "#2D5A27"
+        ],
+        "stile_matrimonio": "Botanico Elegante & Luci d'Autore",
+        "allestimenti_floreali": "Agrumi, ulivo e peonie bianche",
+        "profumazione_ambienti": "Zagara e fiori d'arancio",
+        "stile_servizio": "Buffet gourmet iniziale e servizio al tavolo in agrumeto",
+        "vino_preferito": "Greco di Tufo e Aglianico",
+        "angoli_speciali": [
+          "Show cooking pizza",
+          "Friggitoria napoletana espressa",
+          "Confettata chic"
+        ],
+        "torta_nuziale_desiderata": "Millefoglie espressa con fragoline di bosco",
+        "genere_musica_aperitivo": "Jazz & Bossa Nova dal vivo",
+        "brano_ingresso_sposi": "Fix You - Coldplay",
+        "brano_ingresso_torta": "A Sky Full of Stars - Coldplay",
+        "intolleranze_alimentari": "3 celiaci, 1 vegetariano",
+        "esigenze_particolari": "Tavoli rotondi larghi per famiglie",
+        "note_diario": "Siamo rimasti incantati dalla vista panoramica dal parco!",
+        "inizio_evento": "Valore 1",
+        "la_nostra_data_perfetta": "Valore 2",
+        "partecipazioni_e_inviti": "Coordinate con il tema dell'evento",
+        "rito_simbolico": [
+          "In villa"
+        ],
+        "musica_e_atmosfera_del_rito_simbolico": [
+          "Canzone per l'ingresso della sposa"
+        ],
+        "canzone_ingresso_sposa": "River Flows in You - Yiruma",
+        "ci_prepareremo": "Insieme, per vivere ogni momento",
+        "abito_della_sposa": "Romantico",
+        "abito_dello_sposo": "Moderno",
+        "Stile_evento": [
+          "Botanico",
+          "Elegante e raffinato"
+        ],
+        "colori_e_dettagli": [
+          "Toni caldi (arancio, terracotta, ocra)",
+          "Verde bosco e salvia"
+        ],
+        "fiori_e_allestimenti": [
+          "Agrumi e foliage"
+        ],
+        "luci_e_atmosfere": [
+          "Cielo stellato di micro-led"
+        ],
+        "rito_religioso": "Cattolico",
+        "dettagli_che_fanno_la_differenza": [
+          "Profumazione personalizzata degli ambienti"
+        ],
+        "il_nostro_menu": [
+          "Buffet dinamico con isole tematiche"
+        ],
+        "vino_e_brindisi": [
+          "Vini campani DOC",
+          "Bollicine italiane per il brindisi"
+        ],
+        "wedding_cake_e_dolci": [
+          "Millefoglie a vista con frutti di bosco",
+          "Angolo cubano e sigari"
+        ],
+        "colonna_sonora": [
+          "Band live per l'aperitivo",
+          "DJ set per il dopocena"
+        ],
+        "primo_ballo_insieme": "Perfect - Ed Sheeran",
+        "bomboniere_e_ringraziamenti": [
+          "Gastronomica (olio, miele, confetture...)",
+          "Botanica (piantine, semi...)"
+        ],
+        "viaggio_di_nozze": [
+          "Un paradiso tropicale"
+        ]
+      },
       "completion_rate": 54,
       "id": "07fa58d4-7bf4-42a4-bcab-91d1a10bb90f",
-      "updated_at": "2026-10-21T11:34:40.607Z"
+      "updated_at": "2026-10-24T07:56:29.408Z"
+    },
+    {
+      "client_id": "client-od-1792827913779-gug8x",
+      "answers": {
+        "musica": "Jazz"
+      },
+      "completion_rate": 0,
+      "id": "68cb9603-3ca8-4a77-a41c-3571221856fb",
+      "updated_at": "2026-10-24T07:45:32.288Z"
+    },
+    {
+      "client_id": "client-od-1792828004672-rry2m",
+      "answers": {
+        "test": 123,
+        "musica": "Jazz"
+      },
+      "completion_rate": 0,
+      "id": "682fad87-815e-4596-80ad-50bbddcb1985",
+      "updated_at": "2026-10-24T07:47:31.867Z"
+    },
+    {
+      "client_id": "client-od-1792828082684-a0735",
+      "answers": {
+        "initial": "hello",
+        "musica": "Jazz"
+      },
+      "completion_rate": 0,
+      "id": "d0aa0f42-5b8a-4e74-a65a-51941adf6ead",
+      "updated_at": "2026-10-24T07:48:27.678Z"
     }
   ],
   "quote_changes": [],

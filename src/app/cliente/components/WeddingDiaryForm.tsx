@@ -20,6 +20,8 @@ interface WeddingDiaryProps {
   isReadOnly?: boolean;
   /** Notifica il genitore della percentuale di completamento (0-100). */
   onProgressChange?: (pct: number) => void;
+  /** Token crittografico HMAC per accesso diretto o condivisione tra partner. */
+  shareToken?: string;
 }
 
 /** Debounce per i campi testuali: l'utente non deve mai premere "Invio". */
@@ -44,6 +46,7 @@ export default function WeddingDiaryForm({
   lang = "it",
   isReadOnly = false,
   onProgressChange,
+  shareToken,
 }: WeddingDiaryProps) {
   const isEng = lang === "en";
   const storageKey = `${DRAFT_PREFIX}${clientId || "anon"}`;
@@ -53,7 +56,17 @@ export default function WeddingDiaryForm({
   const [lastSavedAt, setLastSavedAt] = useState<string | null>(initialData?.updated_at || null);
   const [draftRestored, setDraftRestored] = useState(false);
 
+  const [urlShareToken, setUrlShareToken] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const p = new URLSearchParams(window.location.search).get("share");
+      if (p) setUrlShareToken(p.trim());
+    }
+  }, []);
+  const effectiveShareToken = shareToken || urlShareToken;
+
   const answersRef = useRef<Record<string, any>>(answers);
+  const pendingPatchRef = useRef<Record<string, any>>({});
   const pendingRef = useRef(false);
   const mountedRef = useRef(true);
   const textTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -103,7 +116,10 @@ export default function WeddingDiaryForm({
   );
 
   const persist = useCallback(
-    async (payload: Record<string, any>, opts?: { silent?: boolean }) => {
+    async (
+      payload: Record<string, any>,
+      opts?: { silent?: boolean; patch?: Record<string, any> }
+    ) => {
       if (isReadOnly) return;
       writeDraft(payload, true);
       if (!opts?.silent) setSaveState("saving");
@@ -112,17 +128,36 @@ export default function WeddingDiaryForm({
           client_id: clientId,
           quote_id: quoteId,
           answers: payload,
+          patch: opts?.patch,
+          shareToken: effectiveShareToken,
           completion_rate: computeDiaryProgress(payload),
         });
         if (!mountedRef.current) return;
         if (res?.success) {
           const serverTs = (res.data && res.data.updated_at) || new Date().toISOString();
           setLastSavedAt(serverTs);
-          // Se nel frattempo sono arrivate nuove modifiche, lascia che sia il
-          // salvataggio più recente a marcare "saved" (e a ripulire la bozza).
-          if (answersRef.current === payload) {
+          // Sincronizza indietro le risposte se il server ha unito modifiche di un partner
+          if (res.data?.answers) {
+            const serverAnswers = res.data.answers;
+            setAnswers((prev) => {
+              let changed = false;
+              const updated = { ...prev };
+              Object.entries(serverAnswers).forEach(([k, v]) => {
+                if (pendingPatchRef.current[k] === undefined && JSON.stringify(prev[k]) !== JSON.stringify(v)) {
+                  updated[k] = v;
+                  changed = true;
+                }
+              });
+              if (changed) {
+                answersRef.current = updated;
+                return updated;
+              }
+              return prev;
+            });
+          }
+          if (Object.keys(pendingPatchRef.current).length === 0) {
             setSaveState("saved");
-            writeDraft(payload, false);
+            writeDraft(answersRef.current, false);
           }
         } else {
           setSaveState("error");
@@ -131,7 +166,7 @@ export default function WeddingDiaryForm({
         if (mountedRef.current) setSaveState("error");
       }
     },
-    [clientId, quoteId, isReadOnly, writeDraft]
+    [clientId, quoteId, isReadOnly, writeDraft, effectiveShareToken]
   );
 
   /* Ripristino bozza locale + retry di sincronizzazione all'avvio */
@@ -188,18 +223,27 @@ export default function WeddingDiaryForm({
     let isFetching = false;
     const syncLatest = async () => {
       // Non sincronizzare se l'utente sta scrivendo o ha salvataggi in sospeso
-      if (isFetching || pendingRef.current || saveState === "saving") return;
+      if (
+        isFetching ||
+        pendingRef.current ||
+        saveState === "saving" ||
+        Object.keys(pendingPatchRef.current).length > 0
+      )
+        return;
       isFetching = true;
       try {
-        const res = await getWeddingDiaryAction(clientId);
+        const res = await getWeddingDiaryAction(clientId, effectiveShareToken);
         if (res?.success && res.data?.answers && mountedRef.current) {
           const serverAnswers = res.data.answers;
           setAnswers((prev) => {
             let changed = false;
             const updated = { ...prev };
             Object.entries(serverAnswers).forEach(([k, v]) => {
-              // Aggiorna solo i campi inseriti o modificati dal partner sull'altro telefono
-              if (JSON.stringify(prev[k]) !== JSON.stringify(v)) {
+              // Aggiorna solo i campi inseriti o modificati dal partner se non abbiamo modifiche locali pendenti
+              if (
+                pendingPatchRef.current[k] === undefined &&
+                JSON.stringify(prev[k]) !== JSON.stringify(v)
+              ) {
                 updated[k] = v;
                 changed = true;
               }
@@ -231,16 +275,18 @@ export default function WeddingDiaryForm({
       clearInterval(interval);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [clientId, isReadOnly, saveState]);
+  }, [clientId, isReadOnly, saveState, effectiveShareToken]);
 
   /* ------------------------------------------------------------------ *
-   * Aggiornamento campi (autosave immediato o debounced)
+   * Aggiornamento campi (autosave immediato o debounced con field patch)
    * ------------------------------------------------------------------ */
   const applyValue = useCallback(
     (field: WeddingDiaryField, value: any) => {
       if (isReadOnly) return;
+      // Leggi e aggiorna lo snapshot globale in modo atomico
       const next = { ...answersRef.current, [field.name]: value };
       answersRef.current = next;
+      pendingPatchRef.current[field.name] = value;
       setAnswers(next);
 
       if (field.type === "text") {
@@ -249,10 +295,28 @@ export default function WeddingDiaryForm({
         const existing = textTimers.current[field.name];
         if (existing) clearTimeout(existing);
         textTimers.current[field.name] = setTimeout(() => {
-          void persist(next);
+          delete textTimers.current[field.name];
+          // Leggi sempre il valore più fresco da answersRef.current al momento dell'invocazione
+          const freshSnapshot = answersRef.current;
+          const patchToSend = {
+            ...pendingPatchRef.current,
+            [field.name]: freshSnapshot[field.name],
+          };
+          pendingPatchRef.current = {};
+          void persist(freshSnapshot, { patch: patchToSend });
         }, TEXT_DEBOUNCE_MS);
       } else {
-        void persist(next);
+        if (textTimers.current[field.name]) {
+          clearTimeout(textTimers.current[field.name]);
+          delete textTimers.current[field.name];
+        }
+        const freshSnapshot = answersRef.current;
+        const patchToSend = {
+          ...pendingPatchRef.current,
+          [field.name]: value,
+        };
+        pendingPatchRef.current = {};
+        void persist(freshSnapshot, { patch: patchToSend });
       }
     },
     [isReadOnly, persist, writeDraft]

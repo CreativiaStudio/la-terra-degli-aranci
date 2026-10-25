@@ -157,9 +157,9 @@ export default function OpenDayActionsMenu({
             <span>Scheda CRM 360°</span>
           </Link>
 
-          {/* Guarda Diario */}
+          {/* Guarda Diario (Accesso Direzionale 1-Click Roberto con HMAC) */}
           <Link
-            href={`/openday/diario?id=${clientId}`}
+            href={`/openday/diario?id=${clientId}${shareToken ? `&share=${shareToken}` : ""}`}
             target="_blank"
             onClick={() => setOpen(false)}
             style={{

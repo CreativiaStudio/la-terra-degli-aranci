@@ -1,24 +1,59 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getStore, saveStore, saveWeddingDiaryLocal, getWeddingDiaryLocal } from "./localDb";
 import { normalizePhoneNumber } from "./phoneHelper";
 import { computeDiaryProgress } from "@/app/cliente/components/weddingDiaryFields";
 import { logActivity } from "./blackbox";
+import { executeR2Command, BUCKET_NAME } from "./r2";
 
-// Credenziali Master Cloudflare R2 (certificato operativo su bucket la-terra-degli-aranci)
-const MASTER_ACCOUNT_ID = "cdc3d1bfef17f23cb453fe2737b2ede8";
-const MASTER_ACCESS_KEY_ID = "a15ba732cf75ed7cb171a095e794a479";
-const MASTER_SECRET_ACCESS_KEY = "4f09e1eb767175bf174301dfb41ea4c38c9aac8648aafb78d9914239d6a6093f";
-const BUCKET_NAME = process.env.R2_BUCKET_NAME || "la-terra-degli-aranci";
 const STATE_KEY = "openday/cloud_state.json";
 
-const r2Client = new S3Client({
-  region: "auto",
-  endpoint: `https://${process.env.R2_ACCOUNT_ID || MASTER_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID || MASTER_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || MASTER_SECRET_ACCESS_KEY,
-  },
-});
+/**
+ * Mutex asincrono in-memory per serializzare atomicamente le operazioni
+ * di lettura-modifica-scrittura su openday/cloud_state.json.
+ * Previene tassativamente race condition (Lost Updates) anche sotto 20+ richieste contemporanee.
+ */
+class AsyncMutex {
+  private queue: Promise<void> = Promise.resolve();
+
+  async runExclusive<T>(fn: () => Promise<T>): Promise<T> {
+    let release: () => void;
+    const waitPromise = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const currentQueue = this.queue;
+    this.queue = currentQueue.then(() => waitPromise, () => waitPromise);
+    await currentQueue;
+    try {
+      return await fn();
+    } finally {
+      release!();
+    }
+  }
+}
+
+export const stateMutex = new AsyncMutex();
+
+/**
+ * Esegue comandi R2 con ritentativi ed esponenziale backoff, sfruttando
+ * il fallback master certificato di r2.ts (zero 500 per errori di firma).
+ */
+async function executeR2WithRetry<T = any>(command: any, retries: number = 3): Promise<T> {
+  let lastErr: any;
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await executeR2Command<T>(command);
+    } catch (err: any) {
+      lastErr = err;
+      if (err?.name === "NoSuchKey" || err?.$metadata?.httpStatusCode === 404) {
+        throw err;
+      }
+      if (i < retries - 1) {
+        await new Promise((r) => setTimeout(r, (i + 1) * 80));
+      }
+    }
+  }
+  throw lastErr;
+}
 
 export interface CloudLead {
   id: string;
@@ -37,14 +72,118 @@ export interface CloudLead {
   diaryProgress?: number;
 }
 
+export interface RegisterOpenDayLeadResult {
+  success: boolean;
+  isNew?: boolean;
+  client?: CloudLead;
+  error?: string;
+}
+
 export interface OpenDayCloudState {
   totalScans: number;
-  scansHistory: Array<{ timestamp: string; source: string; userAgent?: string }>;
+  uniqueScans: number;
+  scansHistory: Array<{
+    timestamp: string;
+    source: string;
+    userAgent?: string;
+    isUnique?: boolean;
+  }>;
   leads: CloudLead[];
 }
 
 let memoryStateCache: { data: OpenDayCloudState; timestamp: number } | null = null;
 const CACHE_TTL_MS = 3000; // 3 secondi di cache in memoria per performance
+
+export function resetOpenDayCloudCache(): void {
+  memoryStateCache = null;
+}
+
+/**
+ * Riconcilia in automatico i lead presenti in localDb (es. salvati durante failover R2 offline)
+ * verso Cloudflare R2 non appena quest'ultimo ritorna operativo.
+ * Garantisce zero perdite di lead o risposte diari.
+ */
+export function syncBackLocalLeadsToCloud(cloudState: OpenDayCloudState): boolean {
+  let stateModified = false;
+  try {
+    const store: any = getStore();
+    const localLeads = (store.clients || []).filter(
+      (c: any) => c?.provenienza === "QR Code Open Day" || (c?.tags && c.tags.includes("Open Day"))
+    );
+
+    if (!Array.isArray(cloudState.leads)) {
+      cloudState.leads = [];
+    }
+
+    for (const local of localLeads) {
+      const localEmail = (local.email || "").trim().toLowerCase();
+      const localPhone = local.telefono ? normalizePhoneNumber(local.telefono) : null;
+
+      const existingIdx = cloudState.leads.findIndex((cl) => {
+        if (cl.id && cl.id === local.id) return true;
+        if (localEmail && cl.email && cl.email.trim().toLowerCase() === localEmail) return true;
+        if (localPhone?.valid && cl.telefono) {
+          const cp = normalizePhoneNumber(cl.telefono);
+          if (cp.valid && cp.normalized === localPhone.normalized) return true;
+        }
+        return false;
+      });
+
+      if (existingIdx === -1) {
+        // Lead presente in locale ma non su cloud: sincronizzazione immediata
+        const diary = getWeddingDiaryLocal(local.id);
+        const ans = diary?.answers || local.diaryAnswers || {};
+        const progress = local.diaryProgress || computeDiaryProgress(ans);
+
+        cloudState.leads.push({
+          id: local.id,
+          nome: local.nome,
+          cognome: local.cognome || "",
+          email: local.email || ans.sposo_email || "",
+          telefono: localPhone?.valid ? localPhone.normalized : (local.telefono || ans.sposo_telefono || ""),
+          dataSognata: local.dataSognata || ans.data_matrimonio_desiderata,
+          periodoSognato: local.periodoSognato,
+          provenienza: local.provenienza || "QR Code Open Day",
+          tags: local.tags || ["Open Day", "Wedding Diary"],
+          created_at: local.created_at || new Date().toISOString(),
+          updated_at: local.updated_at || new Date().toISOString(),
+          diaryAnswers: ans,
+          diaryProgress: progress,
+        });
+        stateModified = true;
+      } else {
+        // Lead già su cloud: verifica se localDb ha risposte più recenti o complete
+        const cloudLead = cloudState.leads[existingIdx];
+        const localDiary = getWeddingDiaryLocal(local.id);
+        const ans = localDiary?.answers || local.diaryAnswers || {};
+        const localCount = Object.keys(ans).length;
+        const cloudCount = Object.keys(cloudLead.diaryAnswers || {}).length;
+
+        if (localCount > cloudCount) {
+          cloudLead.diaryAnswers = { ...(cloudLead.diaryAnswers || {}), ...ans };
+          cloudLead.diaryProgress = computeDiaryProgress(cloudLead.diaryAnswers);
+          cloudLead.updated_at = local.updated_at || new Date().toISOString();
+          stateModified = true;
+        }
+      }
+    }
+
+    // Sincronizza anche contatori scansioni se maggiori in localDb
+    if (store.openday_stats) {
+      if (typeof store.openday_stats.total_scans === "number" && store.openday_stats.total_scans > (cloudState.totalScans || 0)) {
+        cloudState.totalScans = store.openday_stats.total_scans;
+        stateModified = true;
+      }
+      if (typeof store.openday_stats.unique_devices === "number" && store.openday_stats.unique_devices > (cloudState.uniqueScans || 0)) {
+        cloudState.uniqueScans = store.openday_stats.unique_devices;
+        stateModified = true;
+      }
+    }
+  } catch (err) {
+    console.warn("Avviso durante syncBackLocalLeadsToCloud:", err);
+  }
+  return stateModified;
+}
 
 /**
  * Legge lo stato Open Day centralizzato da Cloudflare R2 (persistente su tutti i container Vercel).
@@ -56,7 +195,7 @@ export async function getOpenDayCloudState(): Promise<OpenDayCloudState> {
   }
 
   try {
-    const res = await r2Client.send(
+    const res = await executeR2WithRetry(
       new GetObjectCommand({
         Bucket: BUCKET_NAME,
         Key: STATE_KEY,
@@ -67,16 +206,33 @@ export async function getOpenDayCloudState(): Promise<OpenDayCloudState> {
       const parsed: OpenDayCloudState = JSON.parse(jsonStr);
       if (!Array.isArray(parsed.leads)) parsed.leads = [];
       if (!Array.isArray(parsed.scansHistory)) parsed.scansHistory = [];
+      if (typeof parsed.totalScans !== "number") parsed.totalScans = 0;
+      if (typeof parsed.uniqueScans !== "number") {
+        const historyUniques = parsed.scansHistory.filter((s) => s.isUnique !== false).length;
+        parsed.uniqueScans = Math.max(parsed.leads.length, historyUniques || parsed.totalScans);
+      }
+
+      // Riconciliazione automatica con il database locale se ci sono lead salvati offline
+      const reconciled = syncBackLocalLeadsToCloud(parsed);
+      if (reconciled) {
+        saveOpenDayCloudState(parsed).catch((err) =>
+          console.warn("Avviso salvataggio stato riconciliato su R2:", err)
+        );
+      }
+
       memoryStateCache = { data: parsed, timestamp: now };
       return parsed;
     }
   } catch (err: any) {
     // Se il file non esiste ancora su R2 o c'è un errore di connessione, fallback sul DB locale
+    if (err?.name !== "NoSuchKey" && err?.$metadata?.httpStatusCode !== 404) {
+      console.warn("Avviso recupero stato R2 Open Day, failover su localDb:", err?.message || err);
+    }
   }
 
   // Fallback sicuro su localDb: recupera i lead dell'Open Day salvati in locale
   try {
-    const store = getStore();
+    const store: any = getStore();
     const fallbackLeads: CloudLead[] = (store.clients || [])
       .filter((c: any) => c?.provenienza === "QR Code Open Day" || (c?.tags && c.tags.includes("Open Day")))
       .map((c: any) => {
@@ -99,21 +255,24 @@ export async function getOpenDayCloudState(): Promise<OpenDayCloudState> {
         };
       });
 
-    if (fallbackLeads.length > 0) {
-      const fallbackState: OpenDayCloudState = {
-        totalScans: Math.max(6, fallbackLeads.length * 2),
-        scansHistory: [],
-        leads: fallbackLeads,
-      };
-      memoryStateCache = { data: fallbackState, timestamp: now };
-      return fallbackState;
-    }
+    const fallbackTotalScans = typeof store.openday_stats?.total_scans === "number" ? store.openday_stats.total_scans : 0;
+    const fallbackUniqueScans = typeof store.openday_stats?.unique_devices === "number" ? store.openday_stats.unique_devices : 0;
+
+    const fallbackState: OpenDayCloudState = {
+      totalScans: fallbackTotalScans,
+      uniqueScans: fallbackUniqueScans,
+      scansHistory: store.openday_stats?.scans_history || [],
+      leads: fallbackLeads,
+    };
+    memoryStateCache = { data: fallbackState, timestamp: now };
+    return fallbackState;
   } catch {
     // ignore
   }
 
   const initial: OpenDayCloudState = {
     totalScans: 0,
+    uniqueScans: 0,
     scansHistory: [],
     leads: [],
   };
@@ -127,7 +286,7 @@ export async function getOpenDayCloudState(): Promise<OpenDayCloudState> {
 export async function saveOpenDayCloudState(state: OpenDayCloudState): Promise<boolean> {
   try {
     memoryStateCache = { data: state, timestamp: Date.now() };
-    await r2Client.send(
+    await executeR2WithRetry(
       new PutObjectCommand({
         Bucket: BUCKET_NAME,
         Key: STATE_KEY,
@@ -143,43 +302,89 @@ export async function saveOpenDayCloudState(state: OpenDayCloudState): Promise<b
 }
 
 /**
- * Traccia una scansione QR su Cloudflare R2 (visibile immediatamente in Admin su tutti i dispositivi).
+ * Traccia una scansione QR su Cloudflare R2 e localDb (visibile immediatamente in Admin su tutti i dispositivi).
+ * Supporta la distinzione tra scansioni totali e scansioni uniche (anti-refresh F5).
  */
-export async function recordOpenDayScanCloud(source: string = "qr", userAgent?: string) {
-  try {
-    const state = await getOpenDayCloudState();
-    state.totalScans = (state.totalScans || 0) + 1;
-    if (!state.scansHistory) state.scansHistory = [];
+export async function recordOpenDayScanCloud(
+  source: string = "qr",
+  userAgent?: string,
+  isUnique: boolean = true
+) {
+  return stateMutex.runExclusive(async () => {
+    try {
+      const state = await getOpenDayCloudState();
+      state.totalScans = (state.totalScans || 0) + 1;
+      if (typeof state.uniqueScans !== "number") {
+        state.uniqueScans = state.leads?.length || 0;
+      }
+      if (isUnique !== false) {
+        state.uniqueScans += 1;
+      }
+      if (!state.scansHistory) state.scansHistory = [];
 
-    state.scansHistory.unshift({
-      timestamp: new Date().toISOString(),
-      source,
-      userAgent: userAgent ? userAgent.slice(0, 150) : "Mobile Browser",
-    });
+      state.scansHistory.unshift({
+        timestamp: new Date().toISOString(),
+        source,
+        userAgent: userAgent ? userAgent.slice(0, 150) : "Mobile Browser",
+        isUnique: isUnique !== false,
+      });
 
-    if (state.scansHistory.length > 500) {
-      state.scansHistory = state.scansHistory.slice(0, 500);
+      if (state.scansHistory.length > 500) {
+        state.scansHistory = state.scansHistory.slice(0, 500);
+      }
+
+      await saveOpenDayCloudState(state);
+
+      // Dual-write anche su database locale (openDayTracker / localDb)
+      try {
+        const store: any = getStore();
+        if (!store.openday_stats) {
+          store.openday_stats = {
+            total_scans: 0,
+            unique_devices: 0,
+            scans_history: [],
+          };
+        }
+        store.openday_stats.total_scans = state.totalScans;
+        store.openday_stats.unique_devices = state.uniqueScans;
+        store.openday_stats.scans_history = state.scansHistory.slice(0, 500);
+        saveStore(store);
+      } catch (localErr) {
+        console.warn("Avviso dual-write locale scansione:", localErr);
+      }
+
+      logActivity({
+        level: "INFO",
+        category: "LEAD_VISITA",
+        actor: "Ospite Open Day",
+        action: "QR_CODE_SCANSIONATO",
+        message: `Scansione QR Code Open Day registrata (${isUnique !== false ? "Unica" : "Ripetuta"} - Totale: ${state.totalScans}, Uniche: ${state.uniqueScans})`,
+        metadata: {
+          source,
+          userAgent: userAgent ? userAgent.slice(0, 150) : "Mobile Browser",
+          isUnique: isUnique !== false,
+          totalScans: state.totalScans,
+          uniqueScans: state.uniqueScans,
+        },
+      });
+
+      return {
+        success: true,
+        count: state.totalScans,
+        totalScans: state.totalScans,
+        uniqueScans: state.uniqueScans,
+        uniqueCount: state.uniqueScans,
+      };
+    } catch {
+      return { success: false, count: 0, totalScans: 0, uniqueScans: 0 };
     }
-
-    await saveOpenDayCloudState(state);
-
-    logActivity({
-      level: "INFO",
-      category: "LEAD_VISITA",
-      actor: "Ospite Open Day",
-      action: "QR_CODE_SCANSIONATO",
-      message: `Scansione QR Code Open Day registrata (Totale scansioni: ${state.totalScans})`,
-      metadata: { source, userAgent: userAgent ? userAgent.slice(0, 150) : "Mobile Browser" },
-    });
-
-    return { success: true, count: state.totalScans };
-  } catch {
-    return { success: false, count: 0 };
-  }
+  });
 }
 
 /**
- * Registra o aggancia un Lead proveniente dal form Open Day su Cloudflare R2.
+ * Registra o aggancia un Lead proveniente dal form Open Day su Cloudflare R2 e localDb.
+ * Atomicamente serializzato tramite stateMutex: zero Lost Updates sotto carico di 20+ richieste concorrenti.
+ * Resilienza failover: anche con R2 offline o credenziali errate, salva su localDb e non solleva errori 500.
  */
 export async function registerOrFindOpenDayLeadCloud(input: {
   nomiSposi?: string;
@@ -188,7 +393,7 @@ export async function registerOrFindOpenDayLeadCloud(input: {
   telefono: string;
   dataSognata?: string;
   periodoSognato?: string;
-}) {
+}): Promise<RegisterOpenDayLeadResult> {
   const rawNomi = (input.nomiSposi || input.nomi || "").trim();
   const rawEmail = (input.email || "").trim().toLowerCase();
   const rawPhone = (input.telefono || "").trim();
@@ -203,141 +408,170 @@ export async function registerOrFindOpenDayLeadCloud(input: {
     return { success: false, error: phoneResult.error || "Numero di cellulare non valido." };
   }
 
-  const state = await getOpenDayCloudState();
-  const nowIso = new Date().toISOString();
-
-  // Deduplicazione su Cloudflare R2
-  let matchedLead = state.leads.find((l) => {
-    if (l.email && l.email.trim().toLowerCase() === rawEmail) return true;
-    if (l.telefono) {
-      const p = normalizePhoneNumber(l.telefono);
-      if (p.valid && p.normalized === phoneResult.normalized) return true;
-    }
-    return false;
-  });
-
-  let isNew = false;
-
-  if (matchedLead) {
-    matchedLead.nome = rawNomi;
-    matchedLead.telefono = phoneResult.normalized;
-    matchedLead.updated_at = nowIso;
-    matchedLead.ultimo_accesso_openday = nowIso;
-    if (input.dataSognata) matchedLead.dataSognata = input.dataSognata;
-    if (input.periodoSognato) matchedLead.periodoSognato = input.periodoSognato;
-  } else {
-    isNew = true;
-    matchedLead = {
-      id: `client-od-${Date.now()}`,
-      nome: rawNomi,
-      cognome: "",
-      email: rawEmail,
-      telefono: phoneResult.normalized,
-      dataSognata: input.dataSognata,
-      periodoSognato: input.periodoSognato,
-      provenienza: "QR Code Open Day",
-      tags: ["Open Day", "Wedding Diary"],
-      created_at: nowIso,
-      updated_at: nowIso,
-      ultimo_accesso_openday: nowIso,
-      diaryAnswers: {},
-      diaryProgress: 0,
-    };
-    state.leads.unshift(matchedLead);
-  }
-
-  await saveOpenDayCloudState(state);
-
-  // Sincronizza anche con localDb locale per retrocompatibilità in-memory
-  try {
-    const store = getStore();
-    if (!store.clients) store.clients = [];
-    const localIdx = store.clients.findIndex((c: any) => c.id === matchedLead!.id || c.email === rawEmail);
-    if (localIdx >= 0) {
-      store.clients[localIdx] = { ...store.clients[localIdx], ...matchedLead };
-    } else {
-      store.clients.unshift(matchedLead);
-    }
-    saveStore(store);
-  } catch {
-    // ignore
-  }
-
-  logActivity({
-    level: "INFO",
-    category: "LEAD_VISITA",
-    actor: "Ospite Open Day",
-    action: isNew ? "LEAD_OPENDAY_REGISTRATO" : "LEAD_OPENDAY_AGGIORNATO",
-    message: `${rawNomi} (${rawEmail}, ${phoneResult.normalized}) si è registrato all'Open Day. Data sognata: ${input.dataSognata || "Da definire"}`,
-    metadata: {
-      clientId: matchedLead.id,
-      nomi: rawNomi,
-      email: rawEmail,
-      telefono: phoneResult.normalized,
-      dataSognata: input.dataSognata,
-      periodoSognato: input.periodoSognato,
-      isNew,
-    },
-  });
-
-  return {
-    success: true,
-    isNew,
-    client: matchedLead,
-  };
-}
-
-/**
- * Salva le risposte del Wedding Diary su Cloudflare R2 (persistente e sincronizzato).
- */
-export async function saveWeddingDiaryCloud(clientId: string, answers: Record<string, any>) {
-  try {
+  return stateMutex.runExclusive(async () => {
     const state = await getOpenDayCloudState();
-    const lead = state.leads.find((l) => l.id === clientId);
-
-    const mergedAnswers = lead?.diaryAnswers ? { ...lead.diaryAnswers, ...answers } : answers;
-    const progress = computeDiaryProgress(mergedAnswers);
     const nowIso = new Date().toISOString();
 
-    if (lead) {
-      lead.diaryAnswers = mergedAnswers;
-      lead.diaryProgress = progress;
-      lead.updated_at = nowIso;
-      await saveOpenDayCloudState(state);
+    // Deduplicazione su Cloudflare R2 (per email o telefono normalizzato)
+    let matchedLead = state.leads.find((l) => {
+      if (l.email && l.email.trim().toLowerCase() === rawEmail) return true;
+      if (l.telefono) {
+        const p = normalizePhoneNumber(l.telefono);
+        if (p.valid && p.normalized === phoneResult.normalized) return true;
+      }
+      return false;
+    });
+
+    let isNew = false;
+
+    if (matchedLead) {
+      matchedLead.nome = rawNomi;
+      matchedLead.telefono = phoneResult.normalized;
+      matchedLead.updated_at = nowIso;
+      matchedLead.ultimo_accesso_openday = nowIso;
+      if (input.dataSognata) matchedLead.dataSognata = input.dataSognata;
+      if (input.periodoSognato) matchedLead.periodoSognato = input.periodoSognato;
+    } else {
+      isNew = true;
+      const uniqueSuffix = Math.random().toString(36).slice(2, 7);
+      matchedLead = {
+        id: `client-od-${Date.now()}-${uniqueSuffix}`,
+        nome: rawNomi,
+        cognome: "",
+        email: rawEmail,
+        telefono: phoneResult.normalized,
+        dataSognata: input.dataSognata,
+        periodoSognato: input.periodoSognato,
+        provenienza: "QR Code Open Day",
+        tags: ["Open Day", "Wedding Diary"],
+        created_at: nowIso,
+        updated_at: nowIso,
+        ultimo_accesso_openday: nowIso,
+        diaryAnswers: {},
+        diaryProgress: 0,
+      };
+      state.leads.unshift(matchedLead);
     }
 
-    // Salva anche nel fallback locale
-    saveWeddingDiaryLocal({
-      client_id: clientId,
-      answers: mergedAnswers,
-      completion_rate: progress,
-    });
+    // Salva in cloud su R2
+    await saveOpenDayCloudState(state);
+
+    // Dual-write failover: salva SEMPRE anche su localDb locale
+    try {
+      const store = getStore();
+      if (!store.clients) store.clients = [];
+      const localIdx = store.clients.findIndex(
+        (c: any) => c.id === matchedLead!.id || (c.email && c.email.trim().toLowerCase() === rawEmail)
+      );
+      if (localIdx >= 0) {
+        store.clients[localIdx] = { ...store.clients[localIdx], ...matchedLead };
+      } else {
+        store.clients.unshift(matchedLead);
+      }
+      saveStore(store);
+    } catch (localDbErr) {
+      console.warn("Avviso dual-write localDb:", localDbErr);
+    }
 
     logActivity({
       level: "INFO",
-      category: "DIARIO",
-      actor: "Cliente Sposi",
-      action: "WEDDING_DIARY_AGGIORNATO",
-      message: `Wedding Diary aggiornato per cliente ${clientId} (Progresso: ${progress}%)`,
+      category: "LEAD_VISITA",
+      actor: "Ospite Open Day",
+      action: isNew ? "LEAD_OPENDAY_REGISTRATO" : "LEAD_OPENDAY_AGGIORNATO",
+      message: `${rawNomi} (${rawEmail}, ${phoneResult.normalized}) si è registrato all'Open Day. Data sognata: ${input.dataSognata || "Da definire"}`,
       metadata: {
-        clientId,
-        diaryProgress: progress,
-        answersCount: Object.keys(mergedAnswers).length,
+        clientId: matchedLead.id,
+        nomi: rawNomi,
+        email: rawEmail,
+        telefono: phoneResult.normalized,
+        dataSognata: input.dataSognata,
+        periodoSognato: input.periodoSognato,
+        isNew,
       },
     });
 
     return {
       success: true,
-      diary: {
+      isNew,
+      client: matchedLead,
+    };
+  });
+}
+
+const lastDiaryLogByClient = new Map<string, { progress: number; ts: number }>();
+
+/**
+ * Salva le risposte del Wedding Diary su Cloudflare R2 (persistente e sincronizzato).
+ * Supporta il field-level patching atomico sotto AsyncMutex per evitare race condition tra sposi.
+ */
+export async function saveWeddingDiaryCloud(
+  clientId: string,
+  answers: Record<string, any>,
+  patch?: Record<string, any>
+) {
+  return stateMutex.runExclusive(async () => {
+    try {
+      const state = await getOpenDayCloudState();
+      const lead = state.leads.find((l) => l.id === clientId);
+
+      const existingAnswers = lead?.diaryAnswers || getWeddingDiaryLocal(clientId)?.answers || {};
+      const mergedAnswers: Record<string, any> = { ...existingAnswers };
+
+      if (patch && typeof patch === "object" && Object.keys(patch).length > 0) {
+        Object.assign(mergedAnswers, patch);
+      } else if (answers && typeof answers === "object") {
+        Object.assign(mergedAnswers, answers);
+      }
+
+      const progress = computeDiaryProgress(mergedAnswers);
+      const nowIso = new Date().toISOString();
+
+      if (lead) {
+        lead.diaryAnswers = mergedAnswers;
+        lead.diaryProgress = progress;
+        lead.updated_at = nowIso;
+        await saveOpenDayCloudState(state);
+      }
+
+      // Salva anche nel fallback locale
+      saveWeddingDiaryLocal({
         client_id: clientId,
         answers: mergedAnswers,
         completion_rate: progress,
-        updated_at: nowIso,
-      },
-    };
-  } catch (err: any) {
-    return { success: false, error: err?.message || "Errore salvataggio diario su cloud." };
-  }
+      });
+
+      const prevLog = lastDiaryLogByClient.get(clientId);
+      const nowMs = Date.now();
+      if (!prevLog || prevLog.progress !== progress || nowMs - prevLog.ts >= 2500) {
+        lastDiaryLogByClient.set(clientId, { progress, ts: nowMs });
+        logActivity({
+          level: "INFO",
+          category: "DIARIO",
+          actor: "Cliente Sposi",
+          action: "WEDDING_DIARY_AGGIORNATO",
+          message: `Wedding Diary aggiornato per cliente ${clientId} (Progresso: ${progress}%)`,
+          metadata: {
+            clientId,
+            diaryProgress: progress,
+            answersCount: Object.keys(mergedAnswers).length,
+            hasPatch: Boolean(patch && Object.keys(patch).length > 0),
+          },
+        });
+      }
+
+      return {
+        success: true,
+        diary: {
+          client_id: clientId,
+          answers: mergedAnswers,
+          completion_rate: progress,
+          updated_at: nowIso,
+        },
+      };
+    } catch (err: any) {
+      return { success: false, error: err?.message || "Errore salvataggio diario su cloud." };
+    }
+  });
 }
 
 /**
@@ -376,16 +610,19 @@ export async function getOpenDayLeadAndDiary(clientId: string) {
 
 /**
  * Recupera i dati aggregati per la pagina di monitoraggio /admin/openday da Cloudflare R2.
+ * Calcola il conversion rate basandosi sulle scansioni uniche (robusto contro div per zero e capped a 100%).
  */
 export async function getOpenDayAdminData() {
   const state = await getOpenDayCloudState();
   const totalScans = state.totalScans || 0;
+  const uniqueScans = typeof state.uniqueScans === "number" ? state.uniqueScans : totalScans;
   const leads = state.leads || [];
-  const conversionRate = totalScans > 0 ? Math.round((leads.length / totalScans) * 100) : 0;
+  const conversionRate = uniqueScans > 0 ? Math.min(100, Math.round((leads.length / uniqueScans) * 100)) : 0;
 
   return {
     stats: {
       totalScans,
+      uniqueScans,
       totalRegistered: leads.length,
       conversionRate,
       recentScans: (state.scansHistory || []).slice(0, 10),

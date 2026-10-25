@@ -38,32 +38,23 @@ export default async function OpenDayDiarioPage({ searchParams }: PageProps) {
 
   let targetClientId: string | undefined = undefined;
 
-  // 3. Flusso Condivisione WhatsApp tra Sposi (Token crittografico HMAC di coppia)
-  if (requestedId && shareToken && verifyDiaryShareToken(requestedId, shareToken)) {
+  // 3. Flusso Condivisione WhatsApp tra Sposi o Accesso Direzionale 1-Click (Token HMAC)
+  const hasValidShareToken = Boolean(
+    requestedId && shareToken && verifyDiaryShareToken(requestedId, shareToken)
+  );
+
+  if (hasValidShareToken && requestedId) {
     const cloudData = await getOpenDayLeadAndDiary(requestedId);
     const matchedClient = cloudData.client || clients.find((c) => c.id === requestedId);
     if (matchedClient) {
       targetClientId = requestedId;
-      // Imposta il cookie sicuro anche sul dispositivo del partner
-      if (matchedClient.email) {
-        await setClientSessionCookie(matchedClient.email, matchedClient.id);
-      }
     }
   } else if (isAdmin) {
-    // L'amministratore autenticato può ispezionare qualsiasi diario
+    // L'amministratore autenticato può ispezionare qualsiasi diario (accesso direzionale Roberto 1-Click)
     targetClientId = requestedId || clientSession?.clientId;
   } else if (clientSession?.clientId) {
     // Lo sposo/sposa autenticato vede il proprio diario
     targetClientId = requestedId && requestedId === clientSession.clientId ? requestedId : clientSession.clientId;
-  } else if (requestedId) {
-    // Fallback resiliente mobile (WhatsApp in-app browser, Safari ITP): se l'ID è un lead valido su Cloud R2
-    const cloudData = await getOpenDayLeadAndDiary(requestedId);
-    if (cloudData.client) {
-      targetClientId = requestedId;
-      if (cloudData.client.email) {
-        await setClientSessionCookie(cloudData.client.email, cloudData.client.id);
-      }
-    }
   }
 
   // 4. Se nessun accesso autorizzato, reindirizza alla pagina di benvenuto Open Day
@@ -90,6 +81,9 @@ export default async function OpenDayDiarioPage({ searchParams }: PageProps) {
 
   const initialDiary = cloudData.diary || getWeddingDiaryLocal(client.id);
   const partnerShareToken = createDiaryShareToken(client.id);
+  const shouldSetPartnerCookie = Boolean(
+    hasValidShareToken && !isAdmin && clientSession?.clientId !== client.id
+  );
 
   return (
     <DiarioClientView
@@ -97,6 +91,7 @@ export default async function OpenDayDiarioPage({ searchParams }: PageProps) {
       quote={quote}
       initialDiary={initialDiary}
       shareToken={partnerShareToken}
+      shouldSetPartnerCookie={shouldSetPartnerCookie}
     />
   );
 }

@@ -1,14 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import WeddingDiaryForm from "@/app/cliente/components/WeddingDiaryForm";
 import { computeDiaryProgress } from "@/app/cliente/components/weddingDiaryFields";
+import { syncPartnerSessionCookieAction } from "../actions";
 
 interface DiarioClientViewProps {
   client: any;
   quote?: any;
   initialDiary?: any;
   shareToken?: string;
+  shouldSetPartnerCookie?: boolean;
 }
 
 function WhatsAppIcon({ size = 18 }: { size?: number }) {
@@ -24,11 +26,18 @@ export default function DiarioClientView({
   quote,
   initialDiary,
   shareToken,
+  shouldSetPartnerCookie = false,
 }: DiarioClientViewProps) {
   const [progress, setProgress] = useState<number>(() =>
     computeDiaryProgress(initialDiary?.answers)
   );
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (shouldSetPartnerCookie && client?.id && shareToken) {
+      void syncPartnerSessionCookieAction(client.id, shareToken);
+    }
+  }, [shouldSetPartnerCookie, client?.id, shareToken]);
 
   const clientName = client?.nome ? `${client.nome} ${client.cognome || ""}`.trim() : "Sposi";
   const shareParam = shareToken ? `&share=${encodeURIComponent(shareToken)}` : "";
@@ -303,6 +312,7 @@ export default function DiarioClientView({
           clientId={client.id}
           quoteId={quote?.id}
           initialData={initialDiary}
+          shareToken={shareToken}
           lang="it"
           isReadOnly={false}
           onProgressChange={setProgress}

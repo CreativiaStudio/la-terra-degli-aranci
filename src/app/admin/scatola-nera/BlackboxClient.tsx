@@ -30,6 +30,7 @@ const PILLS: PillDef[] = [
   { key: "CONTRATTI", label: "✍️ Contratti" },
   { key: "CASSA", label: "💶 Cassa" },
   { key: "LEAD_VISITA", label: "📱 Visite iPad" },
+  { key: "DIARIO", label: "📖 Diario" },
   { key: "EVENTI", label: "💍 Eventi" },
   { key: "SISTEMA", label: "⚙️ Sistema" },
 ];

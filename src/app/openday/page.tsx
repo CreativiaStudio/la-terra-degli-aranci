@@ -18,12 +18,33 @@ export default function OpenDayWelcomePage() {
 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Tracciamento automatico della scansione QR all'atterraggio
+  // Tracciamento automatico della scansione QR all'atterraggio con deduplicazione F5 (sessionStorage)
+  const scanTrackedRef = React.useRef(false);
+
   useEffect(() => {
+    if (scanTrackedRef.current) return;
+    scanTrackedRef.current = true;
+
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const src = urlParams.get("src") || urlParams.get("utm_source") || "qr";
-      trackOpenDayScanAction(src, navigator.userAgent);
+
+      const SESSION_STORAGE_KEY = "tda_openday_scanned_v1";
+      const alreadyScanned =
+        typeof window !== "undefined" &&
+        window.sessionStorage?.getItem(SESSION_STORAGE_KEY) === "true";
+
+      if (!alreadyScanned) {
+        try {
+          window.sessionStorage?.setItem(SESSION_STORAGE_KEY, "true");
+        } catch {
+          // ignore sessionStorage exceptions
+        }
+        trackOpenDayScanAction(src, navigator.userAgent, true);
+      } else {
+        // Ricaricamento pagina (F5) o ritorno nella stessa sessione: registra come scansione non-unica
+        trackOpenDayScanAction(src, navigator.userAgent, false);
+      }
     } catch {
       // ignore
     }

@@ -67,40 +67,72 @@ function formatRelative(iso: string): string {
   return target.toLocaleDateString("it-IT", { day: "2-digit", month: "short" });
 }
 
+/**
+ * Verifica se una notifica è già stata letta.
+ * Supporta notifiche aggregate in-place (es. `diary:<clientId>`): se la coppia
+ * aggiorna nuovamente il Wedding Diary in un momento successivo alla lettura
+ * (`notifTime > readAt`), la singola card torna automaticamente "non letta"
+ * senza mai generare notifiche duplicate.
+ */
+function isNotificationRead(
+  notification: AdminNotification,
+  readMap: Record<string, number>
+): boolean {
+  const readAt = readMap[notification.id];
+  if (!readAt) return false;
+  const notifTime = Date.parse(notification.data);
+  return Number.isFinite(notifTime) ? readAt >= notifTime : true;
+}
+
 export default function AdminNotificationCenter() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
-  const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
+  const [readMap, setReadMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
-  /* --- Persistenza stato "letto" ---------------------------------- */
+  /* --- Persistenza stato "letto" (con timestamp anti-perdita update) --- */
   useEffect(() => {
     let cancelled = false;
-    const loadReadIds = () => {
+    const loadReadState = () => {
       if (cancelled) return;
       try {
         const raw = window.localStorage.getItem(STORAGE_KEY);
         if (!raw) return;
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
-          setReadIds(new Set(parsed.map((id: unknown) => String(id))));
+          // Migrazione trasparente dal formato legacy (array di ID)
+          const nowTs = Date.now();
+          const migrated: Record<string, number> = {};
+          for (const id of parsed) {
+            if (id) migrated[String(id)] = nowTs;
+          }
+          setReadMap(migrated);
+        } else if (parsed && typeof parsed === "object") {
+          const clean: Record<string, number> = {};
+          for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
+            const num = Number(v);
+            if (k && Number.isFinite(num) && num > 0) {
+              clean[k] = num;
+            }
+          }
+          setReadMap(clean);
         }
       } catch {
         // localStorage non disponibile: si riparte da zero.
       }
     };
-    const handle = window.setTimeout(loadReadIds, 0);
+    const handle = window.setTimeout(loadReadState, 0);
     return () => {
       cancelled = true;
       window.clearTimeout(handle);
     };
   }, []);
 
-  const persistRead = useCallback((next: Set<string>) => {
-    setReadIds(next);
+  const persistRead = useCallback((next: Record<string, number>) => {
+    setReadMap(next);
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next)));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch {
       // Ignora errori di quota / privacy mode.
     }
@@ -130,25 +162,33 @@ export default function AdminNotificationCenter() {
   }, [fetchNotifications]);
 
   const unreadCount = useMemo(
-    () => notifications.filter((n) => !readIds.has(n.id)).length,
-    [notifications, readIds]
+    () => notifications.filter((n) => !isNotificationRead(n, readMap)).length,
+    [notifications, readMap]
   );
 
   const markAllRead = useCallback(() => {
-    const next = new Set(readIds);
-    notifications.forEach((n) => next.add(n.id));
+    const nowTs = Date.now();
+    const next: Record<string, number> = { ...readMap };
+    notifications.forEach((n) => {
+      const notifTs = Date.parse(n.data);
+      next[n.id] = Number.isFinite(notifTs) ? Math.max(nowTs, notifTs) : nowTs;
+    });
     persistRead(next);
-  }, [notifications, readIds, persistRead]);
+  }, [notifications, readMap, persistRead]);
 
   const handleNotificationClick = useCallback(
     (notification: AdminNotification) => {
-      const next = new Set(readIds);
-      next.add(notification.id);
+      const nowTs = Date.now();
+      const notifTs = Date.parse(notification.data);
+      const next: Record<string, number> = {
+        ...readMap,
+        [notification.id]: Number.isFinite(notifTs) ? Math.max(nowTs, notifTs) : nowTs,
+      };
       persistRead(next);
       setOpen(false);
       if (notification.link) router.push(notification.link);
     },
-    [readIds, persistRead, router]
+    [readMap, persistRead, router]
   );
 
   /* --- Chiusura con tasto Escape ---------------------------------- */
@@ -380,7 +420,7 @@ export default function AdminNotificationCenter() {
               ) : (
                 notifications.map((notification) => {
                   const meta = TYPE_META[notification.tipo] || { icon: "🔔", label: "Notifica" };
-                  const isRead = readIds.has(notification.id);
+                  const isRead = isNotificationRead(notification, readMap);
                   return (
                     <button
                       key={notification.id}

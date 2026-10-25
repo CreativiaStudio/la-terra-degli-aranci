@@ -35,12 +35,18 @@ export default async function AdminOpenDayDashboardPage() {
   }
 
   const openDayClients = Array.from(clientMap.values());
-  const totalScans = Math.max(cloudData.stats.totalScans, openDayClients.length > 0 ? openDayClients.length : 0);
+  const rawTotalScans = cloudData.stats.totalScans ?? 0;
+  const rawUniqueScans = cloudData.stats.uniqueScans ?? rawTotalScans;
+  const totalScans = Math.max(rawTotalScans, openDayClients.length > 0 ? openDayClients.length : 0);
+  const uniqueScans = Math.max(rawUniqueScans, openDayClients.length > 0 ? openDayClients.length : 0);
   const totalRegistered = openDayClients.length;
-  const conversionRate = totalScans > 0 ? Math.round((totalRegistered / totalScans) * 100) : 0;
+
+  // Calcolo tasso di conversione su base scansioni uniche: robusto a div per zero e capped a 100%
+  const conversionRate = uniqueScans > 0 ? Math.min(100, Math.round((totalRegistered / uniqueScans) * 100)) : 0;
 
   const stats = {
     totalScans,
+    uniqueScans,
     totalRegistered,
     conversionRate,
     recentScans: cloudData.stats.recentScans || [],
@@ -115,16 +121,16 @@ export default async function AdminOpenDayDashboardPage() {
       <style>{`
         .openday-kpi-grid {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 1rem;
           margin-bottom: 2.5rem;
         }
-        @media (max-width: 1024px) and (min-width: 580px) {
+        @media (max-width: 1200px) and (min-width: 768px) {
           .openday-kpi-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
-        @media (max-width: 579px) {
+        @media (max-width: 767px) {
           .openday-kpi-grid {
             grid-template-columns: 1fr;
           }
@@ -132,45 +138,59 @@ export default async function AdminOpenDayDashboardPage() {
       `}</style>
       <div className="openday-kpi-grid">
         
-        {/* Scansioni */}
+        {/* Scansioni Totali */}
         <div style={{ background: "#ffffff", padding: "1.25rem 1.15rem", borderRadius: "18px", border: "1px solid #E8E2D8", boxShadow: "0 4px 16px rgba(0,0,0,0.03)", minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.82rem", color: "#6A6764", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Scansioni QR Code Rilevate</span>
+            <span style={{ fontSize: "0.82rem", color: "#6A6764", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Scansioni Totali QR</span>
             <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>📷</span>
           </div>
           <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "#2B2B2B" }}>
             {stats.totalScans}
           </div>
           <div style={{ fontSize: "0.78rem", color: "#2D5A27", marginTop: "0.3rem", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {stats.totalScans > 0 ? "🟢 Tracciamento attivo live" : "In attesa delle prime scansioni"}
+            {stats.totalScans > 0 ? "Visualizzazioni totali QR" : "Nessuna scansione"}
+          </div>
+        </div>
+
+        {/* Scansioni Uniche */}
+        <div style={{ background: "#ffffff", padding: "1.25rem 1.15rem", borderRadius: "18px", border: "1px solid #E8E2D8", boxShadow: "0 4px 16px rgba(0,0,0,0.03)", minWidth: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+            <span style={{ fontSize: "0.82rem", color: "#6A6764", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Scansioni Uniche</span>
+            <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>📱</span>
+          </div>
+          <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "#1e1b18" }}>
+            {stats.uniqueScans}
+          </div>
+          <div style={{ fontSize: "0.78rem", color: "#2D5A27", marginTop: "0.3rem", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {stats.uniqueScans > 0 ? "🟢 Dispositivi unici rilevati" : "In attesa delle prime scansioni"}
           </div>
         </div>
 
         {/* Diari Avviati */}
         <div style={{ background: "#ffffff", padding: "1.25rem 1.15rem", borderRadius: "18px", border: "1px solid #E8E2D8", boxShadow: "0 4px 16px rgba(0,0,0,0.03)", minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.82rem", color: "#6A6764", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Coppie Registrate nel Diario</span>
+            <span style={{ fontSize: "0.82rem", color: "#6A6764", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Coppie Registrate</span>
             <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>💍</span>
           </div>
           <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "#E58C2C" }}>
             {openDayClients.length}
           </div>
           <div style={{ fontSize: "0.78rem", color: "#8E8880", marginTop: "0.3rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            Lead qualificati con nome, email e WhatsApp
+            Lead qualificati nel Diario
           </div>
         </div>
 
-        {/* Tasso di Conversione */}
+        {/* Tasso di Conversione su base Scansioni Uniche */}
         <div style={{ background: "#ffffff", padding: "1.25rem 1.15rem", borderRadius: "18px", border: "1px solid #E8E2D8", boxShadow: "0 4px 16px rgba(0,0,0,0.03)", minWidth: 0 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "0.82rem", color: "#6A6764", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Tasso Conversione Scansione ➔ Diario</span>
+            <span style={{ fontSize: "0.82rem", color: "#6A6764", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Tasso Conversione Uniche ➔ Diario</span>
             <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>📈</span>
           </div>
           <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "#2D5A27" }}>
-            {stats.totalScans > 0 ? `${Math.round((openDayClients.length / stats.totalScans) * 100)}%` : "—"}
+            {stats.uniqueScans > 0 ? `${stats.conversionRate}%` : "—"}
           </div>
           <div style={{ fontSize: "0.78rem", color: "#8E8880", marginTop: "0.3rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            Efficacia dell'accoglienza in villa
+            Calcolato su scansioni uniche
           </div>
         </div>
 
