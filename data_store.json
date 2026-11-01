@@ -1,6 +1,23 @@
 {
   "clients": [
     {
+      "id": "client-demo-matrimonio-2027",
+      "nome": "Marco",
+      "cognome": "Esposito",
+      "partner": "Laura De Luca",
+      "sposera_nome": "Laura De Luca",
+      "email": "marco.esposito@gmail.com",
+      "telefono": "+39 333 4567890",
+      "lead_source": "diretto",
+      "provenienza": "Visita Diretta",
+      "tags": [
+        "Sposi",
+        "VIP Club TDA"
+      ],
+      "created_at": "2026-09-01T10:00:00Z",
+      "updated_at": "2026-09-15T12:00:00Z"
+    },
+    {
       "id": "client-od-1792828082684-a0735",
       "nome": "A & B",
       "cognome": "",
@@ -193,8 +210,44 @@
       "created_at": "2026-10-21T09:00:00.000Z"
     }
   ],
-  "quotes": [],
-  "signed_contracts": [],
+  "quotes": [
+    {
+      "id": "quote-demo-esposito-2027",
+      "client_id": "client-demo-matrimonio-2027",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-06-18",
+      "turno": "cena",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_bianca",
+      "numero_ospiti": 110,
+      "prezzo": 14500,
+      "totale_calcolato": 14500,
+      "status": "firmato",
+      "data_firma": "2026-09-15T12:00:00Z",
+      "created_at": "2026-09-01T10:00:00Z"
+    }
+  ],
+  "signed_contracts": [
+    {
+      "id": "contract-demo-esposito-2027",
+      "quote_id": "quote-demo-esposito-2027",
+      "client_id": "client-demo-matrimonio-2027",
+      "nome": "Marco Esposito & Laura De Luca",
+      "prezzo": 14500,
+      "tipoContratto": "wedding",
+      "signed_at": "2026-09-15T12:00:00Z",
+      "datiCliente": {
+        "nomeSposo": "Marco Esposito",
+        "nomeSposa": "Laura De Luca",
+        "data_evento": "2027-06-18",
+        "turno": "cena",
+        "tipo_esclusiva": "semi_esclusiva",
+        "formula_opzione": "sala_bianca",
+        "telefono": "+39 333 4567890",
+        "email": "marco.esposito@gmail.com"
+      }
+    }
+  ],
   "wedding_diaries": [
     {
       "client_id": "client-od-1792582428038",

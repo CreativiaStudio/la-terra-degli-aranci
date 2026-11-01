@@ -63,6 +63,9 @@ function deriveEventTitle(quote: any): string {
   return "Evento Privato";
 }
 
+/** Stage che implicano un contratto già firmato dal cliente. */
+const SIGNED_CONTRACT_STAGES = new Set(["confermato", "in_regia", "svolto"]);
+
 /** Un contratto è "firmato" se la quote lo dichiara o esiste un record firmato. */
 function matchesSignedContract(record: any, quote: any): boolean {
   const qid = String(record?.quote_id || record?.preventivo || record?.quoteId || "").toLowerCase();
@@ -243,6 +246,10 @@ export default async function ClientiPage() {
 
     eventi.sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
 
+    const hasSignedContract =
+      cQuotes.some((q) => String(q?.status || "").toLowerCase() === "firmato") ||
+      eventi.some((e) => SIGNED_CONTRACT_STAGES.has(e.stage));
+
     const eventiCount = cQuotes.length;
     let isClub = hasPast || eventiCount > 1;
 
@@ -277,6 +284,7 @@ export default async function ClientiPage() {
       eventiCount,
       ltvCents,
       eventi,
+      hasSignedContract,
     });
   }
 

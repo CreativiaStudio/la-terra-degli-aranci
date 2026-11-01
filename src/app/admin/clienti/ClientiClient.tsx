@@ -32,6 +32,8 @@ export interface ClienteRow {
   eventiCount: number;
   ltvCents: number;
   eventi: ClienteEventoRow[];
+  /** true se il cliente ha un evento confermato/in regia/svolto o una quote firmata. */
+  hasSignedContract: boolean;
 }
 
 interface ClientiClientProps {
@@ -120,26 +122,38 @@ function getEventoRiferimento(cliente: ClienteRow): ClienteEventoRow | null {
   return passati[0] ?? null;
 }
 
-/**
- * Link WhatsApp per fissare la visita in villa: messaggio sartoriale firmato
- * da Roberto Sola, con il mese dell'evento del cliente già inserito.
- */
-function buildWhatsAppInviteUrl(telefono: string, cliente: ClienteRow): string {
+/** Data estesa in italiano, es. "18 Giugno 2027". */
+function formatLongDate(value: string | null | undefined): string {
+  if (!value) return "una data da definire";
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value));
+  if (!match) return String(value);
+  const mese = MESI_ITALIANI[Number(match[2]) - 1];
+  if (!mese) return String(value);
+  return `${Number(match[3])} ${mese} ${match[1]}`;
+}
+
+/** Numero normalizzato per wa.me: prefisso internazionale 39 per i numeri italiani. */
+function whatsappPhone(telefono: string): string {
   const digits = String(telefono || "").replace(/\D/g, "");
   let cleanPhone = digits;
   if (cleanPhone.startsWith("00")) cleanPhone = cleanPhone.slice(2);
   if (cleanPhone.startsWith("0")) cleanPhone = `39${cleanPhone}`;
+  return cleanPhone;
+}
 
-  const evento = getEventoRiferimento(cliente);
-  const mese = evento ? eventMonthKey(evento.data) : null;
-  const meseAnno = mese ? formatMonthLabel(mese) : "una data da definire";
-  const nome = String(cliente.nome || "").trim() || "carissimi";
+/** Nome della coppia per titolo modale e saluto del messaggio. */
+function nomeCoppia(cliente: ClienteRow): string {
+  const nome = String(cliente.nome || "").trim();
   const partner = String(cliente.partner || "").trim();
-  const saluto = partner ? `${nome} e ${partner}` : nome;
+  if (nome && partner) return `${nome} e ${partner}`;
+  return nome || partner || "carissimi";
+}
 
-  const messaggio = `Ciao ${saluto}! Sono Roberto de La Terra degli Aranci. In vista del vostro evento previsto per ${meseAnno}, ci farebbe molto piacere invitarvi in villa per un incontro dedicato e definire insieme tutti i dettagli organizzativi per la data. Quando sareste più comodi per venire a trovarci? Vi aspettiamo! Un caro saluto, Roberto Sola`;
-
-  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(messaggio)}`;
+/** Testo sartoriale precompilato per l'invito a definire l'organizzazione delle nozze. */
+function buildNozzeMessage(cliente: ClienteRow): string {
+  const evento = getEventoRiferimento(cliente);
+  const data = evento ? formatLongDate(evento.data) : "una data da definire";
+  return `Ciao ${nomeCoppia(cliente)}! Sono Roberto de La Terra degli Aranci. In vista del vostro matrimonio del ${data}, è arrivato il momento di vederci con calma in villa per iniziare a definire insieme tutti i dettagli: allestimenti, mise en place, timeline e menu. Quando vi farebbe piacere passare in settimana per un caffè insieme? Fatemi sapere! Un caro saluto, Roberto Sola`;
 }
 
 /** Riepilogo pulito dei tipi di evento (senza duplicati), es. "Matrimonio + Battesimo". */
@@ -314,6 +328,8 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
   const [selectedType, setSelectedType] = useState<"all" | "wedding" | "privato">("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [tagsCliente, setTagsCliente] = useState<ClienteRow | null>(null);
+  const [invitoCliente, setInvitoCliente] = useState<ClienteRow | null>(null);
+  const [invitoTesto, setInvitoTesto] = useState("");
   const [formClienteId, setFormClienteId] = useState("");
   const [formData, setFormData] = useState("");
   const [formTurno, setFormTurno] = useState<"pranzo" | "cena">("pranzo");
@@ -378,6 +394,27 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
     setFormFormula("sala_bianca");
     setFormTipo("wedding");
     setModalOpen(true);
+  };
+
+  /** Apre la modale di personalizzazione dell'invito nozze (solo clienti con contratto firmato). */
+  const openInvito = (cliente: ClienteRow) => {
+    setInvitoCliente(cliente);
+    setInvitoTesto(buildNozzeMessage(cliente));
+  };
+
+  const closeInvito = () => {
+    setInvitoCliente(null);
+    setInvitoTesto("");
+  };
+
+  /** Invia il testo personalizzato su WhatsApp in una nuova scheda e chiude la modale. */
+  const handleInvioInvito = () => {
+    if (!invitoCliente) return;
+    const telefono = whatsappPhone(invitoCliente.telefono);
+    if (!telefono) return;
+    const url = `https://wa.me/${telefono}?text=${encodeURIComponent(invitoTesto)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    closeInvito();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -672,27 +709,29 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                             💬 WhatsApp
                           </a>
                         </div>
-                        <a
-                          href={buildWhatsAppInviteUrl(c.telefono, c)}
-                          target="_blank"
-                          rel="noreferrer"
-                          title={`Invia a ${c.nome} l'invito WhatsApp per fissare la visita in villa`}
-                          style={{
-                            display: "inline-block",
-                            marginTop: "0.4rem",
-                            padding: "0.32rem 0.7rem",
-                            borderRadius: 999,
-                            background: "#16a34a",
-                            color: "#ffffff",
-                            fontSize: "0.74rem",
-                            fontWeight: 700,
-                            textDecoration: "none",
-                            whiteSpace: "nowrap",
-                            boxShadow: "0 2px 6px rgba(22,163,74,0.25)",
-                          }}
-                        >
-                          💬 Fissa Visita WA
-                        </a>
+                        {c.hasSignedContract === true && (
+                          <button
+                            type="button"
+                            onClick={() => openInvito(c)}
+                            title={`Prepara l'invito WhatsApp a ${c.nome} per l'organizzazione delle nozze`}
+                            style={{
+                              display: "inline-block",
+                              marginTop: "0.4rem",
+                              padding: "0.32rem 0.7rem",
+                              borderRadius: 999,
+                              border: "none",
+                              background: "#16a34a",
+                              color: "#ffffff",
+                              fontSize: "0.74rem",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              whiteSpace: "nowrap",
+                              boxShadow: "0 2px 6px rgba(22,163,74,0.25)",
+                            }}
+                          >
+                            💬 Invito Nozze WA
+                          </button>
+                        )}
                       </>
                     ) : (
                       <small style={{ color: "#a8a29e" }}>Telefono non disponibile</small>
@@ -945,6 +984,174 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
           </div>
         </div>
       )}
+
+      {/* MODALE INVITO ORGANIZZAZIONE NOZZE (solo clienti con contratto firmato) */}
+      {invitoCliente && (() => {
+        const evento = getEventoRiferimento(invitoCliente);
+        const formulaEvento = evento ? String(evento.formula || "").trim() : "";
+        const dettagliEvento = evento
+          ? [formatLongDate(evento.data), formulaEvento].filter(Boolean).join(" · ")
+          : "Data evento da definire";
+        const telefonoValido = whatsappPhone(invitoCliente.telefono) !== "";
+
+        return (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="invito-nozze-title"
+            onClick={closeInvito}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.6)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: "2rem",
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: "#FAF8F5",
+                width: "100%",
+                maxWidth: "620px",
+                borderRadius: "16px",
+                border: "1px solid #e8e2d9",
+                boxShadow: "0 20px 50px rgba(0,0,0,0.3)",
+                padding: "2.2rem",
+                position: "relative",
+              }}
+            >
+              <button
+                type="button"
+                onClick={closeInvito}
+                aria-label="Chiudi la modale"
+                style={{
+                  position: "absolute",
+                  top: "1.2rem",
+                  right: "1.2rem",
+                  background: "#f0eee9",
+                  border: "none",
+                  fontSize: "1.1rem",
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "50%",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  color: "#514d48",
+                }}
+              >
+                ✕
+              </button>
+
+              <span style={{ fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "2px", color: "#e58c2c", fontWeight: 700 }}>
+                INVITO ORGANIZZAZIONE NOZZE
+              </span>
+              <h2
+                id="invito-nozze-title"
+                style={{ margin: "0.3rem 0 0.8rem 0", color: "#514d48", fontSize: "1.5rem", fontFamily: "serif", paddingRight: "2.2rem" }}
+              >
+                💬 Invito Organizzazione Nozze — {nomeCoppia(invitoCliente)}
+              </h2>
+
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  padding: "0.4rem 0.85rem",
+                  borderRadius: 999,
+                  background: "#fff7ed",
+                  border: "1px solid #ffedd5",
+                  color: "#c2410c",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  marginBottom: "1rem",
+                }}
+              >
+                <span>📅</span>
+                <span>{dettagliEvento}</span>
+              </div>
+
+              <label
+                htmlFor="invito-nozze-testo"
+                style={{ display: "block", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.6px", fontWeight: 700, color: "#8a847c", marginBottom: "0.4rem" }}
+              >
+                Messaggio WhatsApp personalizzabile
+              </label>
+              <textarea
+                id="invito-nozze-testo"
+                value={invitoTesto}
+                onChange={(e) => setInvitoTesto(e.target.value)}
+                rows={9}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: "0.85rem 1rem",
+                  borderRadius: "10px",
+                  border: "1px solid #ddd",
+                  background: "#ffffff",
+                  color: "#2B2B2B",
+                  fontSize: "0.9rem",
+                  lineHeight: 1.55,
+                  fontFamily: "inherit",
+                  resize: "vertical",
+                }}
+              />
+
+              <p style={{ margin: "0.6rem 0 1.2rem 0", color: "#8a847c", fontSize: "0.76rem", lineHeight: 1.4 }}>
+                Puoi modificare liberamente il testo prima dell&apos;invio: il messaggio verrà aperto in WhatsApp già compilato e potrai inviarlo tu.
+              </p>
+
+              {!telefonoValido && (
+                <div style={{ color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", padding: "0.6rem 0.8rem", fontSize: "0.85rem", fontWeight: 600, marginBottom: "0.8rem" }}>
+                  Telefono non disponibile: impossibile aprire WhatsApp per questo cliente.
+                </div>
+              )}
+
+              <div style={{ display: "flex", gap: "0.8rem" }}>
+                <button
+                  type="button"
+                  onClick={closeInvito}
+                  style={{
+                    flex: 1,
+                    padding: "0.85rem",
+                    borderRadius: "10px",
+                    border: "1px solid #ddd",
+                    background: "#ffffff",
+                    color: "#555",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  Chiudi / Annulla
+                </button>
+                <button
+                  type="button"
+                  onClick={handleInvioInvito}
+                  disabled={!telefonoValido || invitoTesto.trim() === ""}
+                  style={{
+                    flex: 2,
+                    padding: "0.85rem",
+                    borderRadius: "10px",
+                    border: "none",
+                    background: !telefonoValido || invitoTesto.trim() === "" ? "#b9c9b6" : "linear-gradient(135deg, #16a34a 0%, #12813c 100%)",
+                    color: "#ffffff",
+                    fontWeight: 700,
+                    cursor: !telefonoValido || invitoTesto.trim() === "" ? "not-allowed" : "pointer",
+                    boxShadow: "0 4px 12px rgba(22,163,74,0.25)",
+                  }}
+                >
+                  🚀 Apri in WhatsApp e Invia
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* MODALE MODIFICA ETICHETTE */}
       {tagsCliente && (
