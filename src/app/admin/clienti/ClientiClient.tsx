@@ -587,15 +587,14 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
             <tr style={{ borderBottom: "2px solid #e8e2d9", color: "#78716c", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               <th style={{ padding: "0.8rem 0.7rem" }}>Cliente</th>
               <th style={{ padding: "0.8rem 0.7rem" }}>Contatti</th>
-              <th style={{ padding: "0.8rem 0.7rem" }}>Storico Eventi</th>
-              <th style={{ padding: "0.8rem 0.7rem", textAlign: "right" }}>Eventi</th>
+              <th style={{ padding: "0.8rem 0.7rem" }}>Eventi Agganciati</th>
               <th style={{ padding: "0.8rem 0.7rem", textAlign: "right" }}>Azione</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ padding: "2.5rem", textAlign: "center", color: "#94a3b8" }}>
+                <td colSpan={4} style={{ padding: "2.5rem", textAlign: "center", color: "#94a3b8" }}>
                   Nessun cliente trovato con i criteri di ricerca.
                 </td>
               </tr>
@@ -619,7 +618,7 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                         <span style={{ color: "#c2410c", fontWeight: 700 }}> &amp; {c.partner}</span>
                       ) : null}
                     </Link>
-                    <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", marginTop: "0.35rem", alignItems: "center" }}>
+                    <div style={{ display: "inline-flex", gap: "0.35rem", flexWrap: "nowrap", marginTop: "0.35rem", alignItems: "center" }}>
                       {c.tags.length === 0 ? (
                         <span style={{ fontSize: "0.72rem", color: "#a8a29e" }}>—</span>
                       ) : (
@@ -685,6 +684,7 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                           fontWeight: 700,
                           cursor: "pointer",
                           lineHeight: 1.4,
+                          flexShrink: 0,
                         }}
                       >
                         🏷️
@@ -695,44 +695,65 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                   <td style={{ padding: "0.9rem 0.7rem" }}>
                     <small style={{ display: "block", color: "#6a6764", fontSize: "0.78rem" }}>{c.email || "—"}</small>
                     {c.telefono ? (
-                      <>
-                        <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", marginTop: "0.2rem", flexWrap: "wrap" }}>
-                          <a href={`tel:${c.telefono}`} style={{ fontSize: "0.78rem", color: "#514d48", fontWeight: 700, textDecoration: "none" }}>
+                      <div style={{ marginTop: "0.2rem" }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem" }}>
+                          <a
+                            href={`tel:${c.telefono}`}
+                            style={{ fontSize: "0.78rem", color: "#514d48", fontWeight: 700, textDecoration: "none" }}
+                          >
                             📞 {c.telefono}
                           </a>
                           <a
                             href={whatsappHref(c.telefono)}
                             target="_blank"
                             rel="noreferrer"
-                            style={{ fontSize: "0.78rem", color: "#16a34a", fontWeight: 700, textDecoration: "none" }}
+                            title={`Apri chat WhatsApp con ${c.nome}`}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: "20px",
+                              height: "20px",
+                              borderRadius: "50%",
+                              background: "#25D366",
+                              color: "#ffffff",
+                              textDecoration: "none",
+                              boxShadow: "0 1px 3px rgba(37,211,102,0.35)",
+                              flexShrink: 0,
+                            }}
                           >
-                            💬 WhatsApp
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+                            </svg>
                           </a>
                         </div>
                         {c.hasSignedContract === true && (
-                          <button
-                            type="button"
-                            onClick={() => openInvito(c)}
-                            title={`Prepara l'invito WhatsApp a ${c.nome} per l'organizzazione delle nozze`}
-                            style={{
-                              display: "inline-block",
-                              marginTop: "0.4rem",
-                              padding: "0.32rem 0.7rem",
-                              borderRadius: 999,
-                              border: "none",
-                              background: "#16a34a",
-                              color: "#ffffff",
-                              fontSize: "0.74rem",
-                              fontWeight: 700,
-                              cursor: "pointer",
-                              whiteSpace: "nowrap",
-                              boxShadow: "0 2px 6px rgba(22,163,74,0.25)",
-                            }}
-                          >
-                            💬 Invito Nozze WA
-                          </button>
+                          <div style={{ marginTop: "0.28rem" }}>
+                            <button
+                              type="button"
+                              onClick={() => openInvito(c)}
+                              title={`Prepara l'invito WhatsApp a ${c.nome} per l'organizzazione delle nozze`}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "0.25rem",
+                                padding: "0.22rem 0.6rem",
+                                borderRadius: 999,
+                                border: "none",
+                                background: "#16a34a",
+                                color: "#ffffff",
+                                fontSize: "0.72rem",
+                                fontWeight: 700,
+                                cursor: "pointer",
+                                whiteSpace: "nowrap",
+                                boxShadow: "0 2px 5px rgba(22,163,74,0.22)",
+                              }}
+                            >
+                              💬 Invito Nozze WA
+                            </button>
+                          </div>
                         )}
-                      </>
+                      </div>
                     ) : (
                       <small style={{ color: "#a8a29e" }}>Telefono non disponibile</small>
                     )}
@@ -740,83 +761,57 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
 
                   <td style={{ padding: "0.9rem 0.7rem" }}>
                     <EventiCell eventi={c.eventi} />
+                    {c.eventi && c.eventi.length > 0 && (
+                      <div
+                        style={{
+                          marginTop: "0.28rem",
+                          fontSize: "0.72rem",
+                          color: "#78716c",
+                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "0.35rem",
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "0.1rem 0.45rem",
+                            borderRadius: "999px",
+                            background: "#fff7ed",
+                            color: "#c2410c",
+                            border: "1px solid #ffedd5",
+                            fontSize: "0.68rem",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {c.eventiCount} {c.eventiCount === 1 ? "evento" : "eventi"}
+                        </span>
+                        <span>{getEventTypesSummary(c.eventi) || "Nessun dettaglio"}</span>
+                      </div>
+                    )}
                   </td>
 
                   <td style={{ padding: "0.9rem 0.7rem", textAlign: "right", whiteSpace: "nowrap" }}>
-                    <span
+                    <Link
+                      href={`/admin/clienti/${c.id}`}
                       style={{
-                        display: "inline-block",
-                        padding: "0.28rem 0.75rem",
-                        borderRadius: "999px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.35rem",
+                        padding: "0.45rem 0.9rem",
                         background: "#fff7ed",
                         color: "#c2410c",
                         border: "1px solid #ffedd5",
-                        fontSize: "0.82rem",
+                        borderRadius: "8px",
+                        fontSize: "0.8rem",
                         fontWeight: 700,
+                        textDecoration: "none",
                       }}
+                      title="Apri Scheda CRM 360°"
                     >
-                      {c.eventiCount} {c.eventiCount === 1 ? "evento" : "eventi"}
-                    </span>
-                    <small style={{ display: "block", marginTop: "0.35rem", color: "#78716c", fontSize: "0.74rem", fontWeight: 600, whiteSpace: "normal" }}>
-                      {getEventTypesSummary(c.eventi) || "Nessun dettaglio"}
-                    </small>
-                  </td>
-
-                  <td style={{ padding: "0.9rem 0.7rem", textAlign: "right", whiteSpace: "nowrap" }}>
-                    <div style={{ display: "inline-flex", gap: "0.4rem", alignItems: "center", justifyContent: "flex-end" }}>
-                      <Link
-                        href={`/admin/clienti/${c.id}`}
-                        style={{
-                          padding: "0.45rem 0.85rem",
-                          background: "#fff7ed",
-                          color: "#c2410c",
-                          border: "1px solid #ffedd5",
-                          borderRadius: "7px",
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          textDecoration: "none",
-                        }}
-                      >
-                        👤 Scheda CRM
-                      </Link>
-                      <Link
-                        href={`/admin/contratti?nome=${encodeURIComponent(`${c.nome} ${c.cognome}`.trim())}${c.partner ? `&partner_nome=${encodeURIComponent(c.partner)}` : ""}&email=${encodeURIComponent(c.email || "")}&telefono=${encodeURIComponent(c.telefono || "")}`}
-                        style={{
-                          padding: "0.45rem 0.8rem",
-                          background: "linear-gradient(135deg, #e58c2c 0%, #c2410c 100%)",
-                          color: "#ffffff",
-                          borderRadius: "7px",
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          textDecoration: "none",
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: "0.3rem",
-                          boxShadow: "0 2px 6px rgba(229,140,44,0.25)",
-                          whiteSpace: "nowrap",
-                        }}
-                        title="Emetti Contratto Rapido (Opzione 7gg)"
-                      >
-                        <span>✍️</span>
-                        <span>Contratto</span>
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => openModal(c.id)}
-                        style={{
-                          padding: "0.45rem 0.85rem",
-                          background: "#ffffff",
-                          color: "#1e1b18",
-                          border: "1px solid #e8e2d9",
-                          borderRadius: "7px",
-                          fontSize: "0.78rem",
-                          fontWeight: 700,
-                          cursor: "pointer",
-                        }}
-                      >
-                        ➕ Nuovo Evento
-                      </button>
-                    </div>
+                      👤 Scheda CRM
+                    </Link>
                   </td>
                 </tr>
               ))
