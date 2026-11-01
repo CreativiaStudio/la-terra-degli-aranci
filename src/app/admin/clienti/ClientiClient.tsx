@@ -168,22 +168,38 @@ function getEventTypesSummary(eventi: ClienteEventoRow[]): string {
 }
 
 /**
- * Cellula compatta "Storico Eventi": mostra in evidenza il primo evento (il più
- * recente) e, se ce ne sono altri, un micro-pulsante che apre un popover con lo
- * storico completo. Il popover è in posizione fissa per non alterare l'altezza
- * della riga (zero effetto fisarmonica).
+ * Cellula compatta "Eventi Agganciati": mostra in evidenza l'evento corrente attivo
+ * (dalla firma del contratto fino al giorno dell'evento).
+ * Lo storico degli eventi passati già conclusi è archiviato nella Scheda CRM del cliente.
  */
 function EventiCell({ eventi }: { eventi: ClienteEventoRow[] }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const btnRef = useRef<HTMLButtonElement | null>(null);
 
-  if (eventi.length === 0) {
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  // Filtra eventi attivi/correnti: non conclusi e con data odierna o futura
+  const eventiAttivi = (eventi || []).filter(
+    (ev) => ev.stage !== "svolto" && (!ev.data || ev.data >= todayIso)
+  );
+  const eventiPassati = (eventi || []).filter(
+    (ev) => ev.stage === "svolto" || (ev.data && ev.data < todayIso)
+  );
+
+  if (eventiAttivi.length === 0) {
+    if (eventiPassati.length > 0) {
+      return (
+        <span style={{ fontSize: "0.78rem", color: "#8a847c" }} title="Evento passato concluso: consulta lo storico completo nella Scheda CRM">
+          Nessun evento attivo <small style={{ color: "#a8a29e" }}>({eventiPassati.length} nello storico)</small>
+        </span>
+      );
+    }
     return <span style={{ fontSize: "0.78rem", color: "#a8a29e" }}>Nessun evento collegato</span>;
   }
 
-  const primo = eventi[0];
-  const altri = eventi.slice(1);
+  const primo = eventiAttivi[0];
+  const altri = eventiAttivi.slice(1);
 
   const toggle = () => {
     if (!open && btnRef.current) {
@@ -219,7 +235,7 @@ function EventiCell({ eventi }: { eventi: ClienteEventoRow[] }) {
           ref={btnRef}
           type="button"
           onClick={toggle}
-          title={`Mostra altri ${altri.length} eventi`}
+          title={`Mostra altri ${altri.length} eventi attivi`}
           aria-expanded={open}
           style={{
             display: "inline-flex",
@@ -236,7 +252,7 @@ function EventiCell({ eventi }: { eventi: ClienteEventoRow[] }) {
             whiteSpace: "nowrap",
           }}
         >
-          ▾ +{altri.length} altri eventi
+          ▾ +{altri.length} altri attivi
         </button>
       )}
 
@@ -272,7 +288,7 @@ function EventiCell({ eventi }: { eventi: ClienteEventoRow[] }) {
                 padding: "0.25rem 0.5rem 0.5rem",
               }}
             >
-              Storico · {altri.length} {altri.length === 1 ? "altro evento" : "altri eventi"}
+              Eventi attivi in corso ({altri.length})
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
               {altri.map((ev) => (
@@ -602,22 +618,24 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
               filtered.map((c) => (
                 <tr key={c.id} style={{ borderBottom: "1px solid #f0eee9", verticalAlign: "top" }}>
                   <td style={{ padding: "0.9rem 0.7rem" }}>
-                    <Link
-                      href={`/admin/clienti/${c.id}`}
-                      style={{
-                        fontSize: "0.95rem",
-                        color: "#1e1b18",
-                        display: "inline-block",
-                        fontWeight: 700,
-                        textDecoration: "none",
-                      }}
-                      title="Apri Scheda CRM 360°"
-                    >
-                      {c.nome} {c.cognome}
-                      {c.partner ? (
-                        <span style={{ color: "#c2410c", fontWeight: 700 }}> &amp; {c.partner}</span>
-                      ) : null}
-                    </Link>
+                    <div>
+                      <Link
+                        href={`/admin/clienti/${c.id}`}
+                        style={{
+                          fontSize: "0.95rem",
+                          color: "#1e1b18",
+                          display: "inline-block",
+                          fontWeight: 700,
+                          textDecoration: "none",
+                        }}
+                        title="Apri Scheda CRM 360°"
+                      >
+                        {c.nome} {c.cognome}
+                        {c.partner ? (
+                          <span style={{ color: "#c2410c", fontWeight: 700 }}> &amp; {c.partner}</span>
+                        ) : null}
+                      </Link>
+                    </div>
                     <div style={{ display: "inline-flex", gap: "0.35rem", flexWrap: "nowrap", marginTop: "0.35rem", alignItems: "center" }}>
                       {c.tags.length === 0 ? (
                         <span style={{ fontSize: "0.72rem", color: "#a8a29e" }}>—</span>
