@@ -173,6 +173,19 @@ export interface GoogleCalendarEvent {
   client_email?: string;
   has_incomplete_data: boolean;
   imported_at: string;
+  /** true se l'evento è un "evento amici": slot occupato, senza contratto. */
+  is_amici?: boolean;
+}
+
+/** Credenziali e stato della connessione a Google Calendar (account segreteria). */
+export interface GoogleCalendarAuth {
+  connected: boolean;
+  email?: string;
+  refresh_token?: string;
+  access_token?: string;
+  expires_at?: number;
+  last_synced_at?: string;
+  calendar_id?: string;
 }
 
 export interface LocalStore {
@@ -205,6 +218,8 @@ export interface LocalStore {
   extra_quotes?: ExtraQuote[];
   /** Eventi sincronizzati da Google Calendar (TDA e Villa Pagodina). */
   google_calendar_events?: GoogleCalendarEvent[];
+  /** Credenziali e stato della connessione a Google Calendar. */
+  google_calendar_auth?: GoogleCalendarAuth;
 }
 
 export function getStore(): LocalStore {
@@ -2711,6 +2726,23 @@ export function getGoogleCalendarEventsLocal(): GoogleCalendarEvent[] {
 export function saveGoogleCalendarEventsLocal(events: GoogleCalendarEvent[]): void {
   const store = getStore();
   store.google_calendar_events = events;
+  saveStore(store);
+}
+
+/** Credenziali Google Calendar salvate (default: non connesso). */
+export function getGoogleCalendarAuthLocal(): GoogleCalendarAuth {
+  const store = getStore();
+  const auth = store.google_calendar_auth;
+  if (!auth || typeof auth !== 'object') {
+    return { connected: false };
+  }
+  return { ...auth, connected: !!auth.connected };
+}
+
+/** Salva lo stato e le credenziali della connessione Google Calendar. */
+export function saveGoogleCalendarAuthLocal(auth: GoogleCalendarAuth): void {
+  const store = getStore();
+  store.google_calendar_auth = { ...auth };
   saveStore(store);
 }
 

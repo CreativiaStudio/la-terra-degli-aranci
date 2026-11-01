@@ -5,9 +5,28 @@ import {
   getOrSeedGCalEvents,
   associateGCalEventToClient,
   parseGCalEvent,
+  syncGoogleCalendarLive,
   ParsedGCalEventInput,
 } from "@/lib/calendarSyncEngine";
-import { getGoogleCalendarEventsLocal, saveGoogleCalendarEventsLocal } from "@/lib/localDb";
+import {
+  getGoogleCalendarEventsLocal,
+  saveGoogleCalendarEventsLocal,
+  saveGoogleCalendarAuthLocal,
+} from "@/lib/localDb";
+
+export async function syncGCalLiveAction() {
+  const result = await syncGoogleCalendarLive();
+  revalidatePath("/admin/calendario");
+  revalidatePath("/admin/clienti");
+  revalidatePath("/admin/crm");
+  return result;
+}
+
+export async function disconnectGCalAction() {
+  saveGoogleCalendarAuthLocal({ connected: false });
+  revalidatePath("/admin/calendario");
+  return { success: true };
+}
 
 export async function syncGCalAction() {
   const events = getOrSeedGCalEvents();

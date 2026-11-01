@@ -21,7 +21,11 @@ import {
   saveQuickCalendarOptionAction,
   releaseQuickCalendarOptionAction,
 } from "@/app/admin/calendario/calendarioActions";
-import { associateGCalAction } from "./gcalActions";
+import {
+  associateGCalAction,
+  syncGCalLiveAction,
+  disconnectGCalAction,
+} from "./gcalActions";
 
 interface CalendarioClientProps {
   quotes: any[];
@@ -30,6 +34,11 @@ interface CalendarioClientProps {
   quickOptions?: QuickCalendarOptionLocal[];
   initialMonth?: string;
   gcalEvents?: GoogleCalendarEvent[];
+  gcalAuth?: {
+    connected: boolean;
+    email?: string;
+    last_synced_at?: string;
+  };
 }
 
 export type LocationKey = "tutte" | "laterradegliaranci" | "villa_pagodina" | "sala_bianca" | "sala_tufo";
@@ -73,6 +82,8 @@ interface CalendarEvent {
   isGCal?: boolean;
   isVerbalOption?: boolean;
   hasIncompleteData?: boolean;
+  /** Evento amici: slot occupato con preventivo-promemoria, senza contratto formale. */
+  isAmici?: boolean;
   location?: 'laterradegliaranci' | 'villa_pagodina' | 'sala_bianca' | 'sala_tufo';
 }
 
@@ -366,6 +377,7 @@ const LEGEND_ITEMS: Array<{ dot: string; label: string }> = [
   { dot: AMBER_BG, label: "🟡 Opzione 7gg in attesa di firma" },
   { dot: RED_BG, label: "🔴 Pieno = contratti firmati su tutti i turni" },
   { dot: "#e6c976", label: "👑 Esclusiva = villa riservata solo in quel turno" },
+  { dot: "#6366f1", label: "🟣 Evento Amici = preventivo-promemoria, no contratto" },
 ];
 
 /** "Sposo & Sposa" per i matrimoni, solo il cliente per gli eventi. */
@@ -944,6 +956,7 @@ function buildEvents(
       isGCal: true,
       isVerbalOption: isVerbal,
       hasIncompleteData: Boolean(g.has_incomplete_data),
+      isAmici: Boolean(g.is_amici),
       location: loc,
       telefono: g.client_telefono,
       email: g.client_email,
@@ -1193,6 +1206,30 @@ const BLOCK_LINK_BASE: CSSProperties = {
   whiteSpace: "nowrap",
 };
 
+/** Pillola viola "AMICI" per gli slot occupati da eventi amici (senza contratto). */
+function AmiciPill({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      title="Evento Amici · Preventivo-Promemoria, nessun contratto formale"
+      style={{
+        display: "inline-block",
+        background: "#6366f1",
+        color: "#ffffff",
+        borderRadius: "999px",
+        padding: compact ? "0 5px" : "1px 8px",
+        fontSize: compact ? "0.52rem" : "0.62rem",
+        fontWeight: 800,
+        letterSpacing: "0.4px",
+        lineHeight: 1.6,
+        whiteSpace: "nowrap",
+        verticalAlign: "middle",
+      }}
+    >
+      AMICI
+    </span>
+  );
+}
+
 /** Slot libero selezionato dal calendario, in attesa della scelta contratto / opzione rapida. */
 interface SlotChoice {
   iso: string;
@@ -1372,6 +1409,7 @@ export default function CalendarioClient({
   quickOptions = [],
   initialMonth,
   gcalEvents = [],
+  gcalAuth,
 }: CalendarioClientProps) {
   const router = useRouter();
   // Supporta parametro mese iniziale (es. 2027-07) o fallback mese corrente.
@@ -1482,6 +1520,72 @@ export default function CalendarioClient({
   const [optSaving, setOptSaving] = useState(false);
   const [optError, setOptError] = useState("");
   const [toast, setToast] = useState("");
+
+  // Google Calendar OAuth: stato sincronizzazione live
+  const [isSyncingGCal, setIsSyncingGCal] = useState(false);
+  const [syncMsg, setSyncMsg] = useState("");
+
+  const handleSyncLive = async () => {
+    if (isSyncingGCal) return;
+    setIsSyncingGCal(true);
+    setSyncMsg("");
+    try {
+      const res = await syncGCalLiveAction();
+      if (res.success) {
+        const count = "count" in res && typeof res.count === "number" ? res.count : 0;
+        setSyncMsg(
+          count > 0
+            ? `✅ Sincronizzazione completata · ${count} eventi aggiornati.`
+            : "✅ Sincronizzazione completata. Calendario aggiornato."
+        );
+        router.refresh();
+      } else {
+        const error = "error" in res ? String(res.error ?? "") : "";
+        const messages: Record<string, string> = {
+          non_connesso: "Google Calendar non è connesso. Effettua prima il collegamento OAuth.",
+          configurazione_oauth_mancante:
+            "Configurazione OAuth mancante sul server. Contatta l'amministratore.",
+          refresh_token_fallito:
+            "Sessione Google scaduta. Disconnetti e riconnetti Google Calendar.",
+          download_eventi_fallito:
+            "Impossibile scaricare gli eventi da Google Calendar. Riprova tra poco.",
+        };
+        setSyncMsg(`⚠️ ${messages[error] || "Sincronizzazione non riuscita. Riprova."}`);
+      }
+    } catch (err: any) {
+      setSyncMsg(err?.message || "Errore di connessione durante la sincronizzazione.");
+    } finally {
+      setIsSyncingGCal(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    if (
+      !window.confirm(
+        "Disconnettere Google Calendar (segreteriatda@gmail.com)? La sincronizzazione automatica verrà interrotta."
+      )
+    )
+      return;
+    setSyncMsg("");
+    try {
+      const res = await disconnectGCalAction();
+      if (res.success) {
+        setSyncMsg("✅ Google Calendar disconnesso.");
+        router.refresh();
+      } else {
+        setSyncMsg("⚠️ Impossibile disconnettere Google Calendar. Riprova.");
+      }
+    } catch (err: any) {
+      setSyncMsg(err?.message || "Errore di connessione durante la disconnessione.");
+    }
+  };
+
+  const formatSyncDate = (value?: string) => {
+    if (!value) return "mai";
+    const parsed = parseISO(value);
+    if (Number.isNaN(parsed.getTime())) return String(value);
+    return format(parsed, "dd/MM/yyyy 'alle' HH:mm", { locale: it });
+  };
 
   // Verifica rapida disponibilità data per gli sposi
   const [searchDate, setSearchDate] = useState("");
@@ -1752,7 +1856,7 @@ export default function CalendarioClient({
           title={occupantTitle(occ, isOption, fullName)}
           style={{ ...(isOption ? OPTION_MINI : SIGNED_MINI), flex: "1 1 0" }}
         >
-          {occupantText(occ, isOption)}
+          {occ.isAmici && <AmiciPill compact />} {occupantText(occ, isOption)}
         </button>
       </div>
     );
@@ -1822,7 +1926,7 @@ export default function CalendarioClient({
                 maxWidth: "100%",
               }}
             >
-              {occupantText(occ, isOption)}
+              {occ.isAmici && <AmiciPill compact />} {occupantText(occ, isOption)}
             </span>
           </button>
         </div>
@@ -1866,7 +1970,7 @@ export default function CalendarioClient({
             title={occupantTitle(occ, isOption)}
             style={{ ...MATRIX_OCC_BTN, color: isOption ? AMBER_TEXT : RED_TEXT }}
           >
-            {occ.clientName}
+            {occ.isAmici && <AmiciPill compact />} {occ.clientName}
           </button>
         </td>
       );
@@ -1903,7 +2007,7 @@ export default function CalendarioClient({
           title={occupantTitle(occ, isOption)}
           style={{ ...MATRIX_OCC_BTN, color: text }}
         >
-          {occ.clientName}
+          {occ.isAmici && <AmiciPill compact />} {occ.clientName}
         </button>
         {occ.isQuickOption && occ.telefono && (
           <div style={{ fontSize: "0.68rem", color: text, fontWeight: 700 }}>📞 {occ.telefono}</div>
@@ -1937,7 +2041,8 @@ export default function CalendarioClient({
                   title={`${name}: esclusiva villa · ${tp.exclusive.clientName}`}
                   style={{ fontSize: "0.68rem", fontWeight: 800, color: isOption ? AMBER_TEXT : RED_TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                 >
-                  {icon} {isOption ? "🟡" : "👑"} {isOption ? "Opzione esclusiva" : "ESCLUSIVA"} · {tp.exclusive.clientName}
+                  {icon} {isOption ? "🟡" : "👑"} {isOption ? "Opzione esclusiva" : "ESCLUSIVA"}
+                  {tp.exclusive.isAmici ? " · AMICI" : ""} · {tp.exclusive.clientName}
                 </div>
               );
             }
@@ -2030,6 +2135,154 @@ export default function CalendarioClient({
           </button>
         </div>
       </div>
+
+      {/* CARD CONNESSIONE GOOGLE CALENDAR (OAuth 2.0) */}
+      <section
+        aria-label="Sincronizzazione Google Calendar"
+        style={{
+          width: "100%",
+          maxWidth: "100%",
+          minWidth: 0,
+          boxSizing: "border-box",
+          marginBottom: "1.25rem",
+          padding: "1.1rem 1.25rem",
+          borderRadius: "18px",
+          background: "#fbfaf8",
+          border: gcalAuth?.connected ? "1px solid #86efac" : "1px solid #e2d9cc",
+          boxShadow: gcalAuth?.connected
+            ? "0 6px 20px rgba(22,163,74,0.10)"
+            : "0 6px 20px rgba(81,77,72,0.06)",
+        }}
+      >
+        {!gcalAuth?.connected ? (
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "1rem", justifyContent: "space-between", minWidth: 0 }}>
+            <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+              <h2 style={{ margin: 0, fontSize: "1.05rem", fontFamily: "Georgia, serif", color: "#1e1b18", fontWeight: 600 }}>
+                📅 Sincronizzazione Google Calendar (segreteriatda@gmail.com)
+              </h2>
+              <p style={{ margin: "0.4rem 0 0 0", fontSize: "0.88rem", color: "#78716c", lineHeight: 1.55 }}>
+                Connessione ufficiale Google OAuth 2.0 (Zero password richieste, conforme GDPR). Sincronizza in
+                tempo reale le opzioni verbali (?), gli appuntamenti e le date occupate.
+              </p>
+            </div>
+            <a
+              href="/api/auth/google"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                padding: "0.8rem 1.3rem",
+                borderRadius: "14px",
+                border: "none",
+                textDecoration: "none",
+                fontFamily: "inherit",
+                fontWeight: 800,
+                fontSize: "0.92rem",
+                color: "#ffffff",
+                background: "linear-gradient(135deg, #e58c2c 0%, #c2410c 100%)",
+                boxShadow: "0 8px 20px rgba(229,140,44,0.35)",
+                whiteSpace: "nowrap",
+                flex: "0 0 auto",
+              }}
+            >
+              🔗 Connetti Google Calendar (segreteriatda@gmail.com)
+            </a>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.9rem", justifyContent: "space-between", minWidth: 0 }}>
+            <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  fontSize: "0.78rem",
+                  fontWeight: 800,
+                  color: "#166534",
+                  background: "#dcfce7",
+                  border: "1px solid #86efac",
+                  borderRadius: "999px",
+                  padding: "3px 10px",
+                }}
+              >
+                🟢 Google Calendar Connesso (segreteriatda@gmail.com)
+              </span>
+              <div style={{ marginTop: "0.45rem", fontSize: "0.84rem", color: "#514d48", fontWeight: 600 }}>
+                Ultimo sync: <strong>{formatSyncDate(gcalAuth.last_synced_at)}</strong>
+                {gcalAuth.email && gcalAuth.email !== "segreteriatda@gmail.com" && (
+                  <> · Account: <strong>{gcalAuth.email}</strong></>
+                )}
+              </div>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.8rem", flexWrap: "wrap", flex: "0 0 auto" }}>
+              <button
+                type="button"
+                onClick={handleSyncLive}
+                disabled={isSyncingGCal}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.45rem",
+                  padding: "0.7rem 1.2rem",
+                  borderRadius: "12px",
+                  border: "none",
+                  cursor: isSyncingGCal ? "wait" : "pointer",
+                  opacity: isSyncingGCal ? 0.75 : 1,
+                  fontFamily: "inherit",
+                  fontWeight: 800,
+                  fontSize: "0.9rem",
+                  color: "#ffffff",
+                  background: "linear-gradient(135deg, #2d5a27 0%, #166534 100%)",
+                  boxShadow: "0 6px 16px rgba(45,90,39,0.25)",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {isSyncingGCal ? "⏳ Sincronizzazione…" : "🔄 Sincronizza Ora"}
+              </button>
+              <button
+                type="button"
+                onClick={handleDisconnect}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  padding: "0.3rem 0.2rem",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  fontSize: "0.78rem",
+                  fontWeight: 700,
+                  color: "#8c857b",
+                  textDecoration: "underline",
+                }}
+              >
+                Disconnetti
+              </button>
+            </div>
+          </div>
+        )}
+
+        {syncMsg && (
+          <div
+            role="status"
+            style={{
+              marginTop: "0.8rem",
+              padding: "0.6rem 0.85rem",
+              borderRadius: "10px",
+              fontSize: "0.84rem",
+              fontWeight: 700,
+              background: syncMsg.startsWith("✅") ? "#f0fdf4" : "#fff7ed",
+              border: syncMsg.startsWith("✅") ? "1px solid #bbf7d0" : "1px solid #fed7aa",
+              color: syncMsg.startsWith("✅") ? "#166534" : "#b45f0c",
+            }}
+          >
+            {syncMsg}
+          </div>
+        )}
+
+        <div style={{ marginTop: "0.7rem", fontSize: "0.76rem", color: "#8c857b", fontWeight: 600 }}>
+          🏷️ Gli <strong>Eventi Amici</strong> occupano lo slot con preventivo-promemoria: nessun contratto
+          formale viene generato.
+        </div>
+      </section>
 
       {/* WIDGET: VERIFICA RAPIDA DISPONIBILITÀ DATA PER GLI SPOSI */}
       <section
@@ -2603,6 +2856,7 @@ export default function CalendarioClient({
                         const isExclusive = isExclusiveEvent(evt);
                         const isGCal = Boolean(evt.isGCal);
                         const isVerbal = Boolean(evt.isVerbalOption);
+                        const isAmici = Boolean(evt.isAmici);
                         const isVP = evt.location === "villa_pagodina";
 
                         let toneStyle: CSSProperties = isVisita
@@ -2636,11 +2890,22 @@ export default function CalendarioClient({
                           }
                         }
 
+                        if (isAmici) {
+                          toneStyle = {
+                            ...toneStyle,
+                            background: "#eef2ff",
+                            border: "1.5px solid #6366f1",
+                            color: "#4338ca",
+                          };
+                        }
+
                         const chipText = isVisita
                           ? `🕒 ${evt.ora} Visita · ${evt.clientName}`
-                          : isGCal
-                            ? `${isVerbal ? "❓ " : isVP ? "🏡 VP · " : "📅 "}${evt.clientName}`
-                            : `${isExclusive ? "👑 " : isPending ? "⏳ " : ""}${evt.turno === "cena" ? "Cena" : "Pranzo"} · ${evt.clientName}`;
+                          : isAmici
+                            ? `🏷️ ${evt.clientName}`
+                            : isGCal
+                              ? `${isVerbal ? "❓ " : isVP ? "🏡 VP · " : "📅 "}${evt.clientName}`
+                              : `${isExclusive ? "👑 " : isPending ? "⏳ " : ""}${evt.turno === "cena" ? "Cena" : "Pranzo"} · ${evt.clientName}`;
                         return (
                           <button
                             key={evt.id}
@@ -2649,7 +2914,7 @@ export default function CalendarioClient({
                             title={`${evt.title} — ${chipText}`}
                             style={toneStyle}
                           >
-                            {chipText}
+                            {isAmici && <AmiciPill compact />} {chipText}
                           </button>
                         );
                       })}
@@ -2786,6 +3051,45 @@ export default function CalendarioClient({
             <h2 style={{ margin: "0.3rem 0 1rem 0", color: "#1e1b18", fontSize: "1.6rem", fontFamily: "Georgia, serif" }}>
               {selectedEvent.title}
             </h2>
+
+            {/* Blocco Evento Amici: slot occupato senza contratto formale */}
+            {selectedEvent.isAmici && (
+              <div
+                style={{
+                  background: "#eef2ff",
+                  border: "1.5px solid #6366f1",
+                  borderRadius: "14px",
+                  padding: "1rem 1.1rem",
+                  marginBottom: "1.4rem",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
+                  <AmiciPill />
+                  <span style={{ fontWeight: 800, color: "#4338ca" }}>Evento Amici</span>
+                </div>
+                <div style={{ fontSize: "0.9rem", color: "#2c2a27", lineHeight: 1.6, marginBottom: "0.75rem" }}>
+                  🏷️ Evento Amici (Occupazione slot con Preventivo-Promemoria, no contratto formale)
+                </div>
+                <a
+                  href="/admin/preventivi/nuovo"
+                  style={{
+                    display: "inline-block",
+                    padding: "0.7rem 1.1rem",
+                    borderRadius: "12px",
+                    border: "none",
+                    background: "linear-gradient(135deg, #6366f1 0%, #4338ca 100%)",
+                    color: "#ffffff",
+                    fontFamily: "inherit",
+                    fontSize: "0.9rem",
+                    fontWeight: 800,
+                    textDecoration: "none",
+                    boxShadow: "0 6px 16px rgba(99,102,241,0.28)",
+                  }}
+                >
+                  🧾 Genera Preventivo-Promemoria
+                </a>
+              </div>
+            )}
 
             {/* Blocco Evento Google Calendar Ibrido */}
             {selectedEvent.isGCal && (

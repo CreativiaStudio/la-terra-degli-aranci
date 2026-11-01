@@ -1,6 +1,11 @@
 import { getQuotesFast } from "@/lib/dataHelper";
 import { listPdfsInR2 } from "@/lib/r2";
-import { getPendingContractsLocal, getQuickCalendarOptionsLocal, getStore } from "@/lib/localDb";
+import {
+  getPendingContractsLocal,
+  getQuickCalendarOptionsLocal,
+  getStore,
+  getGoogleCalendarAuthLocal,
+} from "@/lib/localDb";
 import { getOrSeedGCalEvents } from "@/lib/calendarSyncEngine";
 import CalendarioClient from "./CalendarioClient";
 
@@ -109,6 +114,7 @@ export default async function CalendarioPage({
   });
 
   const gcalEvents = getOrSeedGCalEvents();
+  const gcalAuth = getGoogleCalendarAuthLocal();
 
   return (
     <CalendarioClient
@@ -118,6 +124,7 @@ export default async function CalendarioPage({
       quickOptions={getQuickCalendarOptionsLocal()}
       initialMonth={initialMonth}
       gcalEvents={gcalEvents}
+      gcalAuth={gcalAuth}
     />
   );
 }
