@@ -49,6 +49,99 @@ function formatDate(value: string | null): string {
   return `${match[3]}/${match[2]}/${match[1]}`;
 }
 
+/** Mesi in italiano per le etichette dei filtri (es. "Maggio 2026"). */
+const MESI_ITALIANI = [
+  "Gennaio",
+  "Febbraio",
+  "Marzo",
+  "Aprile",
+  "Maggio",
+  "Giugno",
+  "Luglio",
+  "Agosto",
+  "Settembre",
+  "Ottobre",
+  "Novembre",
+  "Dicembre",
+];
+
+/** Estrae la chiave mese "YYYY-MM" da una data evento. */
+function eventMonthKey(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})/.exec(String(value));
+  if (!match) return null;
+  return `${match[1]}-${match[2]}`;
+}
+
+/** Etichetta italiana del mese, es. "Maggio 2026". */
+function formatMonthLabel(key: string): string {
+  const match = /^(\d{4})-(\d{2})$/.exec(key);
+  if (!match) return key;
+  const mese = MESI_ITALIANI[Number(match[2]) - 1];
+  return mese ? `${mese} ${match[1]}` : key;
+}
+
+/** Data evento come Date locale (mezzanotte), senza slittamenti di fuso orario. */
+function parseEventDate(value: string | null | undefined): Date | null {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value));
+  if (!match) return null;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isWeddingEvent(ev: ClienteEventoRow): boolean {
+  return /matrimoni|sposi|nozze|wedding/i.test(String(ev?.titolo || ""));
+}
+
+function clienteHasWedding(cliente: ClienteRow): boolean {
+  if ((cliente.tags || []).some((tag) => /sposi|matrimon/i.test(tag))) return true;
+  return (cliente.eventi || []).some(isWeddingEvent);
+}
+
+function clienteHasPrivato(cliente: ClienteRow): boolean {
+  if ((cliente.tags || []).some((tag) => /privato/i.test(tag))) return true;
+  return (cliente.eventi || []).some((ev) => !isWeddingEvent(ev));
+}
+
+/** Evento di riferimento per il messaggio: il prossimo, altrimenti il più recente. */
+function getEventoRiferimento(cliente: ClienteRow): ClienteEventoRow | null {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const validi = (cliente.eventi || []).filter((ev) => parseEventDate(ev.data));
+  const futuri = validi
+    .filter((ev) => {
+      const data = parseEventDate(ev.data);
+      return data ? data.getTime() >= today.getTime() : false;
+    })
+    .sort((a, b) => String(a.data).localeCompare(String(b.data)));
+  if (futuri.length > 0) return futuri[0];
+  const passati = [...validi].sort((a, b) => String(b.data).localeCompare(String(a.data)));
+  return passati[0] ?? null;
+}
+
+/**
+ * Link WhatsApp per fissare la visita in villa: messaggio sartoriale firmato
+ * da Roberto Sola, con il mese dell'evento del cliente già inserito.
+ */
+function buildWhatsAppInviteUrl(telefono: string, cliente: ClienteRow): string {
+  const digits = String(telefono || "").replace(/\D/g, "");
+  let cleanPhone = digits;
+  if (cleanPhone.startsWith("00")) cleanPhone = cleanPhone.slice(2);
+  if (cleanPhone.startsWith("0")) cleanPhone = `39${cleanPhone}`;
+
+  const evento = getEventoRiferimento(cliente);
+  const mese = evento ? eventMonthKey(evento.data) : null;
+  const meseAnno = mese ? formatMonthLabel(mese) : "una data da definire";
+  const nome = String(cliente.nome || "").trim() || "carissimi";
+  const partner = String(cliente.partner || "").trim();
+  const saluto = partner ? `${nome} e ${partner}` : nome;
+
+  const messaggio = `Ciao ${saluto}! Sono Roberto de La Terra degli Aranci. In vista del vostro evento previsto per ${meseAnno}, ci farebbe molto piacere invitarvi in villa per un incontro dedicato e definire insieme tutti i dettagli organizzativi per la data. Quando sareste più comodi per venire a trovarci? Vi aspettiamo! Un caro saluto, Roberto Sola`;
+
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(messaggio)}`;
+}
+
 /** Riepilogo pulito dei tipi di evento (senza duplicati), es. "Matrimonio + Battesimo". */
 function getEventTypesSummary(eventi: ClienteEventoRow[]): string {
   if (!eventi || eventi.length === 0) return "";
@@ -217,6 +310,8 @@ function EventiCell({ eventi }: { eventi: ClienteEventoRow[] }) {
 export default function ClientiClient({ clienti }: ClientiClientProps) {
   const router = useRouter();
   const [search, setSearch] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState("all");
+  const [selectedType, setSelectedType] = useState<"all" | "wedding" | "privato">("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [tagsCliente, setTagsCliente] = useState<ClienteRow | null>(null);
   const [formClienteId, setFormClienteId] = useState("");
@@ -227,13 +322,48 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
 
+  /** Mesi (YYYY-MM) in cui esiste almeno un evento, in ordine cronologico. */
+  const monthOptions = useMemo(() => {
+    const mesi = new Set<string>();
+    for (const c of clienti) {
+      for (const ev of c.eventi || []) {
+        const key = eventMonthKey(ev.data);
+        if (key) mesi.add(key);
+      }
+    }
+    return Array.from(mesi).sort();
+  }, [clienti]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return clienti;
-    return clienti.filter((c) =>
-      `${c.nome} ${c.cognome} ${c.partner || ""} ${c.email} ${c.telefono}`.toLowerCase().includes(q)
-    );
-  }, [clienti, search]);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const rangeEnd = new Date(today);
+    if (selectedMonth === "prossimi_30") rangeEnd.setDate(rangeEnd.getDate() + 30);
+    if (selectedMonth === "prossimi_60") rangeEnd.setDate(rangeEnd.getDate() + 60);
+
+    return clienti.filter((c) => {
+      if (q && !`${c.nome} ${c.cognome} ${c.partner || ""} ${c.email} ${c.telefono}`.toLowerCase().includes(q)) {
+        return false;
+      }
+
+      if (selectedType === "wedding" && !clienteHasWedding(c)) return false;
+      if (selectedType === "privato" && !clienteHasPrivato(c)) return false;
+
+      if (selectedMonth === "prossimi_30" || selectedMonth === "prossimi_60") {
+        const hasEventoInRange = (c.eventi || []).some((ev) => {
+          const data = parseEventDate(ev.data);
+          return data ? data.getTime() >= today.getTime() && data.getTime() <= rangeEnd.getTime() : false;
+        });
+        if (!hasEventoInRange) return false;
+      } else if (selectedMonth !== "all") {
+        const hasMese = (c.eventi || []).some((ev) => eventMonthKey(ev.data) === selectedMonth);
+        if (!hasMese) return false;
+      }
+
+      return true;
+    });
+  }, [clienti, search, selectedMonth, selectedType]);
 
   const totalClients = clienti.length;
   const clubMembers = clienti.filter((c) => c.isClub).length;
@@ -329,8 +459,68 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
               onChange={(e) => setSearch(e.target.value)}
               style={{ padding: "0.7rem 1.2rem", borderRadius: "8px", border: "1px solid #ddd", width: "320px", fontSize: "0.95rem" }}
             />
-            <span style={{ color: "#777", fontSize: "0.9rem" }}>
-              Trovati: <strong>{filtered.length}</strong> clienti
+            <label style={{ display: "flex", flexDirection: "column", gap: "0.2rem", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.6px", fontWeight: 700, color: "#8a847c" }}>
+              Mese evento
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                style={{
+                  padding: "0.62rem 0.9rem",
+                  borderRadius: "8px",
+                  border: "1px solid #ddd",
+                  background: "#fff",
+                  color: "#514d48",
+                  fontSize: "0.9rem",
+                  fontWeight: 600,
+                  minWidth: "190px",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="all">Tutti i Mesi</option>
+                <option value="prossimi_30">Prossimi 30 giorni</option>
+                <option value="prossimi_60">Prossimi 60 giorni</option>
+                {monthOptions.map((key) => (
+                  <option key={key} value={key}>
+                    {formatMonthLabel(key)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: "0.2rem", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.6px", fontWeight: 700, color: "#8a847c" }}>
+              Tipo evento
+              <select
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value as "all" | "wedding" | "privato")}
+                style={{
+                  padding: "0.62rem 0.9rem",
+                  borderRadius: "8px",
+                  border: "1px solid #ddd",
+                  background: "#fff",
+                  color: "#514d48",
+                  fontSize: "0.9rem",
+                  fontWeight: 600,
+                  minWidth: "190px",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="all">Tutti i tipi</option>
+                <option value="wedding">Solo Matrimoni / Sposi</option>
+                <option value="privato">Solo Eventi Privati</option>
+              </select>
+            </label>
+            <span
+              style={{
+                alignSelf: "flex-end",
+                padding: "0.62rem 1rem",
+                borderRadius: "8px",
+                background: "#fff7ed",
+                border: "1px solid #ffedd5",
+                color: "#c2410c",
+                fontSize: "0.9rem",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Trovati: <strong>{filtered.length}</strong> {filtered.length === 1 ? "cliente" : "clienti"}
             </span>
           </div>
 
@@ -468,19 +658,42 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                   <td style={{ padding: "0.9rem 0.7rem" }}>
                     <small style={{ display: "block", color: "#6a6764", fontSize: "0.78rem" }}>{c.email || "—"}</small>
                     {c.telefono ? (
-                      <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", marginTop: "0.2rem", flexWrap: "wrap" }}>
-                        <a href={`tel:${c.telefono}`} style={{ fontSize: "0.78rem", color: "#514d48", fontWeight: 700, textDecoration: "none" }}>
-                          📞 {c.telefono}
-                        </a>
+                      <>
+                        <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", marginTop: "0.2rem", flexWrap: "wrap" }}>
+                          <a href={`tel:${c.telefono}`} style={{ fontSize: "0.78rem", color: "#514d48", fontWeight: 700, textDecoration: "none" }}>
+                            📞 {c.telefono}
+                          </a>
+                          <a
+                            href={whatsappHref(c.telefono)}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ fontSize: "0.78rem", color: "#16a34a", fontWeight: 700, textDecoration: "none" }}
+                          >
+                            💬 WhatsApp
+                          </a>
+                        </div>
                         <a
-                          href={whatsappHref(c.telefono)}
+                          href={buildWhatsAppInviteUrl(c.telefono, c)}
                           target="_blank"
                           rel="noreferrer"
-                          style={{ fontSize: "0.78rem", color: "#16a34a", fontWeight: 700, textDecoration: "none" }}
+                          title={`Invia a ${c.nome} l'invito WhatsApp per fissare la visita in villa`}
+                          style={{
+                            display: "inline-block",
+                            marginTop: "0.4rem",
+                            padding: "0.32rem 0.7rem",
+                            borderRadius: 999,
+                            background: "#16a34a",
+                            color: "#ffffff",
+                            fontSize: "0.74rem",
+                            fontWeight: 700,
+                            textDecoration: "none",
+                            whiteSpace: "nowrap",
+                            boxShadow: "0 2px 6px rgba(22,163,74,0.25)",
+                          }}
                         >
-                          💬 WhatsApp
+                          💬 Fissa Visita WA
                         </a>
-                      </div>
+                      </>
                     ) : (
                       <small style={{ color: "#a8a29e" }}>Telefono non disponibile</small>
                     )}

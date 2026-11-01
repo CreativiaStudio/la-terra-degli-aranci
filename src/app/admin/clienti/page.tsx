@@ -134,6 +134,16 @@ export default async function ClientiPage() {
     else quotesByClient.set(cid, [q]);
   }
 
+  /* Indicizza gli eventi Google Calendar già associati a un cliente del CRM. */
+  const gcalEventsByClient = new Map<string, any[]>();
+  for (const g of store.google_calendar_events || []) {
+    const cid = String(g?.client_id || "").trim();
+    if (!cid) continue;
+    const list = gcalEventsByClient.get(cid);
+    if (list) list.push(g);
+    else gcalEventsByClient.set(cid, [g]);
+  }
+
   const signedContracts = (store.signed_contracts || []).filter(Boolean);
   const sixtyDaysMs = 60 * 24 * 60 * 60 * 1000;
   const nowMs = new Date().getTime();
@@ -186,6 +196,45 @@ export default async function ClientiPage() {
         titolo: deriveEventTitle(q),
         data: data || null,
         formula: formulaLabel(q),
+        stage: stage.stage,
+        stageLabel: stage.label,
+        badgeColor: stage.badgeColor,
+      });
+    }
+
+    /* Eventi importati da Google Calendar: completano lo storico del cliente
+       e le date filtrabili per mese anche quando non esiste una quote collegata. */
+    for (const g of gcalEventsByClient.get(cid) || []) {
+      const data = onlyDate(g?.start);
+      if (!data) continue;
+
+      const summaryText = `${g?.summary || ""} ${g?.description || ""}`.toLowerCase();
+      const isWedding = /\b(matrimonio|sposi|nozze)\b/.test(summaryText);
+      const isVerbal = Boolean(g?.is_verbal_confirmation);
+      const pseudoQuote = {
+        id: g?.id,
+        status: isVerbal ? "opzione" : "firmato",
+        data_evento: data,
+        tipo_evento: isWedding ? "wedding" : "eventi",
+        titolo: g?.summary,
+        note: g?.description,
+      };
+      const stage = deriveEventStage(pseudoQuote, { today, isSigned: !isVerbal });
+      const location = String(g?.location || "");
+      const formula =
+        location === "sala_tufo"
+          ? "Sala Tufo"
+          : location === "sala_bianca"
+            ? "Sala Bianca"
+            : location === "villa_pagodina"
+              ? "Villa Pagodina"
+              : "Intera Location";
+
+      eventi.push({
+        id: String(g?.id || g?.gcal_id || `gcal-${data}`),
+        titolo: deriveEventTitle(pseudoQuote),
+        data,
+        formula,
         stage: stage.stage,
         stageLabel: stage.label,
         badgeColor: stage.badgeColor,
