@@ -1,5 +1,5 @@
 import { getStore } from "@/lib/localDb";
-import { getQuotesFast } from "@/lib/dataHelper";
+import { getQuotesFast, getClientsFast } from "@/lib/dataHelper";
 import { getOpenDayAdminData } from "@/lib/openDayCloudSync";
 import { computeEventLedger } from "@/lib/eventLedger";
 import { deriveEventStage } from "@/lib/eventStage";
@@ -76,10 +76,11 @@ function matchesSignedContract(record: any, quote: any): boolean {
 }
 
 export default async function ClientiPage() {
-  const [store, quotes, openDayData] = await Promise.all([
+  const [store, quotes, openDayData, supabaseClients] = await Promise.all([
     Promise.resolve(getStore()),
     getQuotesFast(),
-    getOpenDayAdminData().catch(() => ({ openDayClients: [] }))
+    getOpenDayAdminData().catch(() => ({ openDayClients: [] })),
+    getClientsFast().catch(() => [])
   ]);
   const today = new Date().toISOString().slice(0, 10);
 
@@ -102,10 +103,13 @@ export default async function ClientiPage() {
     else changesByQuote.set(key, [c]);
   }
 
-  /* Unione clienti: anagrafica locale + snapshot presenti nelle quote (Supabase) + Open Day Cloud R2. */
+  /* Unione clienti: Supabase (fonte primaria) + anagrafica locale + snapshot nelle quote + Open Day R2. */
   const clientMap = new Map<string, any>();
+  for (const sc of supabaseClients || []) {
+    if (sc && sc.id) clientMap.set(String(sc.id), sc);
+  }
   for (const c of store.clients || []) {
-    if (c && c.id) clientMap.set(String(c.id), c);
+    if (c && c.id && !clientMap.has(String(c.id))) clientMap.set(String(c.id), c);
   }
   for (const q of quotes) {
     const cid = String(q?.client_id || q?.clients?.id || "").trim();

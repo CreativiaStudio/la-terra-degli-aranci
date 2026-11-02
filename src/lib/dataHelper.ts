@@ -47,10 +47,36 @@ export function mapServiceCatalogItemToSupabaseRow(item: ServiceCatalogItem): Re
   };
 }
 
-export async function getQuotesFast(): Promise<any[]> {
-  // Timeout iper-veloce a 150ms per caricamenti istantanei (evita l'attesa di rete/DNS)
+export async function getClientsFast(): Promise<any[]> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 150);
+  const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+  try {
+    const supabase = getServiceSupabase();
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .abortSignal(controller.signal);
+
+    clearTimeout(timeoutId);
+
+    if (!error && data && data.length > 0) {
+      return data;
+    }
+  } catch (e) {
+    clearTimeout(timeoutId);
+  }
+
+  // Fallback sul DB locale se Supabase è momentaneamente irraggiungibile
+  const store = getAllQuotesLocal(); // assicura caricamento
+  return [];
+}
+
+export async function getQuotesFast(): Promise<any[]> {
+  // Timeout di 2500ms per caricamento robusto e prioritario da Supabase
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2500);
 
   try {
     const supabase = getServiceSupabase();
@@ -69,13 +95,13 @@ export async function getQuotesFast(): Promise<any[]> {
     clearTimeout(timeoutId);
   }
 
-  // Fallback istantaneo (< 5ms) sul DB locale
+  // Fallback istantaneo sul DB locale
   return getAllQuotesLocal();
 }
 
 export async function getWeddingDiariesFast(): Promise<any[]> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 150);
+  const timeoutId = setTimeout(() => controller.abort(), 2500);
 
   try {
     const supabase = getServiceSupabase();

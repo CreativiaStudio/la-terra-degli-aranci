@@ -12,6 +12,7 @@ import {
 import { checkVenueConflict } from '@/lib/eventStage';
 import { SEMI_ESCLUSIVA_FORMULE } from '@/lib/contractMeta';
 import { generateSignature } from '@/lib/crypto';
+import { getServiceSupabase } from '@/lib/supabase';
 
 /** Formula di concessione selezionata dall'operatore nella Rubrica Clienti. */
 export type ClientiFormula = 'esclusiva' | 'sala_bianca' | 'sala_tufo';
@@ -106,6 +107,27 @@ export async function createEventForClientAction(
       return { success: false, error: 'Cliente non trovato nella rubrica.' };
     }
 
+    // Dual-write immediato su Supabase per garantire persistenza cloud totale
+    try {
+      const supabase = getServiceSupabase();
+      await supabase.from('quotes').upsert({
+        id: saved.quoteId,
+        client_id: clientId,
+        tipo_evento: tipoEvento,
+        data_evento: dataEvento,
+        turno,
+        tipo_esclusiva: isEsclusiva ? 'esclusiva' : 'semi_esclusiva',
+        formula_opzione: formula,
+        spazi_riservati: spazi,
+        prezzo: 0,
+        totale_calcolato: 0,
+        status: 'opzione',
+        items: [],
+      });
+    } catch (e: any) {
+      console.warn('Avviso sync Supabase nuova quote evento:', e?.message || e);
+    }
+
     revalidatePath('/admin/clienti');
     revalidatePath('/admin/eventi');
     revalidatePath('/admin/cassa');
@@ -156,6 +178,14 @@ export async function updateClientAction(
     const updated = updateClientLocal(id, patch);
     if (!updated) return { success: false, error: 'Cliente non trovato in rubrica.' };
 
+    // Dual-write atomico su Supabase: garantisce persistenza cloud immediata
+    try {
+      const supabase = getServiceSupabase();
+      await supabase.from('clients').upsert({ id, ...patch, updated_at: new Date().toISOString() });
+    } catch (e: any) {
+      console.warn('Avviso sync Supabase client:', e?.message || e);
+    }
+
     revalidateCliente(id);
     return { success: true };
   } catch (err: unknown) {
@@ -198,6 +228,14 @@ export async function updateClientTagsAction(
     const cleanTags = cleanClientTags(tags);
     const updated = updateClientLocal(id, { tags: cleanTags });
     if (!updated) return { success: false, error: 'Cliente non trovato in rubrica.' };
+
+    // Dual-write atomico su Supabase per le etichette
+    try {
+      const supabase = getServiceSupabase();
+      await supabase.from('clients').update({ tags: cleanTags, updated_at: new Date().toISOString() }).eq('id', id);
+    } catch (e: any) {
+      console.warn('Avviso sync Supabase tags:', e?.message || e);
+    }
 
     revalidateCliente(id);
     revalidatePath('/admin/clienti');
@@ -315,6 +353,14 @@ export async function updateClientPreferencesAction(
 
     const updated = updateClientLocal(id, patch);
     if (!updated) return { success: false, error: 'Cliente non trovato in rubrica.' };
+
+    // Dual-write atomico su Supabase: garantisce persistenza cloud immediata
+    try {
+      const supabase = getServiceSupabase();
+      await supabase.from('clients').upsert({ id, ...patch, updated_at: new Date().toISOString() });
+    } catch (e: any) {
+      console.warn('Avviso sync Supabase client:', e?.message || e);
+    }
 
     revalidateCliente(id);
     return { success: true };
