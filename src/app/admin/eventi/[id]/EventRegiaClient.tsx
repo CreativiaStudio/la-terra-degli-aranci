@@ -9,6 +9,7 @@ import type {
   Payment,
   PaymentMethod,
   Company,
+  PaymentNature,
   EventLedger,
   QuoteChange,
 } from "@/lib/eventLedger";
@@ -183,6 +184,7 @@ export default function EventRegiaClient({
     data: string;
     metodo: PaymentMethod;
     incassato_da: Company;
+    natura: PaymentNature;
     riferimento: string;
     note: string;
   }>({
@@ -190,6 +192,7 @@ export default function EventRegiaClient({
     data: today,
     metodo: "bonifico",
     incassato_da: "santo_stefano",
+    natura: "ufficiale",
     riferimento: "",
     note: "",
   });
@@ -216,6 +219,7 @@ export default function EventRegiaClient({
       importo_cents: Math.round(amount * 100),
       metodo: payForm.metodo,
       incassato_da: payForm.incassato_da,
+      natura: payForm.natura,
       riferimento: payForm.riferimento || undefined,
       note: payForm.note || undefined,
     });
@@ -225,7 +229,7 @@ export default function EventRegiaClient({
       return;
     }
     setPayOpen(false);
-    setPayForm({ importo: "", data: today, metodo: "bonifico", incassato_da: "santo_stefano", riferimento: "", note: "" });
+    setPayForm({ importo: "", data: today, metodo: "bonifico", incassato_da: "santo_stefano", natura: "ufficiale", riferimento: "", note: "" });
     router.refresh();
   };
 
@@ -408,6 +412,250 @@ export default function EventRegiaClient({
           />
         </div>
 
+        {/* STATO AVANZAMENTO PAGAMENTI & SCADENZARIO RATE (Fascicolo Unico Cockpit) */}
+        {(() => {
+          const incassato = ledger.incassato_cents || 0;
+          const concordato = ledger.concordato_cents || 0;
+          const residuo = ledger.residuo_cents || 0;
+          const pct = concordato > 0 ? Math.min(100, Math.round((incassato / concordato) * 100)) : (incassato > 0 ? 100 : 0);
+
+          const caparra = ledger.rate.find((r) => r.key === "caparra");
+          const secondo = ledger.rate.find((r) => r.key === "secondo_acconto");
+          const saldo = ledger.rate.find((r) => r.key === "saldo");
+
+          const getDaysLeft = (scadenzaIso?: string | null) => {
+            if (!scadenzaIso) return null;
+            const diff = Math.ceil((new Date(scadenzaIso).getTime() - new Date(today).getTime()) / (1000 * 3600 * 24));
+            return Number.isFinite(diff) ? diff : null;
+          };
+
+          return (
+            <div
+              style={{
+                marginTop: "1.4rem",
+                padding: "1.2rem 1.4rem",
+                borderRadius: "14px",
+                background: "#ffffff",
+                border: "1px solid #e8e2d9",
+                boxShadow: "0 4px 18px rgba(0,0,0,0.03)",
+              }}
+            >
+              {/* Barra di avanzamento globale */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "0.6rem", marginBottom: "0.6rem" }}>
+                <div>
+                  <span style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 800, color: "#8a847c" }}>
+                    FASCICOLO ECONOMICO · COCKPIT INCASSI
+                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginTop: "0.2rem" }}>
+                    <h3 style={{ margin: 0, fontSize: "1.15rem", color: "#1e1b18" }}>
+                      💳 Stato Avanzamento Pagamenti
+                    </h3>
+                    <span
+                      style={{
+                        fontSize: "0.75rem",
+                        fontWeight: 800,
+                        padding: "0.2rem 0.6rem",
+                        borderRadius: "999px",
+                        background: pct === 100 ? "#dcfce7" : pct >= 50 ? "#fef3c7" : "#e0e7ff",
+                        color: pct === 100 ? "#166534" : pct >= 50 ? "#92400e" : "#3730a3",
+                      }}
+                    >
+                      {pct}% INCASSATO
+                    </span>
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <span style={{ fontSize: "0.82rem", color: "#6a6764" }}>
+                    Incassato <strong>{formatEuro(incassato / 100)}</strong> su {formatEuro(concordato / 100)}
+                  </span>
+                  <span style={{ fontSize: "0.82rem", color: residuo > 0 ? "#e58c2c" : "#16a34a", fontWeight: 700, marginLeft: "0.6rem" }}>
+                    (Residuo: {formatEuro(residuo / 100)})
+                  </span>
+                </div>
+              </div>
+
+              {/* Visual Track */}
+              <div
+                style={{
+                  width: "100%",
+                  height: "14px",
+                  borderRadius: "999px",
+                  background: "#f1f5f9",
+                  overflow: "hidden",
+                  border: "1px solid #e2e8f0",
+                  marginBottom: "1.1rem",
+                }}
+              >
+                <div
+                  style={{
+                    width: `${pct}%`,
+                    height: "100%",
+                    borderRadius: "999px",
+                    background: pct === 100
+                      ? "#16a34a"
+                      : "linear-gradient(90deg, #16a34a 0%, #e58c2c 100%)",
+                    transition: "width 0.4s ease",
+                  }}
+                />
+              </div>
+
+              {/* Griglia 3 Milestones / Rate */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "0.8rem" }}>
+                {/* 1° Acconto */}
+                {(() => {
+                  const r = caparra;
+                  const isSaldata = r ? r.stato === "saldata" : false;
+                  return (
+                    <div
+                      style={{
+                        padding: "0.85rem",
+                        borderRadius: "10px",
+                        background: isSaldata ? "#f0fdf4" : "#fdfbf7",
+                        border: `1.5px solid ${isSaldata ? "#bbf7d0" : "#eedec8"}`,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.3rem" }}>
+                        <div>
+                          <div style={{ fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", color: "#2563eb", letterSpacing: "0.5px" }}>
+                            1. Caparra Confirmatoria
+                          </div>
+                          <div style={{ fontSize: "0.74rem", color: "#64748b" }}>Santo Stefano S.r.l.</div>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: "0.68rem",
+                            fontWeight: 800,
+                            padding: "0.2rem 0.5rem",
+                            borderRadius: "999px",
+                            background: isSaldata ? "#dcfce7" : "#fee2e2",
+                            color: isSaldata ? "#166534" : "#b91c1c",
+                          }}
+                        >
+                          {isSaldata ? "✅ Saldata" : "⚠️ Da Saldare"}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "#1e1b18" }}>
+                        {formatEuro((r?.importo_cents || 150000) / 100)}
+                      </div>
+                      <div style={{ fontSize: "0.74rem", color: "#6a6764", marginTop: "0.2rem" }}>
+                        Coperto: <strong>{formatEuro((r?.coperto_cents || 0) / 100)}</strong> · Alla firma
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* 2° Acconto */}
+                {(() => {
+                  const r = secondo;
+                  if (!r || r.importo_cents <= 0) return null;
+                  const isSaldata = r.stato === "saldata";
+                  const daysLeft = getDaysLeft(r.scadenza);
+                  const isOverdue = daysLeft !== null && daysLeft < 0 && !isSaldata;
+                  const isUrgent = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30 && !isSaldata;
+
+                  return (
+                    <div
+                      style={{
+                        padding: "0.85rem",
+                        borderRadius: "10px",
+                        background: isSaldata ? "#f0fdf4" : isOverdue ? "#fef2f2" : isUrgent ? "#fffbeb" : "#faf8f5",
+                        border: `1.5px solid ${isSaldata ? "#bbf7d0" : isOverdue ? "#fca5a5" : isUrgent ? "#fde68a" : "#e2e8f0"}`,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.3rem" }}>
+                        <div>
+                          <div style={{ fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", color: "#7c3aed", letterSpacing: "0.5px" }}>
+                            2. Secondo Acconto
+                          </div>
+                          <div style={{ fontSize: "0.74rem", color: "#64748b" }}>Iovino Banqueting S.r.l.</div>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: "0.68rem",
+                            fontWeight: 800,
+                            padding: "0.2rem 0.5rem",
+                            borderRadius: "999px",
+                            background: isSaldata ? "#dcfce7" : isOverdue ? "#fee2e2" : isUrgent ? "#ffedd5" : "#f1f5f9",
+                            color: isSaldata ? "#166534" : isOverdue ? "#b91c1c" : isUrgent ? "#c2410c" : "#475569",
+                          }}
+                        >
+                          {isSaldata
+                            ? "✅ Saldata"
+                            : isOverdue
+                            ? `🚨 Scaduta (${Math.abs(daysLeft!)}gg fa)`
+                            : isUrgent
+                            ? `⏳ Scade in ${daysLeft}gg`
+                            : "📆 In programma"}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "#1e1b18" }}>
+                        {formatEuro(r.importo_cents / 100)}
+                      </div>
+                      <div style={{ fontSize: "0.74rem", color: "#6a6764", marginTop: "0.2rem" }}>
+                        Coperto: <strong>{formatEuro(r.coperto_cents / 100)}</strong> · A -6 mesi ({formatDate(r.scadenza)})
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Saldo Finale */}
+                {(() => {
+                  const r = saldo;
+                  if (!r || r.importo_cents <= 0) return null;
+                  const isSaldata = r.stato === "saldata";
+                  const daysLeft = getDaysLeft(r.scadenza);
+                  const isOverdue = daysLeft !== null && daysLeft < 0 && !isSaldata;
+                  const isUrgent = daysLeft !== null && daysLeft >= 0 && daysLeft <= 15 && !isSaldata;
+
+                  return (
+                    <div
+                      style={{
+                        padding: "0.85rem",
+                        borderRadius: "10px",
+                        background: isSaldata ? "#f0fdf4" : isOverdue ? "#fef2f2" : isUrgent ? "#fffbeb" : "#faf8f5",
+                        border: `1.5px solid ${isSaldata ? "#bbf7d0" : isOverdue ? "#fca5a5" : isUrgent ? "#fde68a" : "#e2e8f0"}`,
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.3rem" }}>
+                        <div>
+                          <div style={{ fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", color: "#059669", letterSpacing: "0.5px" }}>
+                            3. Saldo Finale
+                          </div>
+                          <div style={{ fontSize: "0.74rem", color: "#64748b" }}>Ripartito SS/Iovino</div>
+                        </div>
+                        <span
+                          style={{
+                            fontSize: "0.68rem",
+                            fontWeight: 800,
+                            padding: "0.2rem 0.5rem",
+                            borderRadius: "999px",
+                            background: isSaldata ? "#dcfce7" : isOverdue ? "#fee2e2" : isUrgent ? "#ffedd5" : "#f1f5f9",
+                            color: isSaldata ? "#166534" : isOverdue ? "#b91c1c" : isUrgent ? "#c2410c" : "#475569",
+                          }}
+                        >
+                          {isSaldata
+                            ? "✅ Saldato"
+                            : isOverdue
+                            ? `🚨 Scaduto (${Math.abs(daysLeft!)}gg fa)`
+                            : isUrgent
+                            ? `⏳ Scade in ${daysLeft}gg`
+                            : "📆 A chiusura evento"}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "1.15rem", fontWeight: 800, color: "#1e1b18" }}>
+                        {formatEuro(r.importo_cents / 100)}
+                      </div>
+                      <div style={{ fontSize: "0.74rem", color: "#6a6764", marginTop: "0.2rem" }}>
+                        Coperto: <strong>{formatEuro(r.coperto_cents / 100)}</strong> · A -10/15gg ({formatDate(r.scadenza)})
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Azioni rapide */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.6rem", marginTop: "1.4rem" }}>
           <ActionButton primary onClick={() => { setPayError(""); setPayOpen(true); }}>
@@ -541,6 +789,21 @@ export default function EventRegiaClient({
                 <option value="santo_stefano">Santo Stefano S.r.l.</option>
                 <option value="iovino">Iovino Banqueting S.r.l.</option>
               </select>
+            </Field>
+            <Field label="Natura Incasso * (Fiscale vs Extra)">
+              <select
+                value={payForm.natura}
+                onChange={(e) => setPayForm({ ...payForm, natura: e.target.value as PaymentNature })}
+                style={{ ...inputStyle, fontWeight: 700, color: payForm.natura === "extra" ? "#92400e" : "#1e40af" }}
+              >
+                <option value="ufficiale">🏛️ Contratto Ufficiale (A scomputo preventivo / Ricevuta Fiscale)</option>
+                <option value="extra">🌿 Servizi Extra / Cassa Fornitori (Fuori contratto)</option>
+              </select>
+              <span style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "0.2rem", display: "block" }}>
+                {payForm.natura === "ufficiale"
+                  ? "✓ Scala direttamente dal saldo preventivo e dalle rate ufficiali (anche per incassi contanti)."
+                  : "✓ Incasso accreditato nella cassa contanti extra per fornitori o servizi non a contratto."}
+              </span>
             </Field>
             <Field label="Riferimento / CRO (opzionale)">
               <input type="text" value={payForm.riferimento} onChange={(e) => setPayForm({ ...payForm, riferimento: e.target.value })} style={inputStyle} />
@@ -1354,7 +1617,21 @@ function CassaTab({
                     <td style={{ padding: "0.5rem", textAlign: "right", fontWeight: 700, textDecoration: cancelled ? "line-through" : "none" }}>
                       {formatEuro(p.importo_cents / 100)}
                     </td>
-                    <td style={{ padding: "0.5rem" }}>{METODO_LABELS[p.metodo] ?? p.metodo}</td>
+                    <td style={{ padding: "0.5rem" }}>
+                      <div>{METODO_LABELS[p.metodo] ?? p.metodo}</div>
+                      <span style={{
+                        fontSize: "0.68rem",
+                        fontWeight: 700,
+                        padding: "0.15rem 0.45rem",
+                        borderRadius: "6px",
+                        background: p.natura === "extra" ? "#fef3c7" : "#dbeafe",
+                        color: p.natura === "extra" ? "#92400e" : "#1d4ed8",
+                        display: "inline-block",
+                        marginTop: "0.2rem"
+                      }}>
+                        {p.natura === "extra" ? "🌿 Extra" : "🏛️ Ufficiale"}
+                      </span>
+                    </td>
                     <td style={{ padding: "0.5rem" }}>{COMPANY_LABELS[p.incassato_da] ?? p.incassato_da}</td>
                     <td style={{ padding: "0.5rem", color: "#8a847c" }}>{cancelled ? `Annullato: ${p.annullato_motivo ?? ""}` : p.note || p.riferimento || "—"}</td>
                     <td style={{ padding: "0.5rem", textAlign: "right" }}>
@@ -1421,17 +1698,20 @@ function CassaTab({
           {/* Rendicontazione di Chiusura Cassa a 4 Totalizzatori (Call Direzione) */}
           {(() => {
             const validPayments = payments.filter((p) => p.stato !== "annullato");
+            const isOfficial = (p: Payment) => p.natura === "ufficiale" || (!p.natura && p.metodo !== "contanti");
+            const isExtra = (p: Payment) => p.natura === "extra" || (!p.natura && p.metodo === "contanti");
+
             const ssOfficial = validPayments
-              .filter((p) => p.incassato_da === "santo_stefano" && p.metodo !== "contanti")
+              .filter((p) => p.incassato_da === "santo_stefano" && isOfficial(p))
               .reduce((sum, p) => sum + p.importo_cents, 0);
             const iovinoOfficial = validPayments
-              .filter((p) => p.incassato_da === "iovino" && p.metodo !== "contanti")
+              .filter((p) => p.incassato_da === "iovino" && isOfficial(p))
               .reduce((sum, p) => sum + p.importo_cents, 0);
             const ssCash = validPayments
-              .filter((p) => p.incassato_da === "santo_stefano" && p.metodo === "contanti")
+              .filter((p) => p.incassato_da === "santo_stefano" && isExtra(p))
               .reduce((sum, p) => sum + p.importo_cents, 0);
             const iovinoCash = validPayments
-              .filter((p) => p.incassato_da === "iovino" && p.metodo === "contanti")
+              .filter((p) => p.incassato_da === "iovino" && isExtra(p))
               .reduce((sum, p) => sum + p.importo_cents, 0);
             const total4 = ssOfficial + iovinoOfficial + ssCash + iovinoCash;
 

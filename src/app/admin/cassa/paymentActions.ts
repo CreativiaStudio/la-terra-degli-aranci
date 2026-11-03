@@ -10,9 +10,11 @@ import {
 import {
   VALID_PAYMENT_METHODS,
   VALID_COMPANIES,
+  VALID_PAYMENT_NATURES,
   type Payment,
   type PaymentMethod,
   type Company,
+  type PaymentNature,
 } from '@/lib/eventLedger';
 import { logActivity, logError } from '@/lib/blackbox';
 
@@ -25,6 +27,8 @@ export interface RecordPaymentPayload {
   importo_cents: number;
   metodo: PaymentMethod;
   incassato_da: Company;
+  /** Natura dell'incasso: 'ufficiale' (a scomputo contratto/fattura) o 'extra' (cassa fornitori/fuori contratto) */
+  natura?: PaymentNature;
   riferimento?: string;
   note?: string;
   /** Utente che ha materialmente registrato l'incasso (default: 'admin'). */
@@ -129,12 +133,15 @@ export async function recordPaymentAction(
       return { success: false, error: 'Società incassante non ammessa' };
     }
 
+    const natura: PaymentNature = payload?.natura === 'extra' ? 'extra' : 'ufficiale';
+
     const payment = recordPaymentLocal({
       quote_id: quoteId,
       data_incasso: payload.data_incasso,
       importo_cents: importoCents,
       metodo,
       incassato_da: incassatoDa,
+      natura,
       riferimento: payload.riferimento,
       note: payload.note,
       registrato_da: String(payload.registrato_da || 'admin').trim() || 'admin',
@@ -146,7 +153,7 @@ export async function recordPaymentAction(
       category: 'CASSA',
       actor: 'Direzione Roberto',
       action: 'INCASSO_REGISTRATO',
-      message: `Incasso di € ${formatEuroCents(importoCents)} registrato il ${payload.data_incasso} su ${companyLabel(incassatoDa)}.`,
+      message: `Incasso [${natura.toUpperCase()}] di € ${formatEuroCents(importoCents)} registrato il ${payload.data_incasso} su ${companyLabel(incassatoDa)}.`,
       metadata: {
         paymentId: payment.id,
         quoteId,
@@ -154,6 +161,7 @@ export async function recordPaymentAction(
         data_incasso: payload.data_incasso,
         metodo,
         incassato_da: incassatoDa,
+        natura,
         riferimento: payload.riferimento ?? null,
         registrato_da: payment.registrato_da,
       },

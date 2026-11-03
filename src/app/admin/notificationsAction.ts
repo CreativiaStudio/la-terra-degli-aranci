@@ -17,6 +17,8 @@ import { getStore, type LocalStore } from "@/lib/localDb";
 import { getOpenDayCloudState } from "@/lib/openDayCloudSync";
 import { computeDiaryProgress } from "@/app/cliente/components/weddingDiaryFields";
 import { createDiaryShareToken } from "@/lib/magicLinkAuth";
+import { computeEventLedger } from "@/lib/eventLedger";
+import { formatEuro } from "@/lib/contractPayments";
 
 /* ------------------------------------------------------------------ */
 /* Tipi pubblici                                                       */
@@ -24,7 +26,7 @@ import { createDiaryShareToken } from "@/lib/magicLinkAuth";
 
 export interface AdminNotification {
   id: string;
-  tipo: "ticket_servizi" | "contratto_firmato" | "allegato_b" | "appuntamento" | "diary" | "openday";
+  tipo: "ticket_servizi" | "contratto_firmato" | "allegato_b" | "appuntamento" | "diary" | "openday" | "scadenza_rata";
   titolo: string;
   messaggio: string;
   data: string;
@@ -450,6 +452,74 @@ export async function getAdminNotificationsAction(): Promise<AdminNotification[]
       badgeBg: "#ffedd5",
       priorita: "alta",
     });
+  }
+
+  /* 7) Scadenze Rate e Acconti (Cassa & Calendario Pagamenti) --------- */
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const allPayments = Array.isArray(store.payments) ? store.payments : [];
+  const confirmedQuotesList = quotes.filter((q) => {
+    const status = String(q?.status || "").toLowerCase();
+    const idKey = String(q?.id || "").toLowerCase();
+    return (
+      status === "firmato" ||
+      status === "confermato" ||
+      signedQuoteIds.has(idKey)
+    );
+  });
+
+  for (const quote of confirmedQuotesList) {
+    if (!quote?.id) continue;
+    const qid = String(quote.id);
+    const qidLower = qid.toLowerCase();
+    const evPayments = allPayments.filter(
+      (p) => p && p.quote_id && p.quote_id.toLowerCase() === qidLower
+    );
+    const evChanges = quoteChanges.filter(
+      (c) => c && c.quote_id && String(c.quote_id).toLowerCase() === qidLower && c.status === "confermato"
+    );
+
+    const ledger = computeEventLedger(quote as any, evPayments, evChanges, [], todayIso);
+    const coupleName = resolveQuoteName(store, qid, "Coppia Sposi");
+
+    for (const rata of ledger.rate) {
+      if (rata.stato === "saldata" || !rata.scadenza) continue;
+      const scadenzaTime = new Date(rata.scadenza).getTime();
+      const todayTime = new Date(todayIso).getTime();
+      const diffDays = Math.ceil((scadenzaTime - todayTime) / (1000 * 3600 * 24));
+      const residuoRataEuro = Math.max(0, (rata.importo_cents - rata.coperto_cents) / 100);
+
+      // Scadenza superata (in ritardo)
+      if (diffDays < 0) {
+        notifications.push({
+          id: `scadenza-overdue:${qid}:${rata.key}`,
+          tipo: "scadenza_rata",
+          titolo: "🚨 Scadenza Rata Superata",
+          messaggio: `${coupleName}: ${rata.label} di € ${formatEuro(residuoRataEuro)} scaduta da ${Math.abs(diffDays)} giorni!`,
+          data: String(rata.scadenza),
+          link: `/admin/eventi/${qid}?tab=cassa`,
+          badgeLabel: "Scaduta",
+          badgeColor: "#b91c1c",
+          badgeBg: "#fee2e2",
+          priorita: "alta",
+        });
+      }
+      // Scadenza imminente entro 30 giorni
+      else if (diffDays <= 30) {
+        const isVeryUrgent = diffDays <= 7;
+        notifications.push({
+          id: `scadenza-upcoming:${qid}:${rata.key}`,
+          tipo: "scadenza_rata",
+          titolo: diffDays === 0 ? "📅 Scadenza Rata OGGI" : `⏳ Scadenza Rata tra ${diffDays} giorni`,
+          messaggio: `${coupleName}: ${rata.label} di € ${formatEuro(residuoRataEuro)} in scadenza il ${rata.scadenza}`,
+          data: String(rata.scadenza),
+          link: `/admin/eventi/${qid}?tab=cassa`,
+          badgeLabel: isVeryUrgent ? "Urgente" : "In scadenza",
+          badgeColor: isVeryUrgent ? "#c2410c" : "#d97706",
+          badgeBg: isVeryUrgent ? "#ffedd5" : "#fef3c7",
+          priorita: diffDays <= 15 ? "alta" : "media",
+        });
+      }
+    }
   }
 
   /* Ordinamento: dalla più recente alla più vecchia ----------------- */

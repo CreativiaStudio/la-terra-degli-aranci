@@ -22,6 +22,7 @@ import { sixMonthsBefore } from '@/lib/contractPayments';
 
 export type PaymentMethod = 'bonifico' | 'contanti' | 'assegno' | 'pos' | 'altro';
 export type Company = 'santo_stefano' | 'iovino';
+export type PaymentNature = 'ufficiale' | 'extra';
 
 /** Metodi ammessi, riutilizzabili dalle Server Actions per la validazione. */
 export const VALID_PAYMENT_METHODS: readonly PaymentMethod[] = [
@@ -35,6 +36,9 @@ export const VALID_PAYMENT_METHODS: readonly PaymentMethod[] = [
 /** Società ammesse dal modello (denaro realmente incassato). */
 export const VALID_COMPANIES: readonly Company[] = ['santo_stefano', 'iovino'];
 
+/** Natura dell'incasso: ufficiale (a saldo contratto/fattura) vs extra (fuori contratto/cassa fornitori). */
+export const VALID_PAYMENT_NATURES: readonly PaymentNature[] = ['ufficiale', 'extra'];
+
 /**
  * Registrazione di un incasso reale.
  * Append-only: non viene mai eliminato fisicamente, solo annullato con motivo.
@@ -46,6 +50,7 @@ export interface Payment {
   importo_cents: number; // intero > 0 in centesimi
   metodo: PaymentMethod;
   incassato_da: Company;
+  natura?: PaymentNature; // 'ufficiale' | 'extra' (default 'ufficiale')
   riferimento?: string; // es. CRO bonifico, numero assegno
   note?: string;
   stato: 'valido' | 'annullato';

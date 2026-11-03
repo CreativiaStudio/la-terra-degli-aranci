@@ -63,6 +63,7 @@ export interface CassaPaymentRow {
   importo_cents: number;
   metodo: string;
   incassato_da: string;
+  natura?: "ufficiale" | "extra";
   riferimento?: string;
   note?: string;
   stato: "valido" | "annullato";
@@ -248,6 +249,7 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
   const [incImporto, setIncImporto] = useState("");
   const [incMetodo, setIncMetodo] = useState<Metodo>("bonifico");
   const [incCompany, setIncCompany] = useState<Company>("santo_stefano");
+  const [incNatura, setIncNatura] = useState<"ufficiale" | "extra">("ufficiale");
   const [incRegistrato, setIncRegistrato] = useState("Roberto Sola");
   const [incRif, setIncRif] = useState("");
   const [incNote, setIncNote] = useState("");
@@ -260,6 +262,7 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
     setIncImporto("");
     setIncMetodo("bonifico");
     setIncCompany("santo_stefano");
+    setIncNatura("ufficiale");
     setIncRegistrato("Roberto Sola");
     setIncRif("");
     setIncNote("");
@@ -286,6 +289,7 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
         importo_cents: Math.round(importo * 100),
         metodo: incMetodo,
         incassato_da: incCompany,
+        natura: incNatura,
         riferimento: incRif.trim() || undefined,
         note: incNote.trim() || undefined,
         registrato_da: incRegistrato.trim() || "admin",
@@ -480,7 +484,21 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                       <td style={{ padding: "0.8rem 0.6rem", textAlign: "right", fontWeight: 700, color: annullato ? "#9a9a9a" : "#16a34a", whiteSpace: "nowrap" }}>
                         {formatEuro(p.importo_cents / 100)}
                       </td>
-                      <td style={{ padding: "0.8rem 0.6rem" }}>{METHOD_LABELS[p.metodo] || p.metodo}</td>
+                      <td style={{ padding: "0.8rem 0.6rem" }}>
+                        <div>{METHOD_LABELS[p.metodo] || p.metodo}</div>
+                        <span style={{
+                          fontSize: "0.68rem",
+                          fontWeight: 700,
+                          padding: "0.15rem 0.45rem",
+                          borderRadius: "6px",
+                          background: p.natura === "extra" ? "#fef3c7" : "#dbeafe",
+                          color: p.natura === "extra" ? "#92400e" : "#1d4ed8",
+                          display: "inline-block",
+                          marginTop: "0.2rem"
+                        }}>
+                          {p.natura === "extra" ? "🌿 Extra" : "🏛️ Ufficiale"}
+                        </span>
+                      </td>
                       <td style={{ padding: "0.8rem 0.6rem", fontSize: "0.82rem" }}>{COMPANY_LABELS[p.incassato_da] || p.incassato_da}</td>
                       <td style={{ padding: "0.8rem 0.6rem", fontSize: "0.82rem" }}>{p.registrato_da}</td>
                       <td style={{ padding: "0.8rem 0.6rem", fontSize: "0.8rem", color: "#78716c", maxWidth: "220px" }}>
@@ -781,17 +799,20 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
               {/* Rendicontazione di Chiusura Cassa a 4 Totalizzatori (Call Direzione 23/10) */}
               {(() => {
                 const eventPayments = payments.filter((p) => p.quote_id === selectedEvent.id && p.stato === "valido");
+                const isOfficial = (p: CassaPaymentRow) => p.natura === "ufficiale" || (!p.natura && p.metodo !== "contanti");
+                const isExtra = (p: CassaPaymentRow) => p.natura === "extra" || (!p.natura && p.metodo === "contanti");
+
                 const ssOfficial = eventPayments
-                  .filter((p) => p.incassato_da === "santo_stefano" && p.metodo !== "contanti")
+                  .filter((p) => p.incassato_da === "santo_stefano" && isOfficial(p))
                   .reduce((sum, p) => sum + p.importo_cents, 0);
                 const iovinoOfficial = eventPayments
-                  .filter((p) => p.incassato_da === "iovino" && p.metodo !== "contanti")
+                  .filter((p) => p.incassato_da === "iovino" && isOfficial(p))
                   .reduce((sum, p) => sum + p.importo_cents, 0);
                 const ssCash = eventPayments
-                  .filter((p) => p.incassato_da === "santo_stefano" && p.metodo === "contanti")
+                  .filter((p) => p.incassato_da === "santo_stefano" && isExtra(p))
                   .reduce((sum, p) => sum + p.importo_cents, 0);
                 const iovinoCash = eventPayments
-                  .filter((p) => p.incassato_da === "iovino" && p.metodo === "contanti")
+                  .filter((p) => p.incassato_da === "iovino" && isExtra(p))
                   .reduce((sum, p) => sum + p.importo_cents, 0);
                 const total4 = ssOfficial + iovinoOfficial + ssCash + iovinoCash;
 
@@ -959,7 +980,21 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                         <tr key={p.id} style={{ borderBottom: "1px solid #f0eee9" }}>
                           <td style={{ padding: "0.7rem 0.6rem", whiteSpace: "nowrap" }}>{formatDate(p.data_incasso)}</td>
                           <td style={{ padding: "0.7rem 0.6rem", textAlign: "right", fontWeight: 700, color: "#16a34a", whiteSpace: "nowrap" }}>{formatEuro(p.importo_cents / 100)}</td>
-                          <td style={{ padding: "0.7rem 0.6rem" }}>{METHOD_LABELS[p.metodo] || p.metodo}</td>
+                          <td style={{ padding: "0.7rem 0.6rem" }}>
+                            <div>{METHOD_LABELS[p.metodo] || p.metodo}</div>
+                            <span style={{
+                              fontSize: "0.68rem",
+                              fontWeight: 700,
+                              padding: "0.15rem 0.45rem",
+                              borderRadius: "6px",
+                              background: p.natura === "extra" ? "#fef3c7" : "#dbeafe",
+                              color: p.natura === "extra" ? "#92400e" : "#1d4ed8",
+                              display: "inline-block",
+                              marginTop: "0.2rem"
+                            }}>
+                              {p.natura === "extra" ? "🌿 Extra" : "🏛️ Ufficiale"}
+                            </span>
+                          </td>
                           <td style={{ padding: "0.7rem 0.6rem", fontSize: "0.82rem" }}>{COMPANY_LABELS[p.incassato_da] || p.incassato_da}</td>
                           <td style={{ padding: "0.7rem 0.6rem", fontSize: "0.8rem", color: "#78716c" }}>
                             {p.riferimento ? `Rif: ${p.riferimento}` : ""}
@@ -1041,17 +1076,20 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
               {/* Rendicontazione Globale a 4 Totalizzatori */}
               {(() => {
                 const validPayments = payments.filter((p) => p.stato === "valido");
+                const isOfficial = (p: CassaPaymentRow) => p.natura === "ufficiale" || (!p.natura && p.metodo !== "contanti");
+                const isExtra = (p: CassaPaymentRow) => p.natura === "extra" || (!p.natura && p.metodo === "contanti");
+
                 const ssOfficial = validPayments
-                  .filter((p) => p.incassato_da === "santo_stefano" && p.metodo !== "contanti")
+                  .filter((p) => p.incassato_da === "santo_stefano" && isOfficial(p))
                   .reduce((sum, p) => sum + p.importo_cents, 0);
                 const iovinoOfficial = validPayments
-                  .filter((p) => p.incassato_da === "iovino" && p.metodo !== "contanti")
+                  .filter((p) => p.incassato_da === "iovino" && isOfficial(p))
                   .reduce((sum, p) => sum + p.importo_cents, 0);
                 const ssCash = validPayments
-                  .filter((p) => p.incassato_da === "santo_stefano" && p.metodo === "contanti")
+                  .filter((p) => p.incassato_da === "santo_stefano" && isExtra(p))
                   .reduce((sum, p) => sum + p.importo_cents, 0);
                 const iovinoCash = validPayments
-                  .filter((p) => p.incassato_da === "iovino" && p.metodo === "contanti")
+                  .filter((p) => p.incassato_da === "iovino" && isExtra(p))
                   .reduce((sum, p) => sum + p.importo_cents, 0);
                 const total4 = ssOfficial + iovinoOfficial + ssCash + iovinoCash;
 
@@ -1220,6 +1258,27 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                   </select>
                 </label>
               </div>
+
+              {/* Natura Incasso: Ufficiale vs Cassa Extra Fornitori */}
+              <label style={{ display: "flex", flexDirection: "column", gap: "0.35rem", fontSize: "0.85rem", color: "#514d48", fontWeight: 600, background: "#f8fafc", padding: "0.8rem", borderRadius: "10px", border: "1px solid #e2e8f0" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  <span>Natura Incasso *</span>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 400, color: "#64748b" }}>(Fiscale vs Extra)</span>
+                </span>
+                <select
+                  value={incNatura}
+                  onChange={(e) => setIncNatura(e.target.value as "ufficiale" | "extra")}
+                  style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", border: "1.5px solid #cbd5e1", fontSize: "0.95rem", background: "#fff", fontWeight: 700, color: incNatura === "extra" ? "#92400e" : "#1e40af" }}
+                >
+                  <option value="ufficiale">🏛️ Contratto Ufficiale (A scomputo preventivo / Ricevuta Fiscale)</option>
+                  <option value="extra">🌿 Servizi Extra / Cassa Fornitori (Fuori contratto)</option>
+                </select>
+                <small style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "0.15rem" }}>
+                  {incNatura === "ufficiale"
+                    ? "✓ Scomputa direttamente dal saldo preventivo e dalle rate concordate (anche per pagamenti in contanti)."
+                    : "✓ Incasso accreditato nella cassa extra per fornitori e servizi non a contratto."}
+                </small>
+              </label>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <label style={{ display: "flex", flexDirection: "column", gap: "0.35rem", fontSize: "0.85rem", color: "#514d48", fontWeight: 600 }}>

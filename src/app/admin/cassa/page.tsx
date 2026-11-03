@@ -204,6 +204,7 @@ export default async function CassaPage({
       importo_cents: p.importo_cents,
       metodo: p.metodo,
       incassato_da: p.incassato_da,
+      natura: p.natura,
       riferimento: p.riferimento,
       note: p.note,
       stato: p.stato,
