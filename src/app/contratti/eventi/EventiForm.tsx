@@ -43,6 +43,8 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       telefono: initialData?.telefono || "",
       email: initialData?.email || "",
       pec: initialData?.pec || "",
+      orario_inizio: initialData?.orario_inizio || "",
+      orario_fine: initialData?.orario_fine || "",
       tipo_evento: initialData?.tipo_evento || "Festa Privata",
       data_evento: normalizeEventDateTime(initialData?.data_evento, initialData?.turno) || "",
       turno: initialData?.turno || "pranzo",
@@ -76,10 +78,6 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
   const todayIso = new Date().toISOString().slice(0, 10);
 
   // RELAZIONE DETERMINISTICA: le date economiche dipendono SOLO dalla data evento.
-  // - Saldo = giorno dell'evento
-  // - 2° acconto = 6 mesi prima dell'evento
-  // - Anticipo = oggi (firma)
-  // Non ereditano MAI data di nascita o vecchie bozze sporche.
   const dataEventoIso = String(formValues?.data_evento || "").slice(0, 10);
   const paymentDates = derivePaymentDates(dataEventoIso, todayIso);
 
@@ -107,8 +105,6 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       const savedDraft = localStorage.getItem(draftKey);
       if (savedDraft) {
         const parsed = JSON.parse(savedDraft);
-        // IGNORA e CANCELLA ogni campo economico o data evento/saldo/anticipo/acconto.
-        // La bozza può contenere solo dati anagrafici del Cliente e il metodo di pagamento.
         draftFields = sanitizeDraft(parsed.form);
         try {
           localStorage.setItem(draftKey, JSON.stringify({ form: draftFields }));
@@ -118,9 +114,6 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       console.error("Errore nel recupero bozza", e);
     }
 
-    // Unisce: la bozza del cliente compila SOLO i campi mancanti (residenza, nascita, etc.)
-    // mentre i campi inseriti da Roberto (initialData) hanno sempre la priorità e appaiono già compilati.
-    // La data evento proviene ESCLUSIVAMENTE da initialData (concordata dalla direzione).
     const resolvedDataEvento = initialData?.data_evento
       ? normalizeEventDateTime(initialData.data_evento, initialData?.turno)
       : "";
@@ -143,18 +136,17 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       telefono: initialData?.telefono || draftFields.telefono || "",
       email: initialData?.email || draftFields.email || "",
       pec: initialData?.pec || draftFields.pec || "",
+      orario_inizio: initialData?.orario_inizio || draftFields.orario_inizio || "",
+      orario_fine: initialData?.orario_fine || draftFields.orario_fine || "",
       tipo_evento: initialData?.tipo_evento || draftFields.tipo_evento || "Festa Privata",
       data_evento: resolvedDataEvento || "",
       turno: initialData?.turno || draftFields.turno || "pranzo",
       accetto: draftFields.accetto || false,
       comunicazione_terzi: draftFields.comunicazione_terzi || false,
       marketing: draftFields.marketing || "NO",
-      // Il metodo di pagamento è una scelta del Cliente: la bozza ha la priorità,
-      // poi il default concordato.
       mezzo_anticipo: draftFields.mezzo_anticipo || initialData?.mezzo_anticipo || "Bonifico Bancario",
       mezzo_secondo_acconto: draftFields.mezzo_secondo_acconto || initialData?.mezzo_secondo_acconto || "Bonifico Bancario",
       mezzo_saldo: draftFields.mezzo_saldo || initialData?.mezzo_saldo || "Bonifico Bancario",
-      // Importi e date restano vincolati alla direzione: initialData vince sempre.
       data_anticipo: initialData?.data_anticipo || "",
       data_secondo_acconto: initialData?.data_secondo_acconto || "",
       data_saldo: initialData?.data_saldo || "",
@@ -163,14 +155,12 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       importo_secondo_acconto: initialData?.importo_secondo_acconto ?? 0,
       importo_saldo: initialData?.importo_saldo ?? 0
     });
-    // NOTA LEGALE: Il box firma NON viene mai ripristinato da bozze pregresse.
   }, [initialData, initialPreventivo, reset]);
 
-  // Salva bozza ad ogni modifica dei campi di testo (scopata al singolo preventivo, senza memorizzare la firma)
+  // Salva bozza ad ogni modifica dei campi di testo
   useEffect(() => {
     const draftKey = `draft_eventi_form_${initialPreventivo}`;
     const timeoutId = setTimeout(() => {
-      // Salva SOLO dati anagrafici e metodo di pagamento: mai importi, date evento o scadenze.
       const draft = { form: sanitizeDraft(formValues) };
       try {
         localStorage.setItem(draftKey, JSON.stringify(draft));
@@ -205,7 +195,7 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       c_p2: "Il Conduttore si assume la responsabilità dei danni che lo stesso i suoi ospiti possano arrecare a persone o cose. E’ espressamente vietato a qualsiasi titolo introdurre nella struttura e, tanto più usare, prodotti pirotecnici e coriandoli sfusi e/o a nastro. In caso di utilizzo di drone è necessario presentare il contratto con l’utilizzatore e la documentazione necessaria per l’utilizzo. E’ vietato effettuare inquadrature ravvicinate in proprietà aliene.",
       c_p3: "Il Conduttore prende atto e accetta che Santo Stefano S.r.l. non assume alcuna responsabilità riguardo i minori di 18 anni (accompagnati e non) come non assume alcuna responsabilità per eventuali furti, rapine, perdita o deterioramento dei beni indossati o portati dal Conduttore o dai suoi ospiti, con riferimento a danaro, automobili, gioielli, pellicce o altri valori. In particolare, le eventuali aree di sosta fornite dalla Santo Stefano s.r.l. al Conduttore ed ai suoi ospiti non sono assicurate per eventuali danni o furti alle automobili a cui è permessa la sosta.",
       c_p4: "L’animazione per i bambini risulta essere obbligatoria nella misura di un animatore ogni cinque bambini.",
-      c_p5: "Il Conduttore prende atto e accetta che l’orario di utilizzo della struttura non dovrà prolungarsi oltre le ore 18.00 per un ricevimento iniziato a pranzo ed oltre le ore 24.00 per un ricevimento serale con inizio dalle ore 20.00.",
+      c_p5: "Il Conduttore prende atto e accetta che l’orario di utilizzo della struttura non dovrà prolungarsi oltre le ore 18.00 per un ricevimento iniziato a pranzo ed oltre le ore 24.00 per un ricevimento serale con inizio dalle ore 20.00 (salvo diversi orari espressamente concordati per iscritto).",
       c_p6: "Il ricevimento si intende terminato alla conclusione del buffet dei dolci e torta.",
       c_p7: "Il Conduttore accetta che è vietato svolgere musica amplificata o con strumenti squillanti e/o assordanti negli spazi esterni della struttura e comunque non oltre la mezzanotte e che qualsiasi intrattenimento musicale deve essere fornito dalla struttura e svolto previa presentazione della ricevuta di pagamento dei diritti S.I.A.E.",
       c_p8: "La Santo Stefano S.r.l non assume alcuna responsabilità per eventuali sospensioni nell’erogazione dell’energia elettrica, dell’acqua, del gas o qualsivoglia altro inconveniente comunque indipendente dalla propria volontà.",
@@ -215,29 +205,33 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       // Form
       f_stipula: "Stipuli il contratto come:",
       f_privato: "Privato",
-      f_azienda: "Azienda",
+      f_azienda: "Azienda / Persona Giuridica",
       f_nome: "Nome *",
       f_cognome: "Cognome *",
-      f_ragione: "Ragione Sociale *",
+      f_rappresentante_nome: "Nome Legale Rappresentante *",
+      f_rappresentante_cognome: "Cognome Legale Rappresentante *",
+      f_ragione: "Ragione Sociale Azienda *",
       f_luogo_nascita: "Luogo di nascita *",
       f_data_nascita: "Data di nascita *",
       f_nazione: "Nazione *",
       f_italia: "Italia",
       f_estero: "Estero",
       f_citta: "Città di residenza *",
+      f_sede_citta: "Città Sede Legale *",
       f_via: "In via/piazza *",
+      f_sede_via: "Indirizzo Sede Legale (via/piazza) *",
       f_civico: "Numero Civico *",
+      f_cap: "CAP *",
       f_piva: "Partita IVA *",
       f_cf: "Codice Fiscale",
       f_email: "Email *",
       f_telefono: "Telefono *",
-      f_sdi: "SDI (Codice Destinatario)",
+      f_sdi: "Codice Destinatario SDI *",
+      f_pec: "PEC (Posta Elettronica Certificata) *",
       f_tipo: "Tipo Evento *",
-      f_battesimo: "Battesimo",
-      f_comunione: "Comunione",
-      f_laurea: "Laurea",
-      f_festa: "Festa Privata",
       f_data: "Giorno ed ora dell'evento *",
+      f_orario_inizio: "Orario Inizio concordato (es. 19:30)",
+      f_orario_fine: "Orario Fine concordato (es. 24:00)",
       
       // Firme
       sig_contratto: "Firma Contratto",
@@ -279,7 +273,7 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       c_p2: "The Lessee assumes responsibility for any damage they or their guests may cause to people or property. It is expressly forbidden to introduce or use fireworks, loose confetti, and/or streamer poppers within the facility. If a drone is used, the contract with the operator and necessary documentation must be provided. Close-up filming of third-party properties is prohibited.",
       c_p3: "The Lessee acknowledges and accepts that Santo Stefano S.r.l. assumes no responsibility for minors under 18 (accompanied or not) and assumes no responsibility for any theft, robbery, loss, or damage to goods worn or brought by the Lessee or their guests, including money, cars, jewelry, furs, or other valuables. Specifically, any parking areas provided by Santo Stefano s.r.l. to the Lessee and their guests are not insured against damage or theft of parked vehicles.",
       c_p4: "Children's entertainment is mandatory, requiring one entertainer for every five children.",
-      c_p5: "The Lessee acknowledges and accepts that the use of the facility must not extend beyond 6:00 PM for a lunch reception and beyond midnight for an evening reception starting at 8:00 PM.",
+      c_p5: "The Lessee acknowledges and accepts that the use of the facility must not extend beyond 6:00 PM for a lunch reception and beyond midnight for an evening reception starting at 8:00 PM (unless different hours are explicitly agreed upon in writing).",
       c_p6: "The reception is considered concluded at the end of the dessert and cake buffet.",
       c_p7: "The Lessee accepts that amplified music or loud instruments are prohibited in the outdoor areas of the facility and, in any case, not beyond midnight. Any musical entertainment must be provided by the facility and performed upon presentation of the SIAE rights payment receipt.",
       c_p8: "Santo Stefano S.r.l assumes no responsibility for any suspension in the supply of electricity, water, gas, or any other inconvenience beyond its control.",
@@ -289,9 +283,11 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       // Form
       f_stipula: "Stipulate the contract as:",
       f_privato: "Private individual",
-      f_azienda: "Company",
+      f_azienda: "Company / Corporate Entity",
       f_nome: "First Name *",
       f_cognome: "Last Name *",
+      f_rappresentante_nome: "Legal Representative First Name *",
+      f_rappresentante_cognome: "Legal Representative Last Name *",
       f_ragione: "Company Name *",
       f_luogo_nascita: "Place of birth *",
       f_data_nascita: "Date of birth *",
@@ -299,19 +295,21 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       f_italia: "Italy",
       f_estero: "Abroad",
       f_citta: "City of residence *",
+      f_sede_citta: "Registered Office City *",
       f_via: "Street Address *",
+      f_sede_via: "Registered Office Address *",
       f_civico: "House number *",
+      f_cap: "ZIP Code *",
       f_piva: "VAT Number *",
       f_cf: "Tax Code / Fiscal Code",
       f_email: "Email *",
       f_telefono: "Phone number *",
-      f_sdi: "SDI (Recipient Code)",
+      f_sdi: "SDI (Recipient Code) *",
+      f_pec: "Certified Email (PEC) *",
       f_tipo: "Event Type *",
-      f_battesimo: "Baptism",
-      f_comunione: "Communion",
-      f_laurea: "Graduation",
-      f_festa: "Private Party",
       f_data: "Event date and time *",
+      f_orario_inizio: "Agreed Start Time (e.g. 19:30)",
+      f_orario_fine: "Agreed End Time (e.g. 24:00)",
       
       // Firme
       sig_contratto: "Contract Signature",
@@ -372,10 +370,8 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
     const uniqueId = `contract_eventi_${Date.now()}`;
 
     try {
-      // 1. Salvataggio immediato in locale come backup "a prova di bomba"
       localStorage.setItem(uniqueId, JSON.stringify(payload));
 
-      // 2. Invia i dati all'API
       const response = await fetch("/api/generate-pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -384,14 +380,12 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       
       if (!response.ok) throw new Error("Errore API");
 
-      // 3. Se tutto va bene, rimuoviamo il backup locale, la bozza e mostriamo successo
       localStorage.removeItem(uniqueId);
       localStorage.removeItem("draft_eventi_form");
       localStorage.removeItem(`draft_eventi_form_${initialPreventivo}`);
       setIsSuccess(true);
     } catch (e) {
       console.error(e);
-      // In caso di errore (rete caduta o server down), diciamo all'utente che il file è al sicuro
       alert(lang === "it" 
         ? "C'è stato un problema di connessione o del server. I tuoi dati però NON sono persi: il contratto è stato salvato in modo sicuro sul tuo dispositivo e verrà processato automaticamente appena la connessione sarà stabile."
         : "There was a connection or server problem. Your data is NOT lost: the contract has been safely saved on your device and will be processed automatically as soon as the connection is stable.");
@@ -399,7 +393,6 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
     setIsSubmitting(false);
   };
 
-  // 4. Auto-Retry al caricamento della pagina per recuperare contratti falliti
   useEffect(() => {
     const retryPendingContracts = async () => {
       for (let i = 0; i < localStorage.length; i++) {
@@ -409,14 +402,12 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
           if (payloadStr) {
             try {
               const payload = JSON.parse(payloadStr);
-              console.log(`Tentativo di re-invio per il contratto sospeso: ${key}`);
               const response = await fetch("/api/generate-pdf", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
               });
               if (response.ok) {
-                console.log(`Contratto ${key} ripristinato e inviato con successo!`);
                 localStorage.removeItem(key);
               }
             } catch (err) {
@@ -427,16 +418,15 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
       }
     };
     
-    // Controlliamo i contratti in sospeso all'avvio e ogni volta che la connessione torna online
     retryPendingContracts();
-    window.addEventListener('online', retryPendingContracts);
-    return () => window.removeEventListener('online', retryPendingContracts);
+    window.addEventListener("online", retryPendingContracts);
+    return () => window.removeEventListener("online", retryPendingContracts);
   }, []);
 
   if (isSuccess) {
     return (
-      <div className="premium-card" style={{ textAlign: "center" }}>
-        <h1>{t.successTitle}</h1>
+      <div className="premium-card text-center" style={{ padding: "3rem" }}>
+        <h1 style={{ color: "var(--primary)" }}>{t.successTitle}</h1>
         <p>{t.successSub}</p>
       </div>
     );
@@ -488,7 +478,13 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
           <li style={{marginBottom: "1rem"}}>{t.c_p2}</li>
           <li style={{marginBottom: "1rem"}}>{t.c_p3}</li>
           <li style={{marginBottom: "1rem"}}>{t.c_p4}</li>
-          <li style={{marginBottom: "1rem"}}>{t.c_p5}</li>
+          <li style={{marginBottom: "1rem"}}>
+            {formValues?.orario_inizio && formValues?.orario_fine
+              ? (lang === "it"
+                  ? `Il Conduttore prende atto e accetta che l'orario concordato di utilizzo della struttura è dalle ore ${formValues.orario_inizio} alle ore ${formValues.orario_fine}. Qualsiasi prolungamento dovrà essere preventivamente concordato per iscritto con la Direzione.`
+                  : `The Lessee acknowledges and accepts that the agreed hours of use of the facility are from ${formValues.orario_inizio} to ${formValues.orario_fine}. Any extension must be agreed upon in writing with Management.`)
+              : t.c_p5}
+          </li>
           <li style={{marginBottom: "1rem"}}>{t.c_p6}</li>
           <li style={{marginBottom: "1rem"}}>{t.c_p7}</li>
           <li style={{marginBottom: "1rem"}}>{t.c_p8}</li>
@@ -513,39 +509,43 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
         </div>
 
         <div className="form-grid">
-          <div className="form-group">
-            <label>{t.f_nome}</label>
-            <input type="text" {...register("nome", { required: true })} />
-          </div>
-          <div className="form-group">
-            <label>{t.f_cognome}</label>
-            <input type="text" {...register("cognome", { required: true })} />
-          </div>
-
           {tipoCliente === "azienda" && (
             <div className="form-group full">
               <label>{t.f_ragione}</label>
-              <input type="text" {...register("ragione_sociale", { required: true })} />
+              <input type="text" {...register("ragione_sociale", { required: tipoCliente === "azienda" })} />
             </div>
           )}
 
           <div className="form-group">
-            <label>{t.f_luogo_nascita}</label>
-            <input type="text" {...register("luogo_di_nascita", { required: true })} />
+            <label>{tipoCliente === "azienda" ? t.f_rappresentante_nome : t.f_nome}</label>
+            <input type="text" {...register("nome", { required: true })} />
           </div>
-          <Controller
-            name="data_di_nascita"
-            control={control}
-            rules={{ required: true }}
-            render={({ field }) => (
-              <DateTextInput
-                label={t.f_data_nascita}
-                value={field.value}
-                onChange={field.onChange}
-                required
+          <div className="form-group">
+            <label>{tipoCliente === "azienda" ? t.f_rappresentante_cognome : t.f_cognome}</label>
+            <input type="text" {...register("cognome", { required: true })} />
+          </div>
+
+          {tipoCliente === "privato" && (
+            <>
+              <div className="form-group">
+                <label>{t.f_luogo_nascita}</label>
+                <input type="text" {...register("luogo_di_nascita", { required: tipoCliente === "privato" })} />
+              </div>
+              <Controller
+                name="data_di_nascita"
+                control={control}
+                rules={{ required: tipoCliente === "privato" }}
+                render={({ field }) => (
+                  <DateTextInput
+                    label={t.f_data_nascita}
+                    value={field.value}
+                    onChange={field.onChange}
+                    required
+                  />
+                )}
               />
-            )}
-          />
+            </>
+          )}
 
           <div className="form-group">
             <label>{t.f_nazione}</label>
@@ -555,24 +555,42 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
             </select>
           </div>
           <div className="form-group">
-            <label>{t.f_citta}</label>
+            <label>{tipoCliente === "azienda" ? t.f_sede_citta : t.f_citta}</label>
             <input type="text" {...register("citta_di_residenza", { required: true })} />
           </div>
 
           <div className="form-group">
-            <label>{t.f_via}</label>
+            <label>{tipoCliente === "azienda" ? t.f_sede_via : t.f_via}</label>
             <input type="text" {...register("indirizzo", { required: true })} />
           </div>
           <div className="form-group">
             <label>{t.f_civico}</label>
             <input type="text" {...register("numero_civico", { required: true })} />
           </div>
+          <div className="form-group">
+            <label>{t.f_cap}</label>
+            <input type="text" {...register("cap", { required: true })} />
+          </div>
 
           {tipoCliente === "azienda" ? (
-            <div className="form-group">
-              <label>{t.f_piva}</label>
-              <input type="text" {...register("partita_iva", { required: true })} />
-            </div>
+            <>
+              <div className="form-group">
+                <label>{t.f_piva}</label>
+                <input type="text" {...register("partita_iva", { required: true })} />
+              </div>
+              <div className="form-group">
+                <label>{t.f_cf} ({lang === "it" ? "opzionale se coincidente con P.IVA" : "optional if same as VAT"})</label>
+                <input type="text" {...register("codice_fiscale")} />
+              </div>
+              <div className="form-group">
+                <label>{t.f_sdi}</label>
+                <input type="text" {...register("sdi", { required: nazione === "Italia" })} />
+              </div>
+              <div className="form-group">
+                <label>{t.f_pec}</label>
+                <input type="email" {...register("pec", { required: nazione === "Italia" })} />
+              </div>
+            </>
           ) : (
             <div className="form-group">
               <label>{t.f_cf} {nazione === "Italia" ? "*" : ""}</label>
@@ -588,13 +606,6 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
             <label>{t.f_telefono}</label>
             <input type="text" {...register("telefono", { required: true })} />
           </div>
-
-          {tipoCliente === "azienda" && nazione === "Italia" && (
-            <div className="form-group">
-              <label>{t.f_sdi}</label>
-              <input type="text" {...register("sdi")} />
-            </div>
-          )}
 
           <div className="form-group full">
             <label>{t.f_tipo}</label>
@@ -631,6 +642,16 @@ export default function EventiForm({ initialPrezzo, initialPreventivo, initialDa
               <strong>{turnoLabel(formValues?.turno || "pranzo", lang)}</strong>
             </div>
             <small style={{ color: "#6b7280", marginTop: "0.25rem", display: "block" }}>🔒 Data evento concordata con la direzione (non modificabile)</small>
+          </div>
+
+          {/* Orari concordati personalizzati */}
+          <div className="form-group">
+            <label>{t.f_orario_inizio}</label>
+            <input type="time" {...register("orario_inizio")} />
+          </div>
+          <div className="form-group">
+            <label>{t.f_orario_fine}</label>
+            <input type="time" {...register("orario_fine")} />
           </div>
 
           <ContractPaymentsSection

@@ -149,8 +149,6 @@ export const ContractPdfTemplate = ({
       ];
   
   const dataMatrimonio = data.data_evento ? new Date(data.data_evento).toLocaleDateString('it-IT') : '';
-  // Doppia difesa anti-timezone-shift: parsing deterministico a stringa.
-  // Il campo può arrivare in ISO (yyyy-mm-dd) oppure già in formato italiano (gg/mm/aaaa).
   const dataNascitaRaw = String(data.data_di_nascita || '').trim();
   const dataNascita = /^\d{2}\/\d{2}\/\d{4}$/.test(dataNascitaRaw)
     ? dataNascitaRaw
@@ -172,8 +170,7 @@ export const ContractPdfTemplate = ({
   const mezzoSecondoPdf = paymentMethodLabel(data.mezzo_secondo_acconto, isEn ? 'en' : 'it');
   const mezzoSaldoPdf = paymentMethodLabel(data.mezzo_saldo, isEn ? 'en' : 'it');
 
-  // Art. 2-bis: formula di concessione. La data è composta per via testuale,
-  // senza mai invocare new Date(), per garantire immunità dal timezone shift.
+  // Art. 2-bis: formula di concessione.
   const dataEventoRaw = String(data.data_evento || '').trim();
   const dataEventoFormula = dataEventoRaw
     ? (/^\d{4}-\d{2}-\d{2}/.test(dataEventoRaw) ? isoToItalian(dataEventoRaw.slice(0, 10)) : dataEventoRaw)
@@ -237,10 +234,9 @@ export const ContractPdfTemplate = ({
           <View style={styles.paragraph}>
             <Text style={styles.bold}>{isEn ? "the company (Client)" : "la società (Cliente)"}</Text>
             <Text style={{ marginTop: 3 }}>
-              {companyDetails.join(', ')}, {isEn ? "represented by its pro tempore legal representative" : "rappresentata dal legale rappresentante pro tempore"}{' '}
+              {companyDetails.join(', ')}, {isEn ? "with registered office in" : "con sede legale in"} {residenzaCitta}{data.indirizzo ? `, ${isEn ? "at" : "in"} ${data.indirizzo}` : ''}{data.numero_civico ? ` n. ${data.numero_civico}` : ''}{data.cap ? ` (${data.cap})` : ''}, {data.nazione || 'Italia'}, {isEn ? "represented by its pro tempore legal representative" : "rappresentata dal legale rappresentante pro tempore"}{' '}
               <Text style={styles.bold}>{data.nome} {data.cognome}</Text>
-              {isEn ? ", born in" : ", nato a"} {data.luogo_di_nascita}, {isEn ? "on" : "il"} {dataNascita}, {isEn ? "resident in" : "residente a"} {residenzaCitta}
-              {isEn ? ", at street/square" : ", in via/piazza"} {data.indirizzo}, n. {data.numero_civico}, {isEn ? "ZIP" : "CAP"} {data.cap}, {data.nazione}
+              {data.luogo_di_nascita && dataNascita ? `${isEn ? ", born in" : ", nato a"} ${data.luogo_di_nascita}, ${isEn ? "on" : "il"} ${dataNascita}` : ''}
               .
             </Text>
             <Text>tel {data.telefono} mail {data.email}</Text>
@@ -393,7 +389,14 @@ export const ContractPdfTemplate = ({
             </Text>
 
             <Text style={styles.paragraph}>
-              <Text style={styles.bold}>5.</Text> {isEn ? "The Lessee acknowledges and accepts that the use of the facility must not extend beyond 6:00 PM for a lunch reception and beyond midnight for an evening reception starting at 8:00 PM." : "Il Conduttore prende atto e accetta che l’orario di utilizzo della struttura non dovrà prolungarsi oltre le ore 18.00 per un ricevimento iniziato a pranzo ed oltre le ore 24.00 per un ricevimento serale con inizio dalle ore 20.00."}
+              <Text style={styles.bold}>5.</Text>{" "}
+              {data.orario_inizio && data.orario_fine
+                ? (isEn
+                    ? `The Lessee acknowledges and accepts that the agreed hours of use of the facility are from ${data.orario_inizio} to ${data.orario_fine}. Any extension must be agreed upon in writing with Management.`
+                    : `Il Conduttore prende atto e accetta che l’orario concordato di utilizzo della struttura è dalle ore ${data.orario_inizio} alle ore ${data.orario_fine}. Qualsiasi prolungamento dovrà essere preventivamente concordato per iscritto con la Direzione.`)
+                : (isEn
+                    ? "The Lessee acknowledges and accepts that the use of the facility must not extend beyond 6:00 PM for a lunch reception and beyond midnight for an evening reception starting at 8:00 PM."
+                    : "Il Conduttore prende atto e accetta che l’orario di utilizzo della struttura non dovrà prolungarsi oltre le ore 18.00 per un ricevimento iniziato a pranzo ed oltre le ore 24.00 per un ricevimento serale con inizio dalle ore 20.00.")}
             </Text>
 
             <Text style={styles.paragraph}>

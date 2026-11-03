@@ -778,6 +778,93 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                 </div>
               </div>
 
+              {/* Rendicontazione di Chiusura Cassa a 4 Totalizzatori (Call Direzione 23/10) */}
+              {(() => {
+                const eventPayments = payments.filter((p) => p.quote_id === selectedEvent.id && p.stato === "valido");
+                const ssOfficial = eventPayments
+                  .filter((p) => p.incassato_da === "santo_stefano" && p.metodo !== "contanti")
+                  .reduce((sum, p) => sum + p.importo_cents, 0);
+                const iovinoOfficial = eventPayments
+                  .filter((p) => p.incassato_da === "iovino" && p.metodo !== "contanti")
+                  .reduce((sum, p) => sum + p.importo_cents, 0);
+                const ssCash = eventPayments
+                  .filter((p) => p.incassato_da === "santo_stefano" && p.metodo === "contanti")
+                  .reduce((sum, p) => sum + p.importo_cents, 0);
+                const iovinoCash = eventPayments
+                  .filter((p) => p.incassato_da === "iovino" && p.metodo === "contanti")
+                  .reduce((sum, p) => sum + p.importo_cents, 0);
+                const total4 = ssOfficial + iovinoOfficial + ssCash + iovinoCash;
+
+                return (
+                  <div style={{ ...cardStyle, border: "1.5px solid #d4c8b8", background: "#fdfbf7" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                      <div>
+                        <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 800, color: "#8a847c" }}>
+                          RENDICONTAZIONE DI CHIUSURA CASSA
+                        </span>
+                        <h3 style={{ margin: "0.2rem 0 0 0", color: "#1e1b18", fontSize: "1.2rem" }}>
+                          🎯 Quadro a 4 Totalizzatori Evento
+                        </h3>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <span style={{ fontSize: "0.75rem", color: "#8a847c", textTransform: "uppercase", fontWeight: 700 }}>Totale Incassato Reale</span>
+                        <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "#1e1b18" }}>{formatEuro(total4 / 100)}</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem" }}>
+                      <div style={{ padding: "0.9rem", borderRadius: "10px", background: "#fff", border: "1px solid #e2e8f0" }}>
+                        <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 800, color: "#2563eb" }}>
+                          1. Quota Ufficiale Santo Stefano S.r.l.
+                        </div>
+                        <div style={{ fontSize: "0.78rem", color: "#64748b", margin: "0.2rem 0 0.5rem" }}>
+                          Fattura Location (Bonifico / POS / Assegno)
+                        </div>
+                        <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#1e293b" }}>
+                          {formatEuro(ssOfficial / 100)}
+                        </div>
+                      </div>
+
+                      <div style={{ padding: "0.9rem", borderRadius: "10px", background: "#fff", border: "1px solid #e2e8f0" }}>
+                        <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 800, color: "#7c3aed" }}>
+                          2. Quota Ufficiale Iovino Banqueting S.r.l.
+                        </div>
+                        <div style={{ fontSize: "0.78rem", color: "#64748b", margin: "0.2rem 0 0.5rem" }}>
+                          Fattura Banqueting (Bonifico / POS / Assegno)
+                        </div>
+                        <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#1e293b" }}>
+                          {formatEuro(iovinoOfficial / 100)}
+                        </div>
+                      </div>
+
+                      <div style={{ padding: "0.9rem", borderRadius: "10px", background: "#fff", border: "1px solid #e2e8f0" }}>
+                        <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 800, color: "#d97706" }}>
+                          3. Quota Contanti Santo Stefano S.r.l.
+                        </div>
+                        <div style={{ fontSize: "0.78rem", color: "#64748b", margin: "0.2rem 0 0.5rem" }}>
+                          Extra Location / Fornitori contanti
+                        </div>
+                        <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#1e293b" }}>
+                          {formatEuro(ssCash / 100)}
+                        </div>
+                      </div>
+
+                      <div style={{ padding: "0.9rem", borderRadius: "10px", background: "#fff", border: "1px solid #e2e8f0" }}>
+                        <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 800, color: "#059669" }}>
+                          4. Quota Contanti Iovino Banqueting S.r.l.
+                        </div>
+                        <div style={{ fontSize: "0.78rem", color: "#64748b", margin: "0.2rem 0 0.5rem" }}>
+                          Extra Banqueting / Fornitori contanti
+                        </div>
+                        <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#1e293b" }}>
+                          {formatEuro(iovinoCash / 100)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Tabella analitica servizi */}
               <div style={{ ...cardStyle, padding: "1.4rem 1.5rem", overflowX: "auto" }}>
                 <h3 style={{ margin: "0 0 1rem 0", color: "#1e1b18", fontSize: "1.15rem" }}>🧾 Servizi dell’evento e ripartizione riga per riga</h3>
@@ -950,6 +1037,93 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                   <small style={{ display: "block", color: "#a59d93" }}>Importo di conguaglio tra Roberto e Rosaria</small>
                 </div>
               </div>
+
+              {/* Rendicontazione Globale a 4 Totalizzatori */}
+              {(() => {
+                const validPayments = payments.filter((p) => p.stato === "valido");
+                const ssOfficial = validPayments
+                  .filter((p) => p.incassato_da === "santo_stefano" && p.metodo !== "contanti")
+                  .reduce((sum, p) => sum + p.importo_cents, 0);
+                const iovinoOfficial = validPayments
+                  .filter((p) => p.incassato_da === "iovino" && p.metodo !== "contanti")
+                  .reduce((sum, p) => sum + p.importo_cents, 0);
+                const ssCash = validPayments
+                  .filter((p) => p.incassato_da === "santo_stefano" && p.metodo === "contanti")
+                  .reduce((sum, p) => sum + p.importo_cents, 0);
+                const iovinoCash = validPayments
+                  .filter((p) => p.incassato_da === "iovino" && p.metodo === "contanti")
+                  .reduce((sum, p) => sum + p.importo_cents, 0);
+                const total4 = ssOfficial + iovinoOfficial + ssCash + iovinoCash;
+
+                return (
+                  <div style={{ ...cardStyle, border: "1.5px solid #d4c8b8", background: "#fdfbf7" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                      <div>
+                        <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 800, color: "#8a847c" }}>
+                          RENDICONTAZIONE GLOBALE AZIENDALE
+                        </span>
+                        <h3 style={{ margin: "0.2rem 0 0 0", color: "#1e1b18", fontSize: "1.2rem" }}>
+                          🎯 Quadro Generale a 4 Totalizzatori
+                        </h3>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <span style={{ fontSize: "0.75rem", color: "#8a847c", textTransform: "uppercase", fontWeight: 700 }}>Totale Incassi Reali Validati</span>
+                        <div style={{ fontSize: "1.25rem", fontWeight: 800, color: "#1e1b18" }}>{formatEuro(total4 / 100)}</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem" }}>
+                      <div style={{ padding: "0.9rem", borderRadius: "10px", background: "#fff", border: "1px solid #e2e8f0" }}>
+                        <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 800, color: "#2563eb" }}>
+                          1. Quota Ufficiale Santo Stefano S.r.l.
+                        </div>
+                        <div style={{ fontSize: "0.78rem", color: "#64748b", margin: "0.2rem 0 0.5rem" }}>
+                          Fatturato Ufficiale Location (Tracciato)
+                        </div>
+                        <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#1e293b" }}>
+                          {formatEuro(ssOfficial / 100)}
+                        </div>
+                      </div>
+
+                      <div style={{ padding: "0.9rem", borderRadius: "10px", background: "#fff", border: "1px solid #e2e8f0" }}>
+                        <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 800, color: "#7c3aed" }}>
+                          2. Quota Ufficiale Iovino Banqueting S.r.l.
+                        </div>
+                        <div style={{ fontSize: "0.78rem", color: "#64748b", margin: "0.2rem 0 0.5rem" }}>
+                          Fatturato Ufficiale Banqueting (Tracciato)
+                        </div>
+                        <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#1e293b" }}>
+                          {formatEuro(iovinoOfficial / 100)}
+                        </div>
+                      </div>
+
+                      <div style={{ padding: "0.9rem", borderRadius: "10px", background: "#fff", border: "1px solid #e2e8f0" }}>
+                        <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 800, color: "#d97706" }}>
+                          3. Quota Contanti Santo Stefano S.r.l.
+                        </div>
+                        <div style={{ fontSize: "0.78rem", color: "#64748b", margin: "0.2rem 0 0.5rem" }}>
+                          Extra Location / Fornitori contanti
+                        </div>
+                        <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#1e293b" }}>
+                          {formatEuro(ssCash / 100)}
+                        </div>
+                      </div>
+
+                      <div style={{ padding: "0.9rem", borderRadius: "10px", background: "#fff", border: "1px solid #e2e8f0" }}>
+                        <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 800, color: "#059669" }}>
+                          4. Quota Contanti Iovino Banqueting S.r.l.
+                        </div>
+                        <div style={{ fontSize: "0.78rem", color: "#64748b", margin: "0.2rem 0 0.5rem" }}>
+                          Extra Banqueting / Fornitori contanti
+                        </div>
+                        <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#1e293b" }}>
+                          {formatEuro(iovinoCash / 100)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <button

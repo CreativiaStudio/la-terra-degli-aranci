@@ -1417,6 +1417,93 @@ function CassaTab({
                 )} a ${COMPANY_LABELS[conguaglio.a]}.`
               : "✅ Nessun conguaglio inter-societario necessario."}
           </div>
+
+          {/* Rendicontazione di Chiusura Cassa a 4 Totalizzatori (Call Direzione) */}
+          {(() => {
+            const validPayments = payments.filter((p) => p.stato !== "annullato");
+            const ssOfficial = validPayments
+              .filter((p) => p.incassato_da === "santo_stefano" && p.metodo !== "contanti")
+              .reduce((sum, p) => sum + p.importo_cents, 0);
+            const iovinoOfficial = validPayments
+              .filter((p) => p.incassato_da === "iovino" && p.metodo !== "contanti")
+              .reduce((sum, p) => sum + p.importo_cents, 0);
+            const ssCash = validPayments
+              .filter((p) => p.incassato_da === "santo_stefano" && p.metodo === "contanti")
+              .reduce((sum, p) => sum + p.importo_cents, 0);
+            const iovinoCash = validPayments
+              .filter((p) => p.incassato_da === "iovino" && p.metodo === "contanti")
+              .reduce((sum, p) => sum + p.importo_cents, 0);
+            const total4 = ssOfficial + iovinoOfficial + ssCash + iovinoCash;
+
+            return (
+              <div style={{ marginTop: "1.2rem", padding: "1rem", borderRadius: "10px", background: "#faf8f5", border: "1px solid #e8e2d9" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.8rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                  <div>
+                    <span style={{ fontSize: "0.68rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 800, color: "#8a847c" }}>
+                      RENDICONTAZIONE DI CHIUSURA CASSA
+                    </span>
+                    <h5 style={{ margin: "0.15rem 0 0 0", fontSize: "0.95rem", color: "#1e1b18" }}>
+                      🎯 Quadro a 4 Totalizzatori
+                    </h5>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <span style={{ fontSize: "0.7rem", color: "#8a847c", textTransform: "uppercase", fontWeight: 700 }}>Incassato Reale</span>
+                    <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#1e1b18" }}>{formatEuro(total4 / 100)}</div>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>
+                  <div style={{ padding: "0.75rem", borderRadius: "8px", background: "#fff", border: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: "0.68rem", textTransform: "uppercase", fontWeight: 800, color: "#2563eb" }}>
+                      1. Quota Ufficiale Santo Stefano S.r.l.
+                    </div>
+                    <div style={{ fontSize: "0.72rem", color: "#64748b", margin: "0.15rem 0 0.35rem" }}>
+                      Fattura Location (Tracciato)
+                    </div>
+                    <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#1e293b" }}>
+                      {formatEuro(ssOfficial / 100)}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: "0.75rem", borderRadius: "8px", background: "#fff", border: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: "0.68rem", textTransform: "uppercase", fontWeight: 800, color: "#7c3aed" }}>
+                      2. Quota Ufficiale Iovino Banqueting S.r.l.
+                    </div>
+                    <div style={{ fontSize: "0.72rem", color: "#64748b", margin: "0.15rem 0 0.35rem" }}>
+                      Fattura Banqueting (Tracciato)
+                    </div>
+                    <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#1e293b" }}>
+                      {formatEuro(iovinoOfficial / 100)}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: "0.75rem", borderRadius: "8px", background: "#fff", border: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: "0.68rem", textTransform: "uppercase", fontWeight: 800, color: "#d97706" }}>
+                      3. Quota Contanti Santo Stefano S.r.l.
+                    </div>
+                    <div style={{ fontSize: "0.72rem", color: "#64748b", margin: "0.15rem 0 0.35rem" }}>
+                      Extra Location / Fornitori contanti
+                    </div>
+                    <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#1e293b" }}>
+                      {formatEuro(ssCash / 100)}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: "0.75rem", borderRadius: "8px", background: "#fff", border: "1px solid #e2e8f0" }}>
+                    <div style={{ fontSize: "0.68rem", textTransform: "uppercase", fontWeight: 800, color: "#059669" }}>
+                      4. Quota Contanti Iovino Banqueting S.r.l.
+                    </div>
+                    <div style={{ fontSize: "0.72rem", color: "#64748b", margin: "0.15rem 0 0.35rem" }}>
+                      Extra Banqueting / Fornitori contanti
+                    </div>
+                    <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#1e293b" }}>
+                      {formatEuro(iovinoCash / 100)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </Panel>
     </div>
