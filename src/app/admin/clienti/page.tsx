@@ -296,6 +296,12 @@ export default async function ClientiPage() {
       tags.push("Open Day");
     }
 
+    const isDemo =
+      Boolean(client?.is_demo) ||
+      String(cid).toLowerCase().startsWith("client-demo-") ||
+      String(cid).toLowerCase().startsWith("demo-") ||
+      tags.some((t) => t.toUpperCase() === "DEMO");
+
     rows.push({
       id: cid,
       nome,
@@ -306,6 +312,7 @@ export default async function ClientiPage() {
       tags,
       isClub,
       isOpenDay,
+      isDemo,
       eventiCount,
       ltvCents,
       eventi,

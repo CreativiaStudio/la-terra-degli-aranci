@@ -24,6 +24,7 @@ export const TAG_STYLES: Record<string, TagStyle> = {
   "⚠️ Con Riserva": { bg: "#fef2f2", color: "#991b1b", border: "#fca5a5" },
   "🔒 Riservato Direzione": { bg: "#334155", color: "#f8fafc", border: "#1e293b" },
   "Open Day": { bg: "#fdf4ff", color: "#a21caf", border: "#f5d0fe" },
+  DEMO: { bg: "#fef3c7", color: "#b45309", border: "#fde68a" },
 };
 
 /** Etichette predefinite proposte come toggle rapido nel modale. */

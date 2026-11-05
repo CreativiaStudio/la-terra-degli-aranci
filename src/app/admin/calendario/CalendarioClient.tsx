@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -27,6 +27,18 @@ import {
   disconnectGCalAction,
 } from "./gcalActions";
 
+export interface RegisteredClientOption {
+  id: string;
+  nome: string;
+  cognome: string;
+  partner?: string;
+  email: string;
+  telefono: string;
+  provenienza?: string;
+  tags?: string[];
+  isDemo?: boolean;
+}
+
 interface CalendarioClientProps {
   quotes: any[];
   signedPdfs: any[];
@@ -40,6 +52,7 @@ interface CalendarioClientProps {
     last_synced_at?: string;
   };
   initialBannerMessage?: string;
+  registeredClients?: RegisteredClientOption[];
 }
 
 export type LocationKey = "tutte" | "laterradegliaranci" | "villa_pagodina" | "sala_bianca" | "sala_tufo";
@@ -1412,6 +1425,7 @@ export default function CalendarioClient({
   gcalEvents = [],
   gcalAuth,
   initialBannerMessage,
+  registeredClients = [],
 }: CalendarioClientProps) {
   const router = useRouter();
   // Supporta parametro mese iniziale (es. 2027-07) o fallback mese corrente.
@@ -1511,7 +1525,13 @@ export default function CalendarioClient({
 
   // Opzione rapida 7gg: scelta slot, modale compatto e feedback
   const [slotChoice, setSlotChoice] = useState<SlotChoice | null>(null);
+  const [slotSelectedClient, setSlotSelectedClient] = useState<RegisteredClientOption | null>(null);
+  const [slotClientSearch, setSlotClientSearch] = useState("");
+
   const [optionModalOpen, setOptionModalOpen] = useState(false);
+  const [optClientMode, setOptClientMode] = useState<"existing" | "new">("existing");
+  const [optSelectedClient, setOptSelectedClient] = useState<RegisteredClientOption | null>(null);
+  const [optClientSearch, setOptClientSearch] = useState("");
   const [optNome, setOptNome] = useState("");
   const [optTelefono, setOptTelefono] = useState("");
   const [optEmail, setOptEmail] = useState("");
@@ -1522,6 +1542,22 @@ export default function CalendarioClient({
   const [optSaving, setOptSaving] = useState(false);
   const [optError, setOptError] = useState("");
   const [toast, setToast] = useState("");
+
+  const filteredSlotClients = useMemo(() => {
+    const q = slotClientSearch.trim().toLowerCase();
+    if (!q) return registeredClients.slice(0, 6);
+    return registeredClients.filter((c) =>
+      `${c.nome} ${c.cognome} ${c.partner || ""} ${c.telefono} ${c.email}`.toLowerCase().includes(q)
+    );
+  }, [registeredClients, slotClientSearch]);
+
+  const filteredOptClients = useMemo(() => {
+    const q = optClientSearch.trim().toLowerCase();
+    if (!q) return registeredClients.slice(0, 8);
+    return registeredClients.filter((c) =>
+      `${c.nome} ${c.cognome} ${c.partner || ""} ${c.telefono} ${c.email}`.toLowerCase().includes(q)
+    );
+  }, [registeredClients, optClientSearch]);
 
   // Google Calendar OAuth: stato sincronizzazione live
   const [isSyncingGCal, setIsSyncingGCal] = useState(false);
@@ -1605,10 +1641,27 @@ export default function CalendarioClient({
     window.setTimeout(() => setHighlightIso((cur) => (cur === iso ? "" : cur)), 4500);
   };
 
-  const openOptionModal = (preset?: { iso?: string; turno?: "pranzo" | "cena"; formula?: OptionFormula }) => {
-    setOptNome("");
-    setOptTelefono("");
-    setOptEmail("");
+  const openOptionModal = (preset?: {
+    iso?: string;
+    turno?: "pranzo" | "cena";
+    formula?: OptionFormula;
+    client?: RegisteredClientOption | null;
+  }) => {
+    const client = preset?.client ?? slotSelectedClient;
+    if (client) {
+      setOptClientMode("existing");
+      setOptSelectedClient(client);
+      setOptNome(`${client.nome} ${client.cognome}${client.partner ? ` & ${client.partner}` : ""}`.trim());
+      setOptTelefono(client.telefono || "");
+      setOptEmail(client.email || "");
+    } else {
+      setOptClientMode(registeredClients.length > 0 ? "existing" : "new");
+      setOptSelectedClient(null);
+      setOptNome("");
+      setOptTelefono("");
+      setOptEmail("");
+    }
+    setOptClientSearch("");
     setOptData(preset?.iso ?? "");
     setOptTurno(preset?.turno ?? "pranzo");
     setOptFormula(preset?.formula ?? "esclusiva");
@@ -1618,12 +1671,26 @@ export default function CalendarioClient({
     setOptionModalOpen(true);
   };
 
-  const handleChooseSlot = (slot: SlotChoice) => setSlotChoice(slot);
+  const handleChooseSlot = (slot: SlotChoice) => {
+    setSlotSelectedClient(null);
+    setSlotClientSearch("");
+    setSlotChoice(slot);
+  };
 
-  const handleChooseContract = (slot: SlotChoice) => {
+  const handleChooseContract = (slot: SlotChoice, client?: RegisteredClientOption | null) => {
+    const target = client ?? slotSelectedClient;
     const params = [`data=${slot.iso}`];
     if (slot.turno) params.push(`turno=${slot.turno}`);
     if (slot.exclusive) params.push("tipo_esclusiva=esclusiva");
+    if (target) {
+      if (target.nome) params.push(`nome=${encodeURIComponent(target.nome)}`);
+      if (target.cognome) params.push(`cognome=${encodeURIComponent(target.cognome)}`);
+      if (target.partner) params.push(`partner=${encodeURIComponent(target.partner)}`);
+      if (target.telefono) params.push(`telefono=${encodeURIComponent(target.telefono)}`);
+      if (target.email) params.push(`email=${encodeURIComponent(target.email)}`);
+      params.push(`client_id=${encodeURIComponent(target.id)}`);
+    }
+    params.push("open=1");
     setSlotChoice(null);
     router.push(`/admin/contratti?${params.join("&")}`);
   };
@@ -1639,6 +1706,7 @@ export default function CalendarioClient({
     setOptSaving(true);
     try {
       const res = await saveQuickCalendarOptionAction({
+        clientId: optSelectedClient?.id,
         nome: optNome.trim(),
         telefono: optTelefono.trim(),
         email: optEmail.trim() || undefined,
@@ -3404,7 +3472,7 @@ export default function CalendarioClient({
             role="dialog"
             aria-modal="true"
             onClick={(e) => e.stopPropagation()}
-            style={{ background: "#faf8f5", width: "100%", maxWidth: "430px", borderRadius: "20px", border: "1px solid #e8e2d9", borderTop: `4px solid ${COLOR_PENDING}`, padding: "1.6rem", boxShadow: "0 24px 60px rgba(0,0,0,0.25)" }}
+            style={{ background: "#faf8f5", width: "100%", maxWidth: "450px", borderRadius: "20px", border: "1px solid #e8e2d9", borderTop: `4px solid ${COLOR_PENDING}`, padding: "1.6rem", boxShadow: "0 24px 60px rgba(0,0,0,0.25)" }}
           >
             <span style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "2px", color: "#e58c2c", fontWeight: 800 }}>
               Blocca data
@@ -3414,25 +3482,122 @@ export default function CalendarioClient({
               {slotChoice.turno ? ` · ${slotChoice.turno === "cena" ? "🌙 Cena" : "☀️ Pranzo"}` : ""}
               {slotChoice.exclusive ? " · 👑 Esclusiva" : ""}
             </h3>
+
+            {/* SELEZIONE / AGGANCIO CLIENTE ESISTENTE */}
+            <div style={{ marginBottom: "1.2rem", padding: "0.85rem", background: "#fcfbf9", borderRadius: "14px", border: "1px solid #eee9e0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.45rem" }}>
+                <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.8px", color: "#78716c", fontWeight: 800 }}>
+                  👤 Aggancia Cliente Registrato (Opzionale)
+                </span>
+                {slotSelectedClient && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSlotSelectedClient(null);
+                      setSlotClientSearch("");
+                    }}
+                    style={{ fontSize: "0.72rem", color: "#dc2626", background: "none", border: "none", cursor: "pointer", fontWeight: 700 }}
+                  >
+                    ✕ Sgancia
+                  </button>
+                )}
+              </div>
+
+              {slotSelectedClient ? (
+                <div style={{ background: "#ecfdf5", border: "1.5px solid #a7f3d0", borderRadius: "10px", padding: "0.6rem 0.8rem", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                  <span style={{ fontSize: "1.2rem" }}>✅</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: "0.88rem", color: "#065f46", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                      {slotSelectedClient.nome} {slotSelectedClient.cognome}
+                      {slotSelectedClient.partner ? ` & ${slotSelectedClient.partner}` : ""}
+                    </div>
+                    <div style={{ fontSize: "0.74rem", color: "#047857" }}>
+                      📞 {slotSelectedClient.telefono || "Nessun tel"} · 🏷️ {slotSelectedClient.provenienza || "Rubrica"}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <input
+                    type="text"
+                    placeholder="🔍 Cerca cliente, appuntamento o Open Day..."
+                    value={slotClientSearch}
+                    onChange={(e) => setSlotClientSearch(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "0.55rem 0.75rem",
+                      borderRadius: "8px",
+                      border: "1px solid #d4c8b8",
+                      fontSize: "0.85rem",
+                      background: "#fff",
+                    }}
+                  />
+                  {slotClientSearch.trim() && (
+                    <div style={{ marginTop: "0.4rem", maxHeight: "140px", overflowY: "auto", border: "1px solid #e8e2d9", borderRadius: "8px", background: "#fff" }}>
+                      {filteredSlotClients.length === 0 ? (
+                        <div style={{ padding: "0.6rem", fontSize: "0.78rem", color: "#a8a29e", textAlign: "center" }}>
+                          Nessun cliente registrato trovato con &quot;{slotClientSearch}&quot;.
+                        </div>
+                      ) : (
+                        filteredSlotClients.slice(0, 5).map((cl) => (
+                          <div
+                            key={cl.id}
+                            onClick={() => {
+                              setSlotSelectedClient(cl);
+                              setSlotClientSearch("");
+                            }}
+                            style={{
+                              padding: "0.45rem 0.65rem",
+                              borderBottom: "1px solid #f5f0e8",
+                              cursor: "pointer",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              fontSize: "0.82rem",
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "#fff7ed")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+                          >
+                            <div>
+                              <strong style={{ color: "#1e1b18" }}>{cl.nome} {cl.cognome}</strong>
+                              {cl.partner ? <span style={{ color: "#c2410c" }}> &amp; {cl.partner}</span> : null}
+                              <div style={{ fontSize: "0.72rem", color: "#78716c" }}>📞 {cl.telefono}</div>
+                            </div>
+                            <span style={{ fontSize: "0.68rem", fontWeight: 700, padding: "0.1rem 0.4rem", borderRadius: "6px", background: cl.isDemo ? "#fef3c7" : "#f0fdf4", color: cl.isDemo ? "#b45309" : "#15803d" }}>
+                              {cl.isDemo ? "🎭 Demo" : cl.provenienza || "Cliente"}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div style={{ display: "flex", flexDirection: "column", gap: "0.7rem" }}>
               <button
                 type="button"
-                onClick={() => handleChooseContract(slotChoice)}
+                onClick={() => handleChooseContract(slotChoice, slotSelectedClient)}
                 style={{ padding: "0.95rem 1rem", borderRadius: "14px", border: "none", background: "linear-gradient(135deg, #1e1b18 0%, #2e2924 100%)", color: "#ffffff", fontFamily: "inherit", fontSize: "0.95rem", fontWeight: 800, cursor: "pointer", textAlign: "left" }}
               >
                 ⚡ Emetti Contratto Completo
                 <div style={{ fontSize: "0.76rem", fontWeight: 500, color: "#d6cfc4", marginTop: "2px" }}>
-                  Apre i Contratti con data e turno già impostati
+                  {slotSelectedClient
+                    ? `Apre i Contratti con data, turno e dati di ${slotSelectedClient.nome} già inseriti`
+                    : "Apre i Contratti con data e turno già impostati"}
                 </div>
               </button>
               <button
                 type="button"
-                onClick={() => openOptionModal({ iso: slotChoice.iso, turno: slotChoice.turno, formula: slotChoice.formula })}
+                onClick={() => openOptionModal({ iso: slotChoice.iso, turno: slotChoice.turno, formula: slotChoice.formula, client: slotSelectedClient })}
                 style={{ padding: "0.95rem 1rem", borderRadius: "14px", border: `1.5px solid ${COLOR_PENDING}`, background: "#fff7ed", color: "#b45f0c", fontFamily: "inherit", fontSize: "0.95rem", fontWeight: 800, cursor: "pointer", textAlign: "left" }}
               >
                 ⏳ Fissa Opzione Rapida 7gg (Senza Prezzo)
                 <div style={{ fontSize: "0.76rem", fontWeight: 500, color: "#92400e", marginTop: "2px" }}>
-                  Solo nome, telefono e spazio: 5 secondi
+                  {slotSelectedClient
+                    ? `Blocca lo slot a nome di ${slotSelectedClient.nome}`
+                    : "Solo nome, telefono e spazio: 5 secondi"}
                 </div>
               </button>
               <button
@@ -3466,10 +3631,161 @@ export default function CalendarioClient({
               ⚡ Fissa Opzione Rapida
             </h3>
 
+            {/* SELETTORE MODALITÀ: CLIENTE ESISTENTE VS NUOVO */}
+            <div style={{ marginBottom: "1rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", marginBottom: "0.6rem" }}>
+                <button
+                  type="button"
+                  onClick={() => setOptClientMode("existing")}
+                  style={{
+                    padding: "0.55rem 0.75rem",
+                    borderRadius: "10px",
+                    border: optClientMode === "existing" ? "2px solid #e58c2c" : "1px solid #d4c8b8",
+                    background: optClientMode === "existing" ? "#fff7ed" : "#fff",
+                    color: optClientMode === "existing" ? "#c2410c" : "#6a6764",
+                    fontWeight: 800,
+                    fontSize: "0.82rem",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.3rem",
+                  }}
+                >
+                  <span>👤</span> Aggancia Registrato
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOptClientMode("new");
+                    setOptSelectedClient(null);
+                  }}
+                  style={{
+                    padding: "0.55rem 0.75rem",
+                    borderRadius: "10px",
+                    border: optClientMode === "new" ? "2px solid #e58c2c" : "1px solid #d4c8b8",
+                    background: optClientMode === "new" ? "#fff7ed" : "#fff",
+                    color: optClientMode === "new" ? "#c2410c" : "#6a6764",
+                    fontWeight: 800,
+                    fontSize: "0.82rem",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.3rem",
+                  }}
+                >
+                  <span>➕</span> Nuovo Cliente
+                </button>
+              </div>
+
+              {optClientMode === "existing" && (
+                <div style={{ background: "#ffffff", border: "1px solid #e8e2d9", borderRadius: "12px", padding: "0.75rem" }}>
+                  {optSelectedClient ? (
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+                        <span style={{ fontSize: "1.2rem" }}>✅</span>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 800, fontSize: "0.88rem", color: "#065f46", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                            {optSelectedClient.nome} {optSelectedClient.cognome}
+                            {optSelectedClient.partner ? ` & ${optSelectedClient.partner}` : ""}
+                          </div>
+                          <div style={{ fontSize: "0.74rem", color: "#047857" }}>
+                            📞 {optSelectedClient.telefono} {optSelectedClient.email ? `· ✉️ ${optSelectedClient.email}` : ""}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOptSelectedClient(null);
+                          setOptClientSearch("");
+                        }}
+                        style={{
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          color: "#be123c",
+                          background: "#fff1f2",
+                          border: "1px solid #fecdd3",
+                          borderRadius: "8px",
+                          padding: "0.25rem 0.55rem",
+                          cursor: "pointer",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Cambia
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.6px", fontWeight: 700, color: "#8a847c", marginBottom: "0.3rem" }}>
+                        🔍 Cerca per nome, cognome, partner o telefono:
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Es. Esposito, Sofia, Mario, 333..."
+                        value={optClientSearch}
+                        onChange={(e) => setOptClientSearch(e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: "0.55rem 0.75rem",
+                          borderRadius: "8px",
+                          border: "1px solid #d4c8b8",
+                          fontSize: "0.85rem",
+                          background: "#fff",
+                        }}
+                        autoFocus
+                      />
+                      <div style={{ marginTop: "0.4rem", maxHeight: "150px", overflowY: "auto", border: "1px solid #f0eee9", borderRadius: "8px" }}>
+                        {filteredOptClients.length === 0 ? (
+                          <div style={{ padding: "0.6rem", fontSize: "0.78rem", color: "#a8a29e", textAlign: "center" }}>
+                            Nessun cliente registrato trovato.
+                          </div>
+                        ) : (
+                          filteredOptClients.map((cl) => (
+                            <div
+                              key={cl.id}
+                              onClick={() => {
+                                setOptSelectedClient(cl);
+                                setOptNome(`${cl.nome} ${cl.cognome}${cl.partner ? ` & ${cl.partner}` : ""}`.trim());
+                                setOptTelefono(cl.telefono || "");
+                                setOptEmail(cl.email || "");
+                                setOptClientSearch("");
+                              }}
+                              style={{
+                                padding: "0.45rem 0.65rem",
+                                borderBottom: "1px solid #f5f0e8",
+                                cursor: "pointer",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                fontSize: "0.82rem",
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = "#fff7ed")}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+                            >
+                              <div>
+                                <strong style={{ color: "#1e1b18" }}>{cl.nome} {cl.cognome}</strong>
+                                {cl.partner ? <span style={{ color: "#c2410c" }}> &amp; {cl.partner}</span> : null}
+                                <div style={{ fontSize: "0.72rem", color: "#78716c" }}>📞 {cl.telefono}</div>
+                              </div>
+                              <span style={{ fontSize: "0.68rem", fontWeight: 700, padding: "0.1rem 0.4rem", borderRadius: "999px", background: cl.isDemo ? "#fef3c7" : "#ecfdf5", color: cl.isDemo ? "#92400e" : "#065f46" }}>
+                                {cl.isDemo ? "🎭 Demo" : cl.provenienza || "Cliente"}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div style={{ display: "grid", gap: "0.8rem" }}>
               <div>
                 <label htmlFor="opt-nome" style={MODAL_LABEL}>Nome Cliente / Sposi *</label>
-                <input id="opt-nome" type="text" autoFocus value={optNome} onChange={(e) => setOptNome(e.target.value)} placeholder="Es. De Luca & Russo" style={MODAL_INPUT} />
+                <input id="opt-nome" type="text" value={optNome} onChange={(e) => setOptNome(e.target.value)} placeholder="Es. De Luca & Russo" style={MODAL_INPUT} />
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem" }}>

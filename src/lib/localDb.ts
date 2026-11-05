@@ -1400,6 +1400,7 @@ const OPTION_QUICK_PRELAZIONE_ORE = 24;
  * Il controllo di disponibilità è a carico del chiamante (slotAvailability).
  */
 export function saveQuickCalendarOptionLocal(data: {
+  clientId?: string;
   nome: string;
   telefono: string;
   email?: string;
@@ -1416,15 +1417,17 @@ export function saveQuickCalendarOptionLocal(data: {
   const nome = String(data.nome || "").trim();
   const nowIso = new Date().toISOString();
 
-  let client = store.clients.find(
-    c =>
-      (email && String(c.email || "").trim().toLowerCase() === email) ||
-      (telefono && String(c.telefono || "").trim() === telefono)
-  );
+  let client = data.clientId
+    ? store.clients.find(c => c && c.id === data.clientId)
+    : store.clients.find(
+        c =>
+          (email && String(c.email || "").trim().toLowerCase() === email) ||
+          (telefono && String(c.telefono || "").trim() === telefono)
+      );
 
   if (!client) {
     client = {
-      id: crypto.randomUUID(),
+      id: data.clientId || crypto.randomUUID(),
       nome,
       cognome: "",
       email: String(data.email || "").trim(),
@@ -2744,6 +2747,58 @@ export function saveGoogleCalendarAuthLocal(auth: GoogleCalendarAuth): void {
   const store = getStore();
   store.google_calendar_auth = { ...auth };
   saveStore(store);
+}
+
+/**
+ * Rimuove in modo sicuro TUTTI i dati demo (is_demo: true o id demo-* / client-demo-* / quote-demo-* / pay-demo-* / extra-demo-*),
+ * preservando AL 100% i lead reali dell'Open Day (client-od-*) e tutti i dati storici non demo.
+ */
+export function purgeAllDemoData(): {
+  removedClients: number;
+  removedQuotes: number;
+  removedPayments: number;
+  removedExtraQuotes: number;
+  removedContracts: number;
+} {
+  const store = getStore();
+  const isDemoItem = (item: any): boolean => {
+    if (!item) return false;
+    if (item.is_demo === true) return true;
+    const id = String(item.id || item.quote_id || '');
+    if (
+      id.startsWith('demo-') ||
+      id.startsWith('client-demo-') ||
+      id.startsWith('quote-demo-') ||
+      id.startsWith('pay-demo-') ||
+      id.startsWith('extra-demo-')
+    ) {
+      return true;
+    }
+    if (Array.isArray(item.tags) && item.tags.includes('DEMO')) return true;
+    return false;
+  };
+
+  const initialClients = (store.clients || []).length;
+  const initialQuotes = (store.quotes || []).length;
+  const initialPayments = (store.payments || []).length;
+  const initialExtra = (store.extra_quotes || []).length;
+  const initialContracts = (store.signed_contracts || []).length;
+
+  store.clients = (store.clients || []).filter((c) => !isDemoItem(c));
+  store.quotes = (store.quotes || []).filter((q) => !isDemoItem(q));
+  store.payments = (store.payments || []).filter((p) => !isDemoItem(p));
+  store.extra_quotes = (store.extra_quotes || []).filter((eq) => !isDemoItem(eq));
+  store.signed_contracts = (store.signed_contracts || []).filter((sc) => !isDemoItem(sc));
+
+  saveStore(store);
+
+  return {
+    removedClients: initialClients - store.clients.length,
+    removedQuotes: initialQuotes - store.quotes.length,
+    removedPayments: initialPayments - store.payments.length,
+    removedExtraQuotes: initialExtra - store.extra_quotes.length,
+    removedContracts: initialContracts - store.signed_contracts.length,
+  };
 }
 
 

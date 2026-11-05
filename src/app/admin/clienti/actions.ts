@@ -7,6 +7,7 @@ import {
   deleteClientExperienceLocal,
   getAllQuotesLocal,
   getStore,
+  purgeAllDemoData,
   updateClientLocal,
 } from '@/lib/localDb';
 import { checkVenueConflict } from '@/lib/eventStage';
@@ -366,6 +367,36 @@ export async function updateClientPreferencesAction(
     return { success: true };
   } catch (err: unknown) {
     console.error('Errore in updateClientPreferencesAction:', err);
+    const message = err instanceof Error && err.message ? err.message : 'Errore inatteso';
+    return { success: false, error: message };
+  }
+}
+
+/**
+ * Rimuove tutti i dati demo (clienti demo, preventivi demo, pagamenti demo ed extra demo)
+ * senza intaccare in alcun modo i contatti reali (es. Open Day e clienti storici).
+ */
+export async function purgeDemoDataAction(): Promise<{
+  success: boolean;
+  error?: string;
+  removed?: {
+    removedClients: number;
+    removedQuotes: number;
+    removedPayments: number;
+    removedExtraQuotes: number;
+    removedContracts: number;
+  };
+}> {
+  try {
+    const res = purgeAllDemoData();
+    revalidatePath('/admin/clienti');
+    revalidatePath('/admin/cassa');
+    revalidatePath('/admin/contratti');
+    revalidatePath('/admin/preventivi');
+    revalidatePath('/admin/dashboard');
+    return { success: true, removed: res };
+  } catch (err: unknown) {
+    console.error('Errore in purgeDemoDataAction:', err);
     const message = err instanceof Error && err.message ? err.message : 'Errore inatteso';
     return { success: false, error: message };
   }

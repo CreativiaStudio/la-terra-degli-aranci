@@ -1,23 +1,6 @@
 {
   "clients": [
     {
-      "id": "client-demo-matrimonio-2027",
-      "nome": "Marco",
-      "cognome": "Esposito",
-      "partner": "Laura De Luca",
-      "sposera_nome": "Laura De Luca",
-      "email": "marco.esposito@gmail.com",
-      "telefono": "+39 334 154 4314",
-      "lead_source": "diretto",
-      "provenienza": "Visita Diretta",
-      "tags": [
-        "Sposi",
-        "VIP Club TDA"
-      ],
-      "created_at": "2026-09-01T10:00:00Z",
-      "updated_at": "2026-09-15T12:00:00Z"
-    },
-    {
       "id": "client-od-1792828082684-a0735",
       "nome": "A & B",
       "cognome": "",
@@ -208,67 +191,288 @@
       "codice_fiscale": "SLORBT75A01F839X",
       "provenienza": "Direzione Generale",
       "created_at": "2026-10-21T09:00:00.000Z"
+    },
+    {
+      "id": "client-demo-matrimonio-2027",
+      "nome": "Marco",
+      "cognome": "Esposito",
+      "partner": "Laura De Luca",
+      "sposera_nome": "Laura De Luca",
+      "email": "marco.esposito@gmail.com",
+      "telefono": "+39 334 154 4314",
+      "lead_source": "diretto",
+      "provenienza": "Demo Direzione (Simulazione)",
+      "tags": [
+        "DEMO",
+        "Sposi",
+        "VIP Club TDA"
+      ],
+      "is_demo": true,
+      "created_at": "2026-09-01T10:00:00Z",
+      "updated_at": "2026-11-05T12:56:54.360Z"
+    },
+    {
+      "id": "client-demo-ricci-2027",
+      "nome": "Gianluca",
+      "cognome": "Ricci",
+      "partner": "Chiara Moretti",
+      "sposera_nome": "Chiara Moretti",
+      "email": "gianluca.ricci.demo@gmail.com",
+      "telefono": "+39 338 987 6543",
+      "lead_source": "diretto",
+      "provenienza": "Demo Direzione (Simulazione)",
+      "tags": [
+        "DEMO",
+        "Sposi",
+        "In Opzione"
+      ],
+      "is_demo": true,
+      "created_at": "2026-10-01T11:00:00Z",
+      "updated_at": "2026-11-05T12:56:54.360Z"
+    },
+    {
+      "id": "client-demo-corporate-leonardo",
+      "nome": "Vincenzo",
+      "cognome": "Barone (Leonardo S.p.A.)",
+      "partner": "",
+      "email": "v.barone.demo@leonardocompany.com",
+      "telefono": "+39 081 556 7890",
+      "ragione_sociale": "Leonardo S.p.A.",
+      "partita_iva": "IT00881841001",
+      "codice_fiscale": "00881841001",
+      "sdi": "M5UXCR1",
+      "pec": "leonardo.spa@pec.it",
+      "lead_source": "diretto",
+      "provenienza": "Demo Direzione (Simulazione Corporate)",
+      "tags": [
+        "DEMO",
+        "Azienda",
+        "VIP Club TDA"
+      ],
+      "is_demo": true,
+      "created_at": "2026-08-15T09:00:00Z",
+      "updated_at": "2026-11-05T12:56:54.360Z"
+    },
+    {
+      "id": "client-demo-coppola-festa",
+      "nome": "Beatrice",
+      "cognome": "Coppola",
+      "partner": "",
+      "email": "beatrice.coppola.demo@studiolegalecoppola.it",
+      "telefono": "+39 347 112 2334",
+      "lead_source": "diretto",
+      "provenienza": "Demo Direzione (Simulazione Privata)",
+      "tags": [
+        "DEMO",
+        "Privato",
+        "VIP Club TDA"
+      ],
+      "is_demo": true,
+      "created_at": "2026-09-10T14:00:00Z",
+      "updated_at": "2026-11-05T12:56:54.360Z"
     }
   ],
   "quotes": [
     {
       "id": "quote-demo-esposito-2027",
       "client_id": "client-demo-matrimonio-2027",
-      "tipo_evento": "wedding",
       "data_evento": "2027-06-18",
-      "turno": "cena",
-      "tipo_esclusiva": "semi_esclusiva",
-      "formula_opzione": "sala_bianca",
-      "numero_ospiti": 110,
-      "prezzo": 14500,
-      "totale_calcolato": 14500,
+      "turno": "pranzo",
+      "tipo_evento": "wedding",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "numero_ospiti": 130,
       "status": "firmato",
       "data_firma": "2026-09-15T12:00:00Z",
+      "signed_at": "2026-09-15T12:00:00Z",
+      "canone": 3500,
+      "prezzo": 14500,
+      "totale": 14500,
+      "importo_caparra": 3500,
+      "importo_secondo_acconto": 4000,
+      "is_demo": true,
       "created_at": "2026-09-01T10:00:00Z",
+      "updated_at": "2026-11-05T12:56:54.360Z",
       "items": [
         {
-          "id": "it-01",
-          "descrizione": "Fitto Location Sala Bianca e relativi giardini (Esclusiva turno cena)",
-          "prezzo_unitario": 3500,
+          "id": "it-esp-1",
+          "descrizione": "Canone Concessione Villa & Giardini Storici",
           "quantita": 1,
+          "prezzo_unitario": 3500,
           "totale": 3500,
           "splitKey": "ss100",
           "splitLabel": "100% Santo Stefano S.r.l."
         },
         {
-          "id": "it-02",
-          "descrizione": "Menu Wedding Tradizione & Mare (110 ospiti x 100€)",
-          "prezzo_unitario": 100,
-          "quantita": 110,
-          "totale": 11000,
+          "id": "it-esp-2",
+          "descrizione": "Menu Nozze Gala & Somministrazione (130 ospiti)",
+          "quantita": 130,
+          "prezzo_unitario": 80,
+          "totale": 10400,
           "splitKey": "40_60",
-          "splitLabel": "40% Santo Stefano / 60% Iovino Banqueting"
+          "splitLabel": "40% SS / 60% Iovino"
+        },
+        {
+          "id": "it-esp-3",
+          "descrizione": "Selezione Vini DOC Campania & Spumanti",
+          "quantita": 1,
+          "prezzo_unitario": 600,
+          "totale": 600,
+          "splitKey": "40_60",
+          "splitLabel": "40% SS / 60% Iovino"
         }
-      ],
-      "totale": 14500
-    }
-  ],
-  "signed_contracts": [
+      ]
+    },
     {
-      "id": "contract-demo-esposito-2027",
-      "quote_id": "quote-demo-esposito-2027",
-      "client_id": "client-demo-matrimonio-2027",
-      "nome": "Marco Esposito & Laura De Luca",
-      "prezzo": 14500,
-      "tipoContratto": "wedding",
-      "signed_at": "2026-09-15T12:00:00Z",
-      "datiCliente": {
-        "nomeSposo": "Marco Esposito",
-        "nomeSposa": "Laura De Luca",
-        "data_evento": "2027-06-18",
-        "turno": "cena",
-        "tipo_esclusiva": "semi_esclusiva",
-        "formula_opzione": "sala_bianca",
-        "telefono": "+39 334 154 4314",
-        "email": "marco.esposito@gmail.com"
-      }
+      "id": "quote-demo-ricci-2027",
+      "client_id": "client-demo-ricci-2027",
+      "data_evento": "2027-09-12",
+      "turno": "cena",
+      "tipo_evento": "wedding",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_bianca",
+      "numero_ospiti": 95,
+      "status": "opzione",
+      "canone": 2500,
+      "prezzo": 11800,
+      "totale": 11800,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "is_demo": true,
+      "created_at": "2026-10-01T11:00:00Z",
+      "updated_at": "2026-11-05T12:56:54.360Z",
+      "items": [
+        {
+          "id": "it-ric-1",
+          "descrizione": "Concessione Sala Bianca e Giardini Superiori",
+          "quantita": 1,
+          "prezzo_unitario": 2500,
+          "totale": 2500,
+          "splitKey": "ss100",
+          "splitLabel": "100% Santo Stefano S.r.l."
+        },
+        {
+          "id": "it-ric-2",
+          "descrizione": "Menu Ricevimento Serale Sala Bianca (95 ospiti)",
+          "quantita": 95,
+          "prezzo_unitario": 90,
+          "totale": 8550,
+          "splitKey": "40_60",
+          "splitLabel": "40% SS / 60% Iovino"
+        },
+        {
+          "id": "it-ric-3",
+          "descrizione": "Buffet di Dolci e Torta Nuziale Scenografica",
+          "quantita": 1,
+          "prezzo_unitario": 750,
+          "totale": 750,
+          "splitKey": "40_60",
+          "splitLabel": "40% SS / 60% Iovino"
+        }
+      ]
+    },
+    {
+      "id": "quote-demo-corporate-leonardo",
+      "client_id": "client-demo-corporate-leonardo",
+      "data_evento": "2026-10-15",
+      "turno": "cena",
+      "tipo_evento": "eventi",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "numero_ospiti": 120,
+      "status": "firmato",
+      "data_firma": "2026-08-25T14:00:00Z",
+      "signed_at": "2026-08-25T14:00:00Z",
+      "canone": 4500,
+      "prezzo": 16000,
+      "totale": 16000,
+      "importo_caparra": 4500,
+      "importo_secondo_acconto": 5000,
+      "is_demo": true,
+      "created_at": "2026-08-15T09:00:00Z",
+      "updated_at": "2026-11-05T12:56:54.360Z",
+      "items": [
+        {
+          "id": "it-corp-1",
+          "descrizione": "Fitto Esclusivo Tenuta per Gala Aziendale",
+          "quantita": 1,
+          "prezzo_unitario": 4500,
+          "totale": 4500,
+          "splitKey": "ss100",
+          "splitLabel": "100% Santo Stefano S.r.l."
+        },
+        {
+          "id": "it-corp-2",
+          "descrizione": "Cena di Gala Placé 4 Portate (120 ospiti)",
+          "quantita": 120,
+          "prezzo_unitario": 85,
+          "totale": 10200,
+          "splitKey": "40_60",
+          "splitLabel": "40% SS / 60% Iovino"
+        },
+        {
+          "id": "it-corp-3",
+          "descrizione": "Service Audio, Microfoni & Podio Relatori",
+          "quantita": 1,
+          "prezzo_unitario": 1300,
+          "totale": 1300,
+          "splitKey": "ss100",
+          "splitLabel": "100% Santo Stefano S.r.l."
+        }
+      ]
+    },
+    {
+      "id": "quote-demo-coppola-festa",
+      "client_id": "client-demo-coppola-festa",
+      "data_evento": "2027-05-28",
+      "turno": "cena",
+      "tipo_evento": "eventi",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_tufo",
+      "numero_ospiti": 60,
+      "status": "firmato",
+      "data_firma": "2026-09-20T16:00:00Z",
+      "signed_at": "2026-09-20T16:00:00Z",
+      "canone": 1800,
+      "prezzo": 6500,
+      "totale": 6500,
+      "importo_caparra": 1800,
+      "importo_secondo_acconto": 2000,
+      "is_demo": true,
+      "created_at": "2026-09-10T14:00:00Z",
+      "updated_at": "2026-11-05T12:56:54.360Z",
+      "items": [
+        {
+          "id": "it-cop-1",
+          "descrizione": "Concessione Esclusiva Sala Tufo & Parco Ginestre",
+          "quantita": 1,
+          "prezzo_unitario": 1800,
+          "totale": 1800,
+          "splitKey": "ss100",
+          "splitLabel": "100% Santo Stefano S.r.l."
+        },
+        {
+          "id": "it-cop-2",
+          "descrizione": "Cena Anniversario Tradizione & Mare (60 ospiti)",
+          "quantita": 60,
+          "prezzo_unitario": 70,
+          "totale": 4200,
+          "splitKey": "40_60",
+          "splitLabel": "40% SS / 60% Iovino"
+        },
+        {
+          "id": "it-cop-3",
+          "descrizione": "Torta Anniversario 25 Anni & Champagne",
+          "quantita": 1,
+          "prezzo_unitario": 500,
+          "totale": 500,
+          "splitKey": "40_60",
+          "splitLabel": "40% SS / 60% Iovino"
+        }
+      ]
     }
   ],
+  "signed_contracts": [],
   "wedding_diaries": [
     {
       "client_id": "client-od-1792582428038",
@@ -2595,56 +2799,184 @@
   "blog_posts": [],
   "payments": [
     {
-      "id": "pay-demo-01",
+      "id": "pay-demo-esp-01",
       "quote_id": "quote-demo-esposito-2027",
-      "data_incasso": "2026-10-15",
+      "data_incasso": "2026-09-15",
       "importo_cents": 350000,
       "metodo": "bonifico",
       "incassato_da": "santo_stefano",
       "natura": "ufficiale",
-      "riferimento": "CRO-88392019482",
-      "note": "Caparra confirmatoria fitto location Santo Stefano S.r.l. (Tracciato)",
+      "riferimento": "CRO-ESP-SS-01",
+      "note": "Caparra confirmatoria fitto villa Santo Stefano S.r.l.",
+      "stato": "valido",
       "registrato_da": "Roberto Sola",
-      "created_at": "2026-10-15T10:30:00Z"
+      "is_demo": true,
+      "created_at": "2026-09-15T12:00:00Z"
     },
     {
-      "id": "pay-demo-02",
+      "id": "pay-demo-esp-02",
       "quote_id": "quote-demo-esposito-2027",
-      "data_incasso": "2026-10-20",
+      "data_incasso": "2026-10-12",
       "importo_cents": 400000,
       "metodo": "bonifico",
       "incassato_da": "iovino",
       "natura": "ufficiale",
-      "riferimento": "CRO-47291039581",
-      "note": "Acconto menu wedding brigata Iovino Banqueting S.r.l. (Tracciato)",
-      "registrato_da": "Roberto Sola",
-      "created_at": "2026-10-20T11:00:00Z"
+      "riferimento": "CRO-ESP-IOV-02",
+      "note": "Acconto somministrazione banqueting Iovino S.r.l.",
+      "stato": "valido",
+      "registrato_da": "Rosaria Iovino",
+      "is_demo": true,
+      "created_at": "2026-10-12T10:00:00Z"
     },
     {
-      "id": "pay-demo-03",
+      "id": "pay-demo-esp-03",
       "quote_id": "quote-demo-esposito-2027",
-      "data_incasso": "2026-10-25",
+      "data_incasso": "2026-10-15",
       "importo_cents": 60000,
       "metodo": "contanti",
       "incassato_da": "santo_stefano",
       "natura": "extra",
-      "riferimento": "Ricevuta extra n. 14",
-      "note": "Extra contanti location (Allestimento luci glicine e parcheggio)",
+      "riferimento": "Quietanza Contanti SS-01",
+      "note": "Acconto contanti allestimento luci d'autore agrumeto",
+      "stato": "valido",
       "registrato_da": "Roberto Sola",
-      "created_at": "2026-10-25T15:00:00Z"
+      "is_demo": true,
+      "created_at": "2026-10-15T15:00:00Z"
     },
     {
-      "id": "pay-demo-04",
+      "id": "pay-demo-esp-04",
       "quote_id": "quote-demo-esposito-2027",
-      "data_incasso": "2026-10-28",
+      "data_incasso": "2026-10-15",
       "importo_cents": 90000,
       "metodo": "contanti",
       "incassato_da": "iovino",
       "natura": "extra",
-      "riferimento": "Contanti cassa brigata",
-      "note": "Extra contanti banqueting (Angolo sigari & distillati / pasticceria mignon)",
+      "riferimento": "Quietanza Contanti IOV-01",
+      "note": "Acconto contanti angolo cruditè ostriche e open bar",
+      "stato": "valido",
+      "registrato_da": "Rosaria Iovino",
+      "is_demo": true,
+      "created_at": "2026-10-15T15:30:00Z"
+    },
+    {
+      "id": "pay-demo-corp-01",
+      "quote_id": "quote-demo-corporate-leonardo",
+      "data_incasso": "2026-09-01",
+      "importo_cents": 450000,
+      "metodo": "bonifico",
+      "incassato_da": "santo_stefano",
+      "natura": "ufficiale",
+      "riferimento": "CRO-LEO-SS-01",
+      "note": "Fitto location fattura Santo Stefano S.r.l.",
+      "stato": "valido",
       "registrato_da": "Roberto Sola",
-      "created_at": "2026-10-28T16:30:00Z"
+      "is_demo": true,
+      "created_at": "2026-09-01T10:00:00Z"
+    },
+    {
+      "id": "pay-demo-corp-02",
+      "quote_id": "quote-demo-corporate-leonardo",
+      "data_incasso": "2026-09-02",
+      "importo_cents": 500000,
+      "metodo": "bonifico",
+      "incassato_da": "iovino",
+      "natura": "ufficiale",
+      "riferimento": "CRO-LEO-IOV-02",
+      "note": "Acconto catering fattura Iovino S.r.l.",
+      "stato": "valido",
+      "registrato_da": "Rosaria Iovino",
+      "is_demo": true,
+      "created_at": "2026-09-02T11:00:00Z"
+    },
+    {
+      "id": "pay-demo-corp-03",
+      "quote_id": "quote-demo-corporate-leonardo",
+      "data_incasso": "2026-09-05",
+      "importo_cents": 60000,
+      "metodo": "contanti",
+      "incassato_da": "santo_stefano",
+      "natura": "extra",
+      "riferimento": "Quietanza Contanti LEO-SS",
+      "note": "Acconto extra video mapping",
+      "stato": "valido",
+      "registrato_da": "Roberto Sola",
+      "is_demo": true,
+      "created_at": "2026-09-05T14:00:00Z"
+    },
+    {
+      "id": "pay-demo-corp-04",
+      "quote_id": "quote-demo-corporate-leonardo",
+      "data_incasso": "2026-09-05",
+      "importo_cents": 50000,
+      "metodo": "contanti",
+      "incassato_da": "iovino",
+      "natura": "extra",
+      "riferimento": "Quietanza Contanti LEO-IOV",
+      "note": "Acconto extra degustazione rum",
+      "stato": "valido",
+      "registrato_da": "Rosaria Iovino",
+      "is_demo": true,
+      "created_at": "2026-09-05T14:30:00Z"
+    },
+    {
+      "id": "pay-demo-cop-01",
+      "quote_id": "quote-demo-coppola-festa",
+      "data_incasso": "2026-10-01",
+      "importo_cents": 368000,
+      "metodo": "bonifico",
+      "incassato_da": "santo_stefano",
+      "natura": "ufficiale",
+      "riferimento": "CRO-COP-SS-01",
+      "note": "Saldo quota ufficiale Santo Stefano S.r.l.",
+      "stato": "valido",
+      "registrato_da": "Roberto Sola",
+      "is_demo": true,
+      "created_at": "2026-10-01T10:00:00Z"
+    },
+    {
+      "id": "pay-demo-cop-02",
+      "quote_id": "quote-demo-coppola-festa",
+      "data_incasso": "2026-10-02",
+      "importo_cents": 282000,
+      "metodo": "bonifico",
+      "incassato_da": "iovino",
+      "natura": "ufficiale",
+      "riferimento": "CRO-COP-IOV-02",
+      "note": "Saldo quota ufficiale Iovino S.r.l.",
+      "stato": "valido",
+      "registrato_da": "Rosaria Iovino",
+      "is_demo": true,
+      "created_at": "2026-10-02T11:00:00Z"
+    },
+    {
+      "id": "pay-demo-cop-03",
+      "quote_id": "quote-demo-coppola-festa",
+      "data_incasso": "2026-10-03",
+      "importo_cents": 45000,
+      "metodo": "contanti",
+      "incassato_da": "santo_stefano",
+      "natura": "extra",
+      "riferimento": "Quietanza Contanti COP-SS",
+      "note": "Saldo contanti DJ set e luci villa",
+      "stato": "valido",
+      "registrato_da": "Roberto Sola",
+      "is_demo": true,
+      "created_at": "2026-10-03T15:00:00Z"
+    },
+    {
+      "id": "pay-demo-cop-04",
+      "quote_id": "quote-demo-coppola-festa",
+      "data_incasso": "2026-10-03",
+      "importo_cents": 50000,
+      "metodo": "contanti",
+      "incassato_da": "iovino",
+      "natura": "extra",
+      "riferimento": "Quietanza Contanti COP-IOV",
+      "note": "Saldo contanti buffet dolci napoletani",
+      "stato": "valido",
+      "registrato_da": "Rosaria Iovino",
+      "is_demo": true,
+      "created_at": "2026-10-03T15:30:00Z"
     }
   ],
   "appointments": [],
@@ -2729,6 +3061,140 @@
       "client_nome": "Coppola",
       "has_incomplete_data": true,
       "imported_at": "2026-10-10T09:00:00Z"
+    }
+  ],
+  "extra_quotes": [
+    {
+      "id": "extra-demo-esposito-2027",
+      "quote_id": "quote-demo-esposito-2027",
+      "totale": 2500,
+      "totale_santo_stefano": 1200,
+      "totale_iovino": 1300,
+      "note_interne": "Accordo extra Direzione Roberto: Catenarie agrumeto e straordinari villa (SS) + Angolo ostriche e Open bar (Iovino).",
+      "is_demo": true,
+      "created_at": "2026-09-20T10:00:00Z",
+      "updated_at": "2026-11-05T12:56:54.360Z",
+      "items": [
+        {
+          "id": "ext-e1",
+          "descrizione": "Catenarie e Luci d'Autore Parco Agrumi",
+          "quantita": 1,
+          "prezzo_unitario": 800,
+          "totale": 800,
+          "ripartizione": "santo_stefano"
+        },
+        {
+          "id": "ext-e2",
+          "descrizione": "Straordinari Concessione Villa oltre le 01:30",
+          "quantita": 1,
+          "prezzo_unitario": 400,
+          "totale": 400,
+          "ripartizione": "santo_stefano"
+        },
+        {
+          "id": "ext-e3",
+          "descrizione": "Angolo Cruditè di Mare & Ostriche Fin de Claire",
+          "quantita": 1,
+          "prezzo_unitario": 800,
+          "totale": 800,
+          "ripartizione": "iovino"
+        },
+        {
+          "id": "ext-e4",
+          "descrizione": "Open Bar Premium Gin & Mixology Cocktail",
+          "quantita": 1,
+          "prezzo_unitario": 500,
+          "totale": 500,
+          "ripartizione": "iovino"
+        }
+      ]
+    },
+    {
+      "id": "extra-demo-ricci-2027",
+      "quote_id": "quote-demo-ricci-2027",
+      "totale": 1600,
+      "totale_santo_stefano": 700,
+      "totale_iovino": 900,
+      "note_interne": "Preventivo parallelo extra: addobbi agrumeto e show cooking pizza espressa.",
+      "is_demo": true,
+      "created_at": "2026-10-05T12:00:00Z",
+      "updated_at": "2026-11-05T12:56:54.360Z",
+      "items": [
+        {
+          "id": "ext-r1",
+          "descrizione": "Allestimento Floreale Cerimonia all'Agrumeto",
+          "quantita": 1,
+          "prezzo_unitario": 700,
+          "totale": 700,
+          "ripartizione": "santo_stefano"
+        },
+        {
+          "id": "ext-r2",
+          "descrizione": "Show Cooking Friggitoria & Pizza Napoletana Espressa",
+          "quantita": 1,
+          "prezzo_unitario": 900,
+          "totale": 900,
+          "ripartizione": "iovino"
+        }
+      ]
+    },
+    {
+      "id": "extra-demo-corporate-leonardo",
+      "quote_id": "quote-demo-corporate-leonardo",
+      "totale": 2200,
+      "totale_santo_stefano": 1200,
+      "totale_iovino": 1000,
+      "note_interne": "Extra corporate: video mapping facciata e degustazione sigari/distillati.",
+      "is_demo": true,
+      "created_at": "2026-08-30T10:00:00Z",
+      "updated_at": "2026-11-05T12:56:54.360Z",
+      "items": [
+        {
+          "id": "ext-c1",
+          "descrizione": "Video Mapping Architetturale Facciata Villa",
+          "quantita": 1,
+          "prezzo_unitario": 1200,
+          "totale": 1200,
+          "ripartizione": "santo_stefano"
+        },
+        {
+          "id": "ext-c2",
+          "descrizione": "Corner Degustazione Sigari Cubani & Rum d'Annata",
+          "quantita": 1,
+          "prezzo_unitario": 1000,
+          "totale": 1000,
+          "ripartizione": "iovino"
+        }
+      ]
+    },
+    {
+      "id": "extra-demo-coppola-festa",
+      "quote_id": "quote-demo-coppola-festa",
+      "totale": 950,
+      "totale_santo_stefano": 450,
+      "totale_iovino": 500,
+      "note_interne": "Extra anniversario: DJ set e service luci villa + buffet dolci tradizionali.",
+      "is_demo": true,
+      "created_at": "2026-09-22T10:00:00Z",
+      "updated_at": "2026-11-05T12:56:54.360Z",
+      "items": [
+        {
+          "id": "ext-p1",
+          "descrizione": "DJ Set & Service Luci Professionale oltre le 02:00",
+          "quantita": 1,
+          "prezzo_unitario": 450,
+          "totale": 450,
+          "ripartizione": "santo_stefano"
+        },
+        {
+          "id": "ext-p2",
+          "descrizione": "Buffet Dolci Tipici Napoletani & Sfogliatelle Calde",
+          "quantita": 1,
+          "prezzo_unitario": 500,
+          "totale": 500,
+          "ripartizione": "iovino"
+        }
+      ]
     }
   ]
 }

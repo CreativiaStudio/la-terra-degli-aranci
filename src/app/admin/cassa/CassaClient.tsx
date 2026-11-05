@@ -46,6 +46,7 @@ export interface CassaEventoRow {
   stage: string;
   stageLabel: string;
   badgeColor: string;
+  is_demo?: boolean;
   concordato_cents: number;
   incassato_cents: number;
   residuo_cents: number;
@@ -91,6 +92,7 @@ export interface CassaEventOption {
   id: string;
   label: string;
   data_evento: string | null;
+  is_demo?: boolean;
 }
 
 interface CassaClientProps {
@@ -1007,7 +1009,8 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                       ) : (
                         filteredEventi.map((ev) => (
                           <option key={ev.id} value={ev.id}>
-                            {ev.tipo_evento === "wedding" ? "💍" : "🎉"} {formatDate(ev.data_evento)} — {ev.sposi} ({formatEuro(ev.concordato_cents / 100)})
+                            {ev.is_demo ? "🎭 DEMO · " : ev.tipo_evento === "wedding" ? "💍 " : "🎉 "}
+                            {formatDate(ev.data_evento)} — {ev.sposi} ({formatEuro(ev.concordato_cents / 100)})
                           </option>
                         ))
                       )}
@@ -1167,7 +1170,8 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                           }}
                         >
                           {active ? "✓ " : ""}
-                          {ev.tipo_evento === "wedding" ? "💍" : "🎉"} {ev.sposi} · {formatDate(ev.data_evento)}
+                          {ev.is_demo ? "🎭 DEMO · " : ev.tipo_evento === "wedding" ? "💍 " : "🎉 "}
+                          {ev.sposi} · {formatDate(ev.data_evento)}
                         </button>
                       );
                     })
@@ -1186,8 +1190,24 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                     <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 800, color: "#c2410c" }}>
                       {selectedEvent.tipo_evento === "wedding" ? "MATRIMONIO" : "EVENTO PRIVATO"}
                     </span>
-                    <h2 style={{ margin: "0.3rem 0", color: "#1e1b18", fontSize: "1.5rem" }}>
-                      {selectedEvent.tipo_evento === "wedding" ? "💍" : "🎉"} {selectedEvent.sposi} — {selectedEvent.codice}
+                    <h2 style={{ margin: "0.3rem 0", color: "#1e1b18", fontSize: "1.5rem", display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                      <span>{selectedEvent.tipo_evento === "wedding" ? "💍" : "🎉"} {selectedEvent.sposi} — {selectedEvent.codice}</span>
+                      {selectedEvent.is_demo && (
+                        <span
+                          style={{
+                            background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+                            color: "#92400e",
+                            border: "1px solid #f59e0b",
+                            fontSize: "0.72rem",
+                            fontWeight: 800,
+                            padding: "0.2rem 0.6rem",
+                            borderRadius: "999px",
+                            letterSpacing: "0.5px",
+                          }}
+                        >
+                          🎭 DEMO (Con Quota Extra)
+                        </span>
+                      )}
                     </h2>
                     <div style={{ color: "#6a6764", fontSize: "0.9rem" }}>
                       📅 {formatDate(selectedEvent.data_evento)} · {selectedEvent.turno.toLowerCase().includes("cena") ? "🌙" : "☀️"}{" "}

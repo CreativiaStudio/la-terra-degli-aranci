@@ -14,6 +14,7 @@ import { SEMI_ESCLUSIVA_FORMULE } from "@/lib/contractMeta";
  * senza prezzi né preventivi. Verifica la disponibilità prima di bloccare lo slot.
  */
 export async function saveQuickCalendarOptionAction(input: {
+  clientId?: string;
   nome: string;
   telefono: string;
   email?: string;
@@ -55,6 +56,7 @@ export async function saveQuickCalendarOptionAction(input: {
     }
 
     const { quoteId } = saveQuickCalendarOptionLocal({
+      clientId: input.clientId ? String(input.clientId).trim() : undefined,
       nome,
       telefono,
       email: email || undefined,

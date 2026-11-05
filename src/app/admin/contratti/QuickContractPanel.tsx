@@ -275,8 +275,8 @@ export default function QuickContractPanel() {
       searchParams.get("email") ||
       searchParams.get("data")
   );
-  // Di default parte sempre chiuso. Si apre solo al click di "Crea Nuovo Contratto".
-  const [isOpen, setIsOpen] = useState(false);
+  // Di default parte sempre chiuso. Si apre solo al click di "Crea Nuovo Contratto" o se si proviene da "Emetti Contratto" in calendario.
+  const [isOpen, setIsOpen] = useState(() => searchParams.get("open") === "1" || searchParams.get("open") === "true");
 
   const parsedSposi = useMemo(() => {
     return parseSposiParams(
@@ -288,7 +288,7 @@ export default function QuickContractPanel() {
   const [tipoEvento, setTipoEvento] = useState<TipoEvento>("wedding");
   const [tipoCliente, setTipoCliente] = useState<TipoCliente>("privato");
   const [nome, setNome] = useState(() => parsedSposi.nome);
-  const [cognome, setCognome] = useState(() => parsedSposi.cognome);
+  const [cognome, setCognome] = useState(() => searchParams.get("cognome") ?? parsedSposi.cognome);
   const [telefono, setTelefono] = useState(() => searchParams.get("telefono") ?? "");
   const [email, setEmail] = useState(() => searchParams.get("email") ?? "");
   const [partnerNome, setPartnerNome] = useState(() => parsedSposi.partnerNome);

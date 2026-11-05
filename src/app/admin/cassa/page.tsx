@@ -133,10 +133,18 @@ export default async function CassaPage({
     const tipoLabel = q.tipo_evento === "wedding" ? "Matrimonio" : "Privato";
     const dataEvento = onlyDate(q.data_evento) || null;
 
+    const isDemo = Boolean(
+      q?.is_demo ||
+      q?.clients?.is_demo ||
+      String(q?.id || "").startsWith("quote-demo-") ||
+      String(q?.client_id || "").startsWith("client-demo-")
+    );
+
     eventOptions.push({
       id: String(q.id || ""),
-      label: `${sposi} · ${tipoLabel}${dataEvento ? ` · ${dataEvento}` : ""}`,
+      label: `${isDemo ? "🎭 DEMO · " : ""}${sposi} · ${tipoLabel}${dataEvento ? ` · ${dataEvento}` : ""}`,
       data_evento: dataEvento,
+      is_demo: isDemo,
     });
 
     const confirmed = CONFIRMED_STAGES.includes(stage.stage) || q.status === "accettato";
@@ -188,6 +196,7 @@ export default async function CassaPage({
       stage: stage.stage,
       stageLabel: stage.label,
       badgeColor: stage.badgeColor,
+      is_demo: isDemo,
       concordato_cents: ledger.concordato_cents,
       incassato_cents: ledger.incassato_cents,
       residuo_cents: ledger.residuo_cents,

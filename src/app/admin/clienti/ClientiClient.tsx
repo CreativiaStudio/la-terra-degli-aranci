@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   createEventForClientAction,
+  purgeDemoDataAction,
   type ClientiFormula,
 } from "./actions";
 import TagEditorModal, { TAG_STYLES } from "./TagEditorModal";
@@ -30,6 +31,7 @@ export interface ClienteRow {
   tags: string[];
   isClub: boolean;
   isOpenDay?: boolean;
+  isDemo?: boolean;
   eventiCount: number;
   ltvCents: number;
   eventi: ClienteEventoRow[];
@@ -388,6 +390,8 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
       if (selectedStage === "opzione" && !c.eventi?.some((ev) => ev.stage === "opzione")) return false;
       if (selectedStage === "lead" && (c.hasSignedContract || c.eventi?.some((ev) => ev.stage === "opzione"))) return false;
       if (selectedStage === "openday" && !c.isOpenDay && !c.tags?.some((t) => t.toLowerCase().includes("open"))) return false;
+      if (selectedStage === "demo" && !c.isDemo) return false;
+      if (selectedStage === "reali" && c.isDemo) return false;
       if (selectedStage === "svolto" && !c.eventi?.some((ev) => ev.stage === "svolto")) return false;
 
       if (selectedMonth === "prossimi_30" || selectedMonth === "prossimi_60") {
@@ -439,6 +443,33 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
     const url = `https://wa.me/${telefono}?text=${encodeURIComponent(invitoTesto)}`;
     window.open(url, "_blank", "noopener,noreferrer");
     closeInvito();
+  };
+
+  const [isPurging, setIsPurging] = useState(false);
+  const hasDemoData = useMemo(() => clienti.some((c) => c.isDemo), [clienti]);
+
+  const handlePurgeDemo = async () => {
+    const ok = window.confirm(
+      "Sei sicuro di voler rimuovere tutti i dati demo (scenari dimostrativi)?\n\nI contatti reali dell'Open Day e tutti gli eventi reali rimarranno 100% INTATTI."
+    );
+    if (!ok) return;
+
+    setIsPurging(true);
+    try {
+      const res = await purgeDemoDataAction();
+      if (res.success) {
+        alert(
+          `Dati demo rimossi con successo!\n- Clienti demo rimossi: ${res.removed?.removedClients ?? 0}\n- Preventivi demo rimossi: ${res.removed?.removedQuotes ?? 0}\n- Incassi demo rimossi: ${res.removed?.removedPayments ?? 0}\n- Preventivi extra rimossi: ${res.removed?.removedExtraQuotes ?? 0}\n\nI contatti reali Open Day sono preservati.`
+        );
+        router.refresh();
+      } else {
+        alert(`Errore nella rimozione dei dati demo: ${res.error || "Errore sconosciuto"}`);
+      }
+    } catch (e: any) {
+      alert(`Errore: ${e.message || e}`);
+    } finally {
+      setIsPurging(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -586,12 +617,14 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                   cursor: "pointer",
                 }}
               >
-                <option value="all">Tutte le Fasi</option>
+                <option value="all">Tutti i Contatti</option>
+                <option value="reali">🛡️ Solo Contatti REALI (No Demo)</option>
+                <option value="demo">🎭 Scenari DEMO (Roberto &amp; Rosaria)</option>
+                <option value="openday">💍 Registrati Open Day (Reali)</option>
                 <option value="firmato">🟢 Contratti Firmati</option>
                 <option value="opzione">⏳ Opzioni 7gg Attive</option>
-                <option value="lead">🌿 Nuovi Lead & Visite</option>
-                  <option value="openday">💍 Registrati Open Day</option>
-                  <option value="svolto">🏛️ Eventi Svolti / Storico</option>
+                <option value="lead">🌿 Nuovi Lead &amp; Visite</option>
+                <option value="svolto">🏛️ Eventi Svolti / Storico</option>
               </select>
             </label>
             <span
@@ -610,22 +643,48 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
             </span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => openModal()}
-            style={{
-              padding: "0.7rem 1.3rem",
-              background: "linear-gradient(135deg, #e58c2c 0%, #d17a22 100%)",
-              color: "white",
-              border: "none",
-              borderRadius: "10px",
-              fontWeight: 700,
-              cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(229,140,44,0.3)",
-            }}
-          >
-            ⚡ Nuovo Evento per Cliente Esistente
-          </button>
+          <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap" }}>
+            {hasDemoData && (
+              <button
+                type="button"
+                onClick={handlePurgeDemo}
+                disabled={isPurging}
+                title="Rimuove solo i 4 scenari dimostrativi lasciando i contatti Open Day e reali al 100% intatti"
+                style={{
+                  padding: "0.7rem 1.1rem",
+                  background: "#fff1f2",
+                  color: "#be123c",
+                  border: "1px solid #fecdd3",
+                  borderRadius: "10px",
+                  fontWeight: 700,
+                  fontSize: "0.88rem",
+                  cursor: isPurging ? "wait" : "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                }}
+              >
+                {isPurging ? "⏳ Pulizia..." : "🗑️ Rimuovi Dati Demo"}
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => openModal()}
+              style={{
+                padding: "0.7rem 1.3rem",
+                background: "linear-gradient(135deg, #e58c2c 0%, #d17a22 100%)",
+                color: "white",
+                border: "none",
+                borderRadius: "10px",
+                fontWeight: 700,
+                cursor: "pointer",
+                boxShadow: "0 4px 12px rgba(229,140,44,0.3)",
+              }}
+            >
+              ⚡ Nuovo Evento per Cliente Esistente
+            </button>
+          </div>
         </div>
       </div>
 
@@ -652,22 +711,62 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                 <tr key={c.id} style={{ borderBottom: "1px solid #f0eee9", verticalAlign: "top" }}>
                   <td style={{ padding: "0.9rem 0.7rem" }}>
                     <div>
-                      <Link
-                        href={`/admin/clienti/${c.id}`}
-                        style={{
-                          fontSize: "0.95rem",
-                          color: "#1e1b18",
-                          display: "inline-block",
-                          fontWeight: 700,
-                          textDecoration: "none",
-                        }}
-                        title="Apri Scheda CRM 360°"
-                      >
-                        {c.nome} {c.cognome}
-                        {c.partner ? (
-                          <span style={{ color: "#c2410c", fontWeight: 700 }}> &amp; {c.partner}</span>
-                        ) : null}
-                      </Link>
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap" }}>
+                        <Link
+                          href={`/admin/clienti/${c.id}`}
+                          style={{
+                            fontSize: "0.95rem",
+                            color: "#1e1b18",
+                            display: "inline-block",
+                            fontWeight: 700,
+                            textDecoration: "none",
+                          }}
+                          title="Apri Scheda CRM 360°"
+                        >
+                          {c.nome} {c.cognome}
+                          {c.partner ? (
+                            <span style={{ color: "#c2410c", fontWeight: 700 }}> &amp; {c.partner}</span>
+                          ) : null}
+                        </Link>
+                        {c.isDemo && (
+                          <span
+                            style={{
+                              background: "linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)",
+                              color: "#92400e",
+                              border: "1px solid #f59e0b",
+                              fontSize: "0.64rem",
+                              fontWeight: 800,
+                              padding: "0.12rem 0.45rem",
+                              borderRadius: "999px",
+                              letterSpacing: "0.5px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "0.2rem",
+                            }}
+                          >
+                            🎭 DEMO
+                          </span>
+                        )}
+                        {c.isOpenDay && !c.isDemo && (
+                          <span
+                            style={{
+                              background: "#ecfdf5",
+                              color: "#065f46",
+                              border: "1px solid #a7f3d0",
+                              fontSize: "0.64rem",
+                              fontWeight: 800,
+                              padding: "0.12rem 0.45rem",
+                              borderRadius: "999px",
+                              letterSpacing: "0.5px",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "0.2rem",
+                            }}
+                          >
+                            💍 OPEN DAY
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div style={{ display: "inline-flex", gap: "0.35rem", flexWrap: "nowrap", marginTop: "0.35rem", alignItems: "center" }}>
                       {c.tags.length === 0 ? (
