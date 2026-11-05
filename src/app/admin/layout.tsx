@@ -17,16 +17,16 @@ interface NavItem {
  * Le voci operative principali sono separate dalle impostazioni di piattaforma.
  */
 const PILLARS: NavItem[] = [
-  { href: "/admin", label: "Appuntamenti", icon: "📅" },
-  { href: "/admin/openday", label: "Open Day Live", icon: "🌿" },
-  { href: "/admin/contratti", label: "Contratti", icon: "✍️" },
-  { href: "/admin/eventi", label: "Eventi", icon: "💍" },
-  { href: "/admin/cassa", label: "Cassa", icon: "💶" },
-  { href: "/admin/statistiche", label: "Statistiche", icon: "📊" },
-  { href: "/admin/clienti", label: "CRM & Clienti", icon: "👥" },
+  { href: "/admin/clienti", label: "Clienti & Eventi (CRM)", icon: "👥" },
+  { href: "/admin/calendario", label: "Disponibilità & Calendario", icon: "📅" },
+  { href: "/admin/cassa", label: "Cassa & Scadenziario", icon: "💶" },
+  { href: "/admin", label: "Regia Appuntamenti", icon: "📋" },
 ];
 
 const SETTINGS: NavItem[] = [
+  { href: "/admin/contratti", label: "Contratti & Opzioni", icon: "✍️" },
+  { href: "/admin/openday", label: "Open Day Live", icon: "🌿" },
+  { href: "/admin/statistiche", label: "Statistiche", icon: "📊" },
   { href: "/admin/catalogo", label: "Listino servizi", icon: "⚙️" },
   { href: "/admin/articoli", label: "Blog", icon: "📰" },
   { href: "/admin/scatola-nera", label: "Scatola Nera", icon: "📟" },
@@ -171,7 +171,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         >
           {PILLARS.map(renderItem)}
 
-          {/* Separatore Impostazioni */}
+          {/* Separatore Moduli & Strumenti */}
           <div
             style={{
               marginTop: "1rem",

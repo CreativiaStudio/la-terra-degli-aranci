@@ -20,6 +20,7 @@ const testFiles = [
   path.join(import.meta.dirname, "04_notifications.test.mjs"),
   path.join(import.meta.dirname, "05_wedding_diary_hmac.test.mjs"),
   path.join(import.meta.dirname, "06_qr_scans_stress.test.mjs"),
+  path.join(import.meta.dirname, "07_full_lifecycle_simulation.test.mjs"),
 ];
 
 console.log("===============================================================================");

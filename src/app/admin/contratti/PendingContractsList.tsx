@@ -221,16 +221,16 @@ export default function PendingContractsList({ initialContracts }: PendingContra
               statusBg = "#fef2f2";
               statusColor = "#b91c1c";
               statusBorder = "#fecaca";
-              statusText = "🔴 Opzione 7gg scaduta";
+              statusText = "🔴 Revoca contratto: scaduti i 7 giorni";
             } else if (contract.giorniRimanenti <= 0) {
               statusBg = "#fffbeb";
               statusColor = "#b45309";
               statusBorder = "#fde68a";
-              statusText = "⚠️ Scade oggi";
+              statusText = "⚠️ Revoca contratto oggi";
             } else {
               const giorni = contract.giorniRimanenti;
-              statusText = `🟢 Opzione Attiva: mancano ${giorni} giorn${giorni === 1 ? "o" : "i"}${
-                scadenza ? ` (scade il ${scadenza})` : ""
+              statusText = `🟢 Mancano ${giorni} giorn${giorni === 1 ? "o" : "i"} alla revoca del contratto${
+                scadenza ? ` (scadenza: ${scadenza})` : ""
               }`;
             }
 
@@ -375,7 +375,11 @@ export default function PendingContractsList({ initialContracts }: PendingContra
                   </button>
 
                   <a
-                    href={`https://wa.me/?text=${encodeURIComponent(contract.whatsappText)}`}
+                    href={
+                      telefono.replace(/\D/g, "")
+                        ? `https://wa.me/${telefono.replace(/\D/g, "").startsWith("39") ? telefono.replace(/\D/g, "") : `39${telefono.replace(/\D/g, "")}`}?text=${encodeURIComponent(contract.whatsappText)}`
+                        : `https://wa.me/?text=${encodeURIComponent(contract.whatsappText)}`
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     style={actionButton}

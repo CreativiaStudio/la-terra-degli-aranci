@@ -342,6 +342,7 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
   const [search, setSearch] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [selectedType, setSelectedType] = useState<"all" | "wedding" | "privato">("all");
+  const [selectedStage, setSelectedStage] = useState<string>("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [tagsCliente, setTagsCliente] = useState<ClienteRow | null>(null);
   const [invitoCliente, setInvitoCliente] = useState<ClienteRow | null>(null);
@@ -382,6 +383,11 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
       if (selectedType === "wedding" && !clienteHasWedding(c)) return false;
       if (selectedType === "privato" && !clienteHasPrivato(c)) return false;
 
+      if (selectedStage === "firmato" && !c.hasSignedContract) return false;
+      if (selectedStage === "opzione" && !c.eventi?.some((ev) => ev.stage === "opzione")) return false;
+      if (selectedStage === "lead" && (c.hasSignedContract || c.eventi?.some((ev) => ev.stage === "opzione"))) return false;
+      if (selectedStage === "svolto" && !c.eventi?.some((ev) => ev.stage === "svolto")) return false;
+
       if (selectedMonth === "prossimi_30" || selectedMonth === "prossimi_60") {
         const hasEventoInRange = (c.eventi || []).some((ev) => {
           const data = parseEventDate(ev.data);
@@ -395,7 +401,7 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
 
       return true;
     });
-  }, [clienti, search, selectedMonth, selectedType]);
+  }, [clienti, search, selectedMonth, selectedType, selectedStage]);
 
   const totalClients = clienti.length;
   const clubMembers = clienti.filter((c) => c.isClub).length;
@@ -559,6 +565,30 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                 <option value="all">Tutti i tipi</option>
                 <option value="wedding">Solo Matrimoni / Sposi</option>
                 <option value="privato">Solo Eventi Privati</option>
+              </select>
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: "0.2rem", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.6px", fontWeight: 700, color: "#8a847c" }}>
+              Fase pratica / Stato
+              <select
+                value={selectedStage}
+                onChange={(e) => setSelectedStage(e.target.value)}
+                style={{
+                  padding: "0.62rem 0.9rem",
+                  borderRadius: "8px",
+                  border: "1px solid #ddd",
+                  background: "#fff",
+                  color: "#514d48",
+                  fontSize: "0.9rem",
+                  fontWeight: 600,
+                  minWidth: "190px",
+                  cursor: "pointer",
+                }}
+              >
+                <option value="all">Tutte le Fasi</option>
+                <option value="firmato">🟢 Contratti Firmati</option>
+                <option value="opzione">⏳ Opzioni 7gg Attive</option>
+                <option value="lead">🌿 Nuovi Lead & Visite</option>
+                <option value="svolto">🏛️ Eventi Svolti / Storico</option>
               </select>
             </label>
             <span

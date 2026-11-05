@@ -39,6 +39,7 @@ interface CalendarioClientProps {
     email?: string;
     last_synced_at?: string;
   };
+  initialBannerMessage?: string;
 }
 
 export type LocationKey = "tutte" | "laterradegliaranci" | "villa_pagodina" | "sala_bianca" | "sala_tufo";
@@ -1410,6 +1411,7 @@ export default function CalendarioClient({
   initialMonth,
   gcalEvents = [],
   gcalAuth,
+  initialBannerMessage,
 }: CalendarioClientProps) {
   const router = useRouter();
   // Supporta parametro mese iniziale (es. 2027-07) o fallback mese corrente.
@@ -1523,7 +1525,7 @@ export default function CalendarioClient({
 
   // Google Calendar OAuth: stato sincronizzazione live
   const [isSyncingGCal, setIsSyncingGCal] = useState(false);
-  const [syncMsg, setSyncMsg] = useState("");
+  const [syncMsg, setSyncMsg] = useState(initialBannerMessage || "");
 
   const handleSyncLive = async () => {
     if (isSyncingGCal) return;

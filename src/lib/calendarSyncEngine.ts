@@ -128,9 +128,11 @@ const SEED_GCAL_EVENTS: GoogleCalendarEvent[] = [
  *   rimuove il '39' iniziale per confrontarlo con i numeri nazionali.
  */
 export function normalizePhoneNumber(raw?: string): string {
-  const digits = String(raw || "").replace(/\D/g, "");
-  if (digits.length === 12 && digits.startsWith("39")) {
-    return digits.slice(2);
+  let digits = String(raw || "").replace(/\D/g, "");
+  if (digits.startsWith("0039")) {
+    digits = digits.slice(4);
+  } else if (digits.length === 12 && digits.startsWith("39")) {
+    digits = digits.slice(2);
   }
   return digits;
 }
@@ -178,6 +180,7 @@ export function parseGCalEvent(input: ParsedGCalEventInput): GoogleCalendarEvent
   // 4. Estrazione Nome Approssimativo
   let clientNome = cleanSummary
     .replace(/^VP\s*[-:]?\s*/i, "")
+    .replace(/^(?:matrimonio|nozze|comunione|battesimo|festa(?:\s+18\s+anni)?|compleanno|anniversario|evento|cena|pranzo)\s+(?:di\s+|dei\s+|del\s+)?/i, "")
     .replace(/\s*\(.*?\)/g, "")
     .replace(/\s*[-:]\s*\d+.*$/, "")
     .trim();

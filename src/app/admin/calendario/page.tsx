@@ -28,10 +28,23 @@ function attachClient(store: ReturnType<typeof getStore>, quote: any): any {
 export default async function CalendarioPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ month?: string }>;
+  searchParams?: Promise<{ month?: string; gcal_error?: string; gcal_connected?: string }>;
 }) {
   const params = searchParams ? await searchParams : {};
   const initialMonth = params?.month || undefined;
+
+  let gcalBannerMessage: string | undefined = undefined;
+  if (params?.gcal_connected === "1") {
+    gcalBannerMessage =
+      "✅ Connessione con Google Calendar (segreteriatda@gmail.com) stabilita con successo! Sincronizzazione attiva.";
+  } else if (params?.gcal_error) {
+    if (params.gcal_error === "missing_client_id" || params.gcal_error === "missing_credentials") {
+      gcalBannerMessage =
+        "ℹ️ In attesa dell'abilitazione credenziali Google OAuth da parte di Roberto (GOOGLE_CLIENT_ID e SECRET per segreteriatda@gmail.com). Il sistema opera regolarmente con il motore di matching ibrido e gli eventi locali salvati.";
+    } else {
+      gcalBannerMessage = `⚠️ Connessione Google Calendar non completata (${params.gcal_error}).`;
+    }
+  }
   // 1) Opzioni / contratti in attesa di firma (opzione 7 giorni).
   const pendingContracts = getPendingContractsLocal();
 
@@ -125,6 +138,7 @@ export default async function CalendarioPage({
       initialMonth={initialMonth}
       gcalEvents={gcalEvents}
       gcalAuth={gcalAuth}
+      initialBannerMessage={gcalBannerMessage}
     />
   );
 }
