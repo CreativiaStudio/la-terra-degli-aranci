@@ -196,20 +196,23 @@
       "id": "client-demo-matrimonio-2027",
       "nome": "Marco",
       "cognome": "Esposito",
-      "partner": "Laura De Luca",
-      "sposera_nome": "Laura De Luca",
+      "partner": "Sofia De Luca",
+      "sposera_nome": "Sofia",
       "email": "marco.esposito@gmail.com",
       "telefono": "+39 334 154 4314",
-      "lead_source": "diretto",
-      "provenienza": "Demo Direzione (Simulazione)",
+      "lead_source": "Open Day",
+      "provenienza": "Napoli (Vomero)",
       "tags": [
         "DEMO",
-        "Sposi",
-        "VIP Club TDA"
+        "Wedding",
+        "VIP Club TDA",
+        "Contratto Firmato"
       ],
       "is_demo": true,
       "created_at": "2026-09-01T10:00:00Z",
-      "updated_at": "2026-11-05T12:56:54.360Z"
+      "updated_at": "2026-11-05T12:56:54.360Z",
+      "coniuge": "Sofia De Luca",
+      "sposera_cognome": "De Luca"
     },
     {
       "id": "client-demo-ricci-2027",
@@ -517,7 +520,7 @@
       "id": "quote-demo-esposito-2027",
       "client_id": "client-demo-matrimonio-2027",
       "data_evento": "2027-06-18",
-      "turno": "pranzo",
+      "turno": "cena",
       "tipo_evento": "wedding",
       "tipo_esclusiva": "esclusiva",
       "formula_opzione": "esclusiva",
@@ -561,6 +564,11 @@
           "splitKey": "40_60",
           "splitLabel": "40% SS / 60% Iovino"
         }
+      ],
+      "spazi_riservati": [
+        "Villa Storica",
+        "Agrumeto Panoramico",
+        "Corte dei Fiori"
       ]
     },
     {
@@ -1694,7 +1702,24 @@
       "is_demo": false
     }
   ],
-  "signed_contracts": [],
+  "signed_contracts": [
+    {
+      "id": "ctr-demo-esposito-2027",
+      "quote_id": "quote-demo-esposito-2027",
+      "client_id": "client-demo-matrimonio-2027",
+      "contract_code": "TDA-CTR-2027-06-18-ESP",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-06-18",
+      "intestatario": "Marco Esposito & Sofia De Luca",
+      "totale": 14500,
+      "signed_at": "2026-09-15T12:00:00Z",
+      "created_at": "2026-09-15T12:00:00Z",
+      "pdf_url": "/api/pdf/quote-demo-esposito-2027",
+      "contract_pdf_url": "/api/pdf/quote-demo-esposito-2027",
+      "hash": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "is_demo": true
+    }
+  ],
   "wedding_diaries": [
     {
       "client_id": "client-od-1792582428038",
@@ -1817,9 +1842,147 @@
       "completion_rate": 0,
       "id": "d0aa0f42-5b8a-4e74-a65a-51941adf6ead",
       "updated_at": "2026-10-24T07:48:27.678Z"
+    },
+    {
+      "id": "diary-demo-esposito-2027",
+      "client_id": "client-demo-matrimonio-2027",
+      "quote_id": "quote-demo-esposito-2027",
+      "completion_percentage": 85,
+      "completion_rate": 85,
+      "answers": {
+        "sposo_nome": "Marco",
+        "sposo_cognome": "Esposito",
+        "sposa_nome": "Sofia",
+        "sposa_cognome": "De Luca",
+        "sposo_telefono": "+39 334 154 4314",
+        "sposo_email": "marco.esposito.demo@gmail.com",
+        "data_matrimonio_desiderata": "2027-06-18",
+        "numero_invitati_previsto": 130,
+        "tipo_rito": "civile_in_villa",
+        "orario_preferito": "tramonto_cena",
+        "palette_colori": [
+          "#E58C2C",
+          "#2D5A27",
+          "#F6C177"
+        ],
+        "stile_matrimonio": "Botanico Elegante & Luci d'Autore",
+        "allestimenti_floreali": "Fiori d'arancio, zagara, ulivo secolare e peonie bianche",
+        "profumazione_ambienti": "Zagara fresca di Posillipo e brezza marina",
+        "stile_servizio": "Aperitivo diffuso nei giardini, cena placé in agrumeto e buffet dolci panoramico",
+        "vino_preferito": "Greco di Tufo DOCG e Falanghina dei Campi Flegrei",
+        "angoli_speciali": [
+          "Isola Crudité & Ostriche a vista",
+          "Show cooking primi campani",
+          "Open Bar Premium & Sigari Cubani",
+          "Confettata artigianale napoletana"
+        ],
+        "torta_nuziale_desiderata": "Millefoglie espressa scomposta ai frutti di bosco e crema chantilly",
+        "genere_musica_aperitivo": "Jazz acustico & Bossa Nova dal vivo al tramonto",
+        "brano_ingresso_sposi": "Fix You - Coldplay",
+        "brano_ingresso_torta": "A Sky Full of Stars - Coldplay",
+        "primo_ballo_insieme": "Perfect - Ed Sheeran",
+        "canzone_ingresso_sposa": "River Flows in You - Yiruma",
+        "intolleranze_alimentari": "4 celiaci (menu dedicato certificato AIC), 2 vegetariani, 1 allergia ai crostacei",
+        "esigenze_particolari": "Tavoli rotondi ampi con tovagliato lino naturale e sottopiatti in ceramica vietrese.",
+        "note_diario": "Siamo innamorati del tramonto che si vede dall'Agrumeto. Roberto e Rosaria ci hanno conquistati fin dal primo assaggio!"
+      },
+      "updated_at": "2026-10-18T15:30:00Z",
+      "created_at": "2026-09-10T10:00:00Z"
     }
   ],
-  "quote_changes": [],
+  "quote_changes": [
+    {
+      "id": "qc-demo-esp-allegato-b",
+      "quote_id": "quote-demo-esposito-2027",
+      "initiated_by": "coppia",
+      "status": "confermato",
+      "created_at": "2026-10-10T10:00:00Z",
+      "confirmed_at": "2026-10-14T17:00:00Z",
+      "totale_before": 14500,
+      "totale_after": 16000,
+      "delta_totale": 1500,
+      "titolo": "Allegato B · Integrazione Servizi Gourmet & Lighting",
+      "note": "Richiesta integrazione isola crudi mare a vista e cielo stellato fairy lights per taglio torta in agrumeto.",
+      "firma_disegnata": "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"200\" height=\"50\"><text x=\"10\" y=\"30\" font-family=\"cursive\" font-size=\"20\">Marco Esposito & Sofia De Luca</text></svg>",
+      "pdf_url": "/api/pdf/quote-demo-esposito-2027?allegato=B",
+      "items_before": [
+        {
+          "id": "it-esp-1",
+          "descrizione": "Canone Concessione Villa & Giardini Storici",
+          "quantita": 1,
+          "prezzo_unitario": 3500,
+          "totale": 3500,
+          "splitKey": "ss100",
+          "splitLabel": "100% Santo Stefano S.r.l."
+        },
+        {
+          "id": "it-esp-2",
+          "descrizione": "Menu Nozze Gala & Somministrazione (130 ospiti)",
+          "quantita": 130,
+          "prezzo_unitario": 80,
+          "totale": 10400,
+          "splitKey": "40_60",
+          "splitLabel": "40% SS / 60% Iovino"
+        },
+        {
+          "id": "it-esp-3",
+          "descrizione": "Selezione Vini DOC Campania & Spumanti",
+          "quantita": 1,
+          "prezzo_unitario": 600,
+          "totale": 600,
+          "splitKey": "40_60",
+          "splitLabel": "40% SS / 60% Iovino"
+        }
+      ],
+      "items_after": [
+        {
+          "id": "it-esp-1",
+          "descrizione": "Canone Concessione Villa & Giardini Storici",
+          "quantita": 1,
+          "prezzo_unitario": 3500,
+          "totale": 3500,
+          "splitKey": "ss100",
+          "splitLabel": "100% Santo Stefano S.r.l."
+        },
+        {
+          "id": "it-esp-2",
+          "descrizione": "Menu Nozze Gala & Somministrazione (130 ospiti)",
+          "quantita": 130,
+          "prezzo_unitario": 80,
+          "totale": 10400,
+          "splitKey": "40_60",
+          "splitLabel": "40% SS / 60% Iovino"
+        },
+        {
+          "id": "it-esp-3",
+          "descrizione": "Selezione Vini DOC Campania & Spumanti",
+          "quantita": 1,
+          "prezzo_unitario": 600,
+          "totale": 600,
+          "splitKey": "40_60",
+          "splitLabel": "40% SS / 60% Iovino"
+        },
+        {
+          "id": "it-extra-esp-1",
+          "descrizione": "Allegato B · Isola Crudité di Mare & Ostriche Bretone a Vista",
+          "quantita": 1,
+          "prezzo_unitario": 900,
+          "totale": 900,
+          "splitKey": "iov100",
+          "splitLabel": "100% Iovino Banqueting S.r.l."
+        },
+        {
+          "id": "it-extra-esp-2",
+          "descrizione": "Allegato B · Allestimento Luminarie Fairy Lights & Cieli Stellati nell'Agrumeto",
+          "quantita": 1,
+          "prezzo_unitario": 600,
+          "totale": 600,
+          "splitKey": "ss100",
+          "splitLabel": "100% Santo Stefano S.r.l."
+        }
+      ]
+    }
+  ],
   "project_builder_sessions": [],
   "services_catalog": [
     {
@@ -4202,7 +4365,21 @@
     }
   ],
   "appointments": [],
-  "service_tickets": [],
+  "service_tickets": [
+    {
+      "id": "ticket-demo-esp-01",
+      "quote_id": "quote-demo-esposito-2027",
+      "client_id": "client-demo-matrimonio-2027",
+      "client_name": "Marco Esposito & Sofia De Luca",
+      "client_email": "marco.esposito.demo@gmail.com",
+      "titolo": "Degustazione Menu Banqueting & Prova Piatti",
+      "categoria": "banqueting",
+      "stato": "confermato",
+      "note": "Fissata prova menu con Chef e Rosaria Iovino per sabato 23 Gennaio 2027 ore 13:00 con i genitori.",
+      "created_at": "2026-10-16T11:00:00Z",
+      "updated_at": "2026-10-17T09:00:00Z"
+    }
+  ],
   "google_calendar_events": [
     {
       "id": "gcal-seed-01",

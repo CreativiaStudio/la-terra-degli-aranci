@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -17,6 +17,18 @@ export default function PreventiviOverviewClient({
   const [filterStatus, setFilterStatus] = useState<string>("tutti");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-actions-menu]")) {
+        setOpenMenuId(null);
+      }
+    };
+    window.addEventListener("click", handleGlobalClick);
+    return () => window.removeEventListener("click", handleGlobalClick);
+  }, []);
 
   // Identifica le bozze create da tablet segreteria
   const bozzeVisita = quotes.filter(
@@ -360,10 +372,23 @@ export default function PreventiviOverviewClient({
                   return (
                     <tr key={quote.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
                       <td style={{ padding: "1rem 0.8rem" }}>
-                        <strong style={{ fontSize: "1rem", color: "#1e1b18", display: "block" }}>
-                          {quote.clients?.nome} {quote.clients?.cognome}
-                        </strong>
-                        <small style={{ color: "#64748b" }}>{quote.clients?.email}</small>
+                        <Link
+                          href={`/admin/clienti/${quote.client_id || quote.clients?.id || quote.id}`}
+                          style={{ textDecoration: "none", color: "inherit" }}
+                          title="Apri Scheda Cliente Club TDA (CRM 360°)"
+                        >
+                          <strong
+                            style={{
+                              fontSize: "1rem",
+                              color: "#1e1b18",
+                              display: "inline-block",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {quote.clients?.nome} {quote.clients?.cognome} ↗
+                          </strong>
+                        </Link>
+                        <small style={{ color: "#64748b", display: "block" }}>{quote.clients?.email}</small>
                         {quote.clients?.telefono && (
                           <small style={{ display: "block", color: "#16a34a", fontWeight: 600 }}>
                             📱 {quote.clients.telefono}
@@ -435,111 +460,253 @@ export default function PreventiviOverviewClient({
                       </td>
 
                       <td style={{ padding: "1rem 0.8rem", textAlign: "right" }}>
-                        <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", flexWrap: "wrap" }}>
-                          {isBozzaVisita ? (
-                            <>
+                        <div style={{ position: "relative", display: "inline-block" }} data-actions-menu>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(openMenuId === quote.id ? null : quote.id);
+                            }}
+                            title="Azioni Riservate Roberto"
+                            style={{
+                              padding: "0.45rem 0.85rem",
+                              borderRadius: "8px",
+                              border: "1px solid #dcd7cf",
+                              background: openMenuId === quote.id ? "#1e1b18" : "#fff",
+                              color: openMenuId === quote.id ? "#fff" : "#1e1b18",
+                              fontSize: "0.85rem",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "0.35rem",
+                              boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                            }}
+                          >
+                            <span>⋮ Azioni</span>
+                            <span style={{ fontSize: "0.68rem", opacity: 0.7 }}>▾</span>
+                          </button>
+
+                          {openMenuId === quote.id && (
+                            <div
+                              style={{
+                                position: "absolute",
+                                right: 0,
+                                top: "calc(100% + 4px)",
+                                width: "235px",
+                                background: "#fff",
+                                borderRadius: "12px",
+                                border: "1px solid #e2e8f0",
+                                boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
+                                zIndex: 100,
+                                padding: "0.45rem",
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "0.2rem",
+                                textAlign: "left",
+                              }}
+                            >
+                              {/* 1. Scheda Cliente CRM */}
                               <Link
-                                href={`/admin/contratti/converti?quote_id=${quote.id}`}
-                                style={{ textDecoration: "none" }}
-                              >
-                                <button
-                                  type="button"
-                                  style={{
-                                    padding: "0.45rem 0.8rem",
-                                    borderRadius: "8px",
-                                    border: "none",
-                                    background: "#16a34a",
-                                    color: "#fff",
-                                    fontSize: "0.82rem",
-                                    fontWeight: 700,
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  ✍️ Converti in Contratto
-                                </button>
-                              </Link>
-                              <Link
-                                href={`/admin/preventivi/nuovo?from_lead=${quote.id}`}
-                                style={{ textDecoration: "none" }}
-                              >
-                                <button
-                                  type="button"
-                                  style={{
-                                    padding: "0.45rem 0.8rem",
-                                    borderRadius: "8px",
-                                    border: "1px solid #cbd5e1",
-                                    background: "#fff",
-                                    color: "#1e1b18",
-                                    fontSize: "0.82rem",
-                                    fontWeight: 600,
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  🎯 Modifica Voci
-                                </button>
-                              </Link>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleCopyLink(quote.id)}
+                                href={`/admin/clienti/${quote.client_id || quote.clients?.id || quote.id}`}
+                                onClick={() => setOpenMenuId(null)}
                                 style={{
-                                  padding: "0.45rem 0.8rem",
-                                  borderRadius: "8px",
-                                  border: "1px solid #cbd5e1",
-                                  background: "#ffffff",
-                                  color: "#1e1b18",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.55rem",
+                                  padding: "0.5rem 0.7rem",
+                                  borderRadius: "7px",
                                   fontSize: "0.82rem",
                                   fontWeight: 600,
-                                  cursor: "pointer",
+                                  color: "#1e1b18",
+                                  textDecoration: "none",
                                 }}
                               >
-                                {copiedId === quote.id ? "✓ Copiato!" : "🔗 Copia Link"}
+                                <span>👤</span>
+                                <span>Scheda Cliente (CRM 360°)</span>
+                              </Link>
+
+                              {/* 2. Scheda Regia Evento */}
+                              <Link
+                                href={`/admin/eventi/${quote.id}`}
+                                onClick={() => setOpenMenuId(null)}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.55rem",
+                                  padding: "0.5rem 0.7rem",
+                                  borderRadius: "7px",
+                                  fontSize: "0.82rem",
+                                  fontWeight: 600,
+                                  color: "#1e1b18",
+                                  textDecoration: "none",
+                                }}
+                              >
+                                <span>🔎</span>
+                                <span>Scheda Regia Evento 360°</span>
+                              </Link>
+
+                              {/* Divider */}
+                              <div style={{ height: "1px", background: "#f1f5f9", margin: "0.2rem 0" }} />
+
+                              {/* 3. Copia Link Preventivo */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleCopyLink(quote.id);
+                                  setOpenMenuId(null);
+                                }}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.55rem",
+                                  padding: "0.5rem 0.7rem",
+                                  borderRadius: "7px",
+                                  fontSize: "0.82rem",
+                                  fontWeight: 600,
+                                  color: "#1e1b18",
+                                  border: "none",
+                                  background: "transparent",
+                                  cursor: "pointer",
+                                  textAlign: "left",
+                                  width: "100%",
+                                }}
+                              >
+                                <span>🔗</span>
+                                <span>{copiedId === quote.id ? "✓ Link Copiato!" : "Copia Link Preventivo"}</span>
                               </button>
 
+                              {/* 4. Apri Proposta Online */}
+                              <Link
+                                href={`/preventivi/${quote.id}`}
+                                target="_blank"
+                                onClick={() => setOpenMenuId(null)}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.55rem",
+                                  padding: "0.5rem 0.7rem",
+                                  borderRadius: "7px",
+                                  fontSize: "0.82rem",
+                                  fontWeight: 600,
+                                  color: "#1e1b18",
+                                  textDecoration: "none",
+                                }}
+                              >
+                                <span>👁️</span>
+                                <span>Apri Proposta Online ↗</span>
+                              </Link>
+
+                              {/* 5. Invia su WhatsApp se c'è telefono */}
+                              {quote.clients?.telefono && (
+                                <a
+                                  href={`https://wa.me/${String(quote.clients.telefono).replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                                    `Ciao ${quote.clients?.nome || ""}, sono Roberto de La Terra degli Aranci. Ecco il link per consultare la proposta concordata per il vostro evento: https://ecosistema.laterradegliaranci.it/preventivi/${quote.id}`
+                                  )}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={() => setOpenMenuId(null)}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.55rem",
+                                    padding: "0.5rem 0.7rem",
+                                    borderRadius: "7px",
+                                    fontSize: "0.82rem",
+                                    fontWeight: 700,
+                                    color: "#15803d",
+                                    textDecoration: "none",
+                                  }}
+                                >
+                                  <span>💬</span>
+                                  <span>Invia su WhatsApp</span>
+                                </a>
+                              )}
+
+                              {/* Divider */}
+                              <div style={{ height: "1px", background: "#f1f5f9", margin: "0.2rem 0" }} />
+
+                              {/* 6. Servizi Extra / Variazione */}
                               <Link
                                 href={`/admin/preventivi/${quote.id}/extra`}
-                                style={{ textDecoration: "none" }}
+                                onClick={() => setOpenMenuId(null)}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "0.55rem",
+                                  padding: "0.5rem 0.7rem",
+                                  borderRadius: "7px",
+                                  fontSize: "0.82rem",
+                                  fontWeight: 700,
+                                  color: "#c2410c",
+                                  textDecoration: "none",
+                                }}
                               >
-                                <button
-                                  type="button"
-                                  title="Preventivo Parallelo Servizi Extra (Solo Direzione)"
+                                <span>➕</span>
+                                <span>Preventivo Servizi Extra</span>
+                              </Link>
+
+                              {/* 7. Contratto o Modifica */}
+                              {isBozzaVisita ? (
+                                <>
+                                  <Link
+                                    href={`/admin/contratti/converti?quote_id=${quote.id}`}
+                                    onClick={() => setOpenMenuId(null)}
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "0.55rem",
+                                      padding: "0.5rem 0.7rem",
+                                      borderRadius: "7px",
+                                      fontSize: "0.82rem",
+                                      fontWeight: 700,
+                                      color: "#166534",
+                                      textDecoration: "none",
+                                    }}
+                                  >
+                                    <span>✍️</span>
+                                    <span>Converti in Contratto</span>
+                                  </Link>
+                                  <Link
+                                    href={`/admin/preventivi/nuovo?from_lead=${quote.id}`}
+                                    onClick={() => setOpenMenuId(null)}
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: "0.55rem",
+                                      padding: "0.5rem 0.7rem",
+                                      borderRadius: "7px",
+                                      fontSize: "0.82rem",
+                                      fontWeight: 600,
+                                      color: "#1e1b18",
+                                      textDecoration: "none",
+                                    }}
+                                  >
+                                    <span>🎯</span>
+                                    <span>Modifica Voci Proposta</span>
+                                  </Link>
+                                </>
+                              ) : (
+                                <Link
+                                  href={`/admin/contratti/converti?quote_id=${quote.id}`}
+                                  onClick={() => setOpenMenuId(null)}
                                   style={{
-                                    padding: "0.45rem 0.8rem",
-                                    borderRadius: "8px",
-                                    border: "1px solid #fed7aa",
-                                    background: "#fffaf0",
-                                    color: "#c2410c",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "0.55rem",
+                                    padding: "0.5rem 0.7rem",
+                                    borderRadius: "7px",
                                     fontSize: "0.82rem",
                                     fontWeight: 700,
-                                    cursor: "pointer",
+                                    color: isFirmato ? "#1e1b18" : "#ea580c",
+                                    textDecoration: "none",
                                   }}
                                 >
-                                  ➕ Extra
-                                </button>
-                              </Link>
-                              <Link
-                                href={`/admin/contratti/converti?quote_id=${quote.id}`}
-                                style={{ textDecoration: "none" }}
-                              >
-                                <button
-                                  type="button"
-                                  style={{
-                                    padding: "0.45rem 0.8rem",
-                                    borderRadius: "8px",
-                                    border: "none",
-                                    background: isFirmato ? "#1e1b18" : "#ea580c",
-                                    color: "#fff",
-                                    fontSize: "0.82rem",
-                                    fontWeight: 700,
-                                    cursor: "pointer",
-                                  }}
-                                >
-                                  {isFirmato ? "📄 Vedi Contratto" : "✍️ Contratto (sig)"}
-                                </button>
-                              </Link>
-                            </>
+                                  <span>{isFirmato ? "📄" : "✍️"}</span>
+                                  <span>{isFirmato ? "Vedi Contratto Firmato" : "Emetti / Vedi Contratto"}</span>
+                                </Link>
+                              )}
+                            </div>
                           )}
                         </div>
                       </td>
