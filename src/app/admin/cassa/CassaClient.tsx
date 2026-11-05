@@ -1228,6 +1228,146 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
 
 
 
+      {/* MODALE SOLLECITO WHATSAPP RATA SCADUTA */}
+      {sollecitoTarget && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(5px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 999999,
+            padding: "1.5rem",
+          }}
+          onClick={() => setSollecitoTarget(null)}
+        >
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "560px",
+              padding: "2rem",
+              boxShadow: "0 25px 60px rgba(0,0,0,0.35)",
+              border: "1px solid #e2e8f0",
+              position: "relative",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setSollecitoTarget(null)}
+              style={{
+                position: "absolute",
+                top: "1.2rem",
+                right: "1.2rem",
+                background: "#f1f5f9",
+                border: "none",
+                fontSize: "1.2rem",
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                cursor: "pointer",
+                fontWeight: "bold",
+                color: "#64748b",
+              }}
+            >
+              ✕
+            </button>
+
+            <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "1.5px", color: "#16a34a", fontWeight: 800, display: "block" }}>
+              💬 SOLLECITO CORTESE WHATSAPP
+            </span>
+            <h2 style={{ margin: "0.2rem 0 1rem", color: "#1e1b18", fontSize: "1.4rem", fontFamily: "serif" }}>
+              {sollecitoTarget.sposi}
+            </h2>
+
+            <div style={{ background: "#f8fafc", padding: "0.9rem 1rem", borderRadius: "10px", border: "1px solid #e2e8f0", marginBottom: "1.2rem", fontSize: "0.88rem", color: "#475569" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.3rem" }}>
+                <span><strong>Rata:</strong> {sollecitoTarget.rataLabel}</span>
+                <span><strong>Scadenza:</strong> {formatDate(sollecitoTarget.scadenza)}</span>
+              </div>
+              <div>
+                <strong>Residuo da incassare:</strong>{" "}
+                <span style={{ color: "#b91c1c", fontWeight: 800, fontSize: "1.05rem" }}>{formatEuro(sollecitoTarget.residuo / 100)}</span>
+              </div>
+            </div>
+
+            <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 700, color: "#514d48", marginBottom: "0.4rem" }}>
+              Messaggio WhatsApp (modificabile prima dell'invio):
+            </label>
+            <textarea
+              rows={5}
+              value={sollecitoTesto}
+              onChange={(e) => setSollecitoTesto(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "0.85rem",
+                borderRadius: "8px",
+                border: "1.5px solid #cbd5e1",
+                fontSize: "0.92rem",
+                fontFamily: "inherit",
+                resize: "vertical",
+                boxSizing: "border-box",
+                outline: "none",
+                lineHeight: "1.4",
+              }}
+            />
+
+            <div style={{ display: "flex", gap: "0.8rem", marginTop: "1.5rem" }}>
+              <button
+                type="button"
+                onClick={() => setSollecitoTarget(null)}
+                style={{
+                  flex: 1,
+                  padding: "0.85rem",
+                  borderRadius: "10px",
+                  border: "1px solid #ddd",
+                  background: "#fff",
+                  fontWeight: 600,
+                  fontSize: "0.9rem",
+                  cursor: "pointer",
+                }}
+              >
+                Annulla
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const rawTel = String(sollecitoTarget.telefono || "").replace(/[^0-9]/g, "");
+                  const tel = rawTel || "393341544314";
+                  const finalTel = tel.startsWith("39") ? tel : "39" + tel;
+                  const url = `https://wa.me/${finalTel}?text=${encodeURIComponent(sollecitoTesto)}`;
+                  window.open(url, "_blank", "noopener,noreferrer");
+                  setSollecitoTarget(null);
+                }}
+                style={{
+                  flex: 2,
+                  padding: "0.85rem",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: "#25D366",
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: "0.95rem",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                  boxShadow: "0 4px 14px rgba(37,211,102,0.4)",
+                }}
+              >
+                💬 Apri WhatsApp e Invia
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODALE REGISTRA INCASSO */}
       {incassoOpen && (
         <div
