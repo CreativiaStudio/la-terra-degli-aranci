@@ -164,6 +164,7 @@ export default async function CassaPage({
       id: String(q.id || ""),
       codice: `TDA-${String(q.id || "").slice(0, 8).toUpperCase()}`,
       sposi,
+      telefono: String(q.clients?.telefono || q.clients?.cellulare || q.telefono || ""), 
       tipo_evento: q.tipo_evento || "eventi",
       data_evento: dataEvento,
       turno: String(q.turno || q.turno_evento || ""),

@@ -162,7 +162,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Navigation Items */}
         <nav
           style={{
-            padding: "0.8rem 0.6rem",
+            padding: "0.6rem 0.6rem",
             flex: 1,
             display: "flex",
             flexDirection: "column",
@@ -172,18 +172,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         >
           {PILLARS.map(renderItem)}
 
-          {/* Separatore Moduli & Strumenti */}
-          <div
-            style={{
-              marginTop: "0.6rem",
-              paddingTop: "0.6rem",
-              borderTop: "1px solid #332f2b",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.15rem",
-            }}
-          >
-            {!collapsed && (
+          {!collapsed && (
+            <div
+              style={{
+                margin: "0.45rem 0 0.2rem",
+                paddingTop: "0.45rem",
+                borderTop: "1px solid #332f2b",
+              }}
+            >
               <span
                 style={{
                   fontSize: "0.65rem",
@@ -191,14 +187,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   letterSpacing: "1.5px",
                   color: "#6f6a64",
                   fontWeight: 700,
-                  padding: "0 0.75rem 0.2rem",
+                  padding: "0 0.75rem",
+                  display: "block",
                 }}
               >
                 Impostazioni
               </span>
-            )}
-            {SETTINGS.map(renderItem)}
-          </div>
+            </div>
+          )}
+
+          {SETTINGS.map(renderItem)}
         </nav>
 
         {/* Footer Sidebar Admin User Profile */}

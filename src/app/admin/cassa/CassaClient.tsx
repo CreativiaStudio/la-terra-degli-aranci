@@ -37,6 +37,7 @@ export interface CassaEventoRow {
   id: string;
   codice: string;
   sposi: string;
+  telefono?: string;
   tipo_evento: string;
   data_evento: string | null;
   turno: string;
@@ -458,7 +459,6 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                 <th style={{ padding: "0.75rem 0.6rem", textAlign: "right" }}>Importo</th>
                 <th style={{ padding: "0.75rem 0.6rem" }}>Metodo</th>
                 <th style={{ padding: "0.75rem 0.6rem" }}>Incassato da</th>
-                <th style={{ padding: "0.75rem 0.6rem" }}>Registrato da</th>
                 <th style={{ padding: "0.75rem 0.6rem" }}>Note</th>
                 <th style={{ padding: "0.75rem 0.6rem" }}>Stato</th>
               </tr>
@@ -466,7 +466,7 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
             <tbody>
               {filteredPayments.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ padding: "2.5rem", textAlign: "center", color: "#94a3b8" }}>
+                  <td colSpan={7} style={{ padding: "2.5rem", textAlign: "center", color: "#94a3b8" }}>
                     {incassiQuery ? `Nessun incasso trovato per "${incassiQuery}".` : "Nessun incasso registrato. Usa “+ Registra Incasso” per iniziare."}
                   </td>
                 </tr>
@@ -500,7 +500,6 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                         </span>
                       </td>
                       <td style={{ padding: "0.8rem 0.6rem", fontSize: "0.82rem" }}>{COMPANY_LABELS[p.incassato_da] || p.incassato_da}</td>
-                      <td style={{ padding: "0.8rem 0.6rem", fontSize: "0.82rem" }}>{p.registrato_da}</td>
                       <td style={{ padding: "0.8rem 0.6rem", fontSize: "0.8rem", color: "#78716c", maxWidth: "220px" }}>
                         {p.riferimento ? <span style={{ display: "block" }}>Rif: {p.riferimento}</span> : null}
                         {p.note ? <span style={{ display: "block" }}>{p.note}</span> : null}
@@ -566,7 +565,7 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                   return (
                     <tr
                       key={`${evento.id}-${rata.key}-${idx}`}
-                      onClick={() => router.push(`/admin/eventi/${evento.id}?tab=cassa`)}
+                      onClick={() => openSollecito(evento, rata)} title="Clicca per inviare sollecito WhatsApp"
                       style={{
                         borderBottom: "1px solid #f0eee9",
                         cursor: "pointer",
