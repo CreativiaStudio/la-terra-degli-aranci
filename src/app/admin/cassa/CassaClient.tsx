@@ -520,7 +520,7 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                           display: "inline-block",
                           marginTop: "0.2rem"
                         }}>
-                          {p.natura === "extra" ? "🌿 Extra" : "🏛️ Ufficiale"}
+                          {p.natura === "extra" ? "Extra" : "Ufficiale"}
                         </span>
                       </td>
                       <td style={{ padding: "0.8rem 0.6rem", fontSize: "0.82rem" }}>{COMPANY_LABELS[p.incassato_da] || p.incassato_da}</td>
@@ -1041,7 +1041,7 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                               display: "inline-block",
                               marginTop: "0.2rem"
                             }}>
-                              {p.natura === "extra" ? "🌿 Extra" : "🏛️ Ufficiale"}
+                              {p.natura === "extra" ? "Extra" : "Ufficiale"}
                             </span>
                           </td>
                           <td style={{ padding: "0.7rem 0.6rem", fontSize: "0.82rem" }}>{COMPANY_LABELS[p.incassato_da] || p.incassato_da}</td>
@@ -1459,8 +1459,8 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                   onChange={(e) => setIncNatura(e.target.value as "ufficiale" | "extra")}
                   style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", border: "1.5px solid #cbd5e1", fontSize: "0.95rem", background: "#fff", fontWeight: 700, color: incNatura === "extra" ? "#92400e" : "#1e40af" }}
                 >
-                  <option value="ufficiale">🏛️ Contratto Ufficiale (A scomputo preventivo / Ricevuta Fiscale)</option>
-                  <option value="extra">🌿 Servizi Extra / Cassa Fornitori (Fuori contratto)</option>
+                  <option value="ufficiale">Contratto Ufficiale (A scomputo preventivo / Ricevuta Fiscale)</option>
+                  <option value="extra">Servizi Extra / Cassa Fornitori (Fuori contratto)</option>
                 </select>
                 <small style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "0.15rem" }}>
                   {incNatura === "ufficiale"
