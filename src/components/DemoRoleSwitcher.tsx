@@ -89,7 +89,7 @@ const ROLES: RoleOption[] = [
 
 export default function DemoRoleSwitcher() {
   const pathname = usePathname();
-  const [minimized, setMinimized] = useState(false);
+  const [minimized, setMinimized] = useState(true);
   const [switchingTo, setSwitchingTo] = useState<string | null>(null);
 
   // Blindatura assoluta di sicurezza: mai visibile ai clienti o al di fuori di /admin
