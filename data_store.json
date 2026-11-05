@@ -224,7 +224,28 @@
       "totale_calcolato": 14500,
       "status": "firmato",
       "data_firma": "2026-09-15T12:00:00Z",
-      "created_at": "2026-09-01T10:00:00Z"
+      "created_at": "2026-09-01T10:00:00Z",
+      "items": [
+        {
+          "id": "it-01",
+          "descrizione": "Fitto Location Sala Bianca e relativi giardini (Esclusiva turno cena)",
+          "prezzo_unitario": 3500,
+          "quantita": 1,
+          "totale": 3500,
+          "splitKey": "ss100",
+          "splitLabel": "100% Santo Stefano S.r.l."
+        },
+        {
+          "id": "it-02",
+          "descrizione": "Menu Wedding Tradizione & Mare (110 ospiti x 100€)",
+          "prezzo_unitario": 100,
+          "quantita": 110,
+          "totale": 11000,
+          "splitKey": "40_60",
+          "splitLabel": "40% Santo Stefano / 60% Iovino Banqueting"
+        }
+      ],
+      "totale": 14500
     }
   ],
   "signed_contracts": [
@@ -2572,7 +2593,60 @@
   ],
   "ticket_orders": [],
   "blog_posts": [],
-  "payments": [],
+  "payments": [
+    {
+      "id": "pay-demo-01",
+      "quote_id": "quote-demo-esposito-2027",
+      "data_incasso": "2026-10-15",
+      "importo_cents": 350000,
+      "metodo": "bonifico",
+      "incassato_da": "santo_stefano",
+      "natura": "ufficiale",
+      "riferimento": "CRO-88392019482",
+      "note": "Caparra confirmatoria fitto location Santo Stefano S.r.l. (Tracciato)",
+      "registrato_da": "Roberto Sola",
+      "created_at": "2026-10-15T10:30:00Z"
+    },
+    {
+      "id": "pay-demo-02",
+      "quote_id": "quote-demo-esposito-2027",
+      "data_incasso": "2026-10-20",
+      "importo_cents": 400000,
+      "metodo": "bonifico",
+      "incassato_da": "iovino",
+      "natura": "ufficiale",
+      "riferimento": "CRO-47291039581",
+      "note": "Acconto menu wedding brigata Iovino Banqueting S.r.l. (Tracciato)",
+      "registrato_da": "Roberto Sola",
+      "created_at": "2026-10-20T11:00:00Z"
+    },
+    {
+      "id": "pay-demo-03",
+      "quote_id": "quote-demo-esposito-2027",
+      "data_incasso": "2026-10-25",
+      "importo_cents": 60000,
+      "metodo": "contanti",
+      "incassato_da": "santo_stefano",
+      "natura": "extra",
+      "riferimento": "Ricevuta extra n. 14",
+      "note": "Extra contanti location (Allestimento luci glicine e parcheggio)",
+      "registrato_da": "Roberto Sola",
+      "created_at": "2026-10-25T15:00:00Z"
+    },
+    {
+      "id": "pay-demo-04",
+      "quote_id": "quote-demo-esposito-2027",
+      "data_incasso": "2026-10-28",
+      "importo_cents": 90000,
+      "metodo": "contanti",
+      "incassato_da": "iovino",
+      "natura": "extra",
+      "riferimento": "Contanti cassa brigata",
+      "note": "Extra contanti banqueting (Angolo sigari & distillati / pasticceria mignon)",
+      "registrato_da": "Roberto Sola",
+      "created_at": "2026-10-28T16:30:00Z"
+    }
+  ],
   "appointments": [],
   "service_tickets": [],
   "google_calendar_events": [
