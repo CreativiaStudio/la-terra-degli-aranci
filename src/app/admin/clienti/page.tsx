@@ -155,6 +155,15 @@ export default async function ClientiPage() {
   const sixtyDaysMs = 60 * 24 * 60 * 60 * 1000;
   const nowMs = new Date().getTime();
 
+  const openDayIds = new Set(
+    (openDayData?.openDayClients || []).map((od: any) => String(od.id).toLowerCase())
+  );
+  const openDayPhones = new Set(
+    (openDayData?.openDayClients || [])
+      .map((od: any) => String(od.telefono || "").replace(/[^0-9]/g, ""))
+      .filter(Boolean)
+  );
+
   const rows: ClienteRow[] = [];
   for (const [cid, client] of clientMap) {
     const cQuotes = quotesByClient.get(cid) || [];
@@ -276,6 +285,17 @@ export default async function ClientiPage() {
       if (Number.isFinite(createdMs) && nowMs - createdMs < sixtyDaysMs) tags.push("Nuovo");
     }
 
+    const cleanPhone = telefono.replace(/[^0-9]/g, "");
+    const isOpenDay =
+      openDayIds.has(String(cid).toLowerCase()) ||
+      (cleanPhone !== "" && openDayPhones.has(cleanPhone)) ||
+      String(client?.provenienza || "").toLowerCase().includes("open") ||
+      tags.some((t) => t.toLowerCase().includes("open"));
+
+    if (isOpenDay && !tags.some((t) => t.toLowerCase().includes("open"))) {
+      tags.push("Open Day");
+    }
+
     rows.push({
       id: cid,
       nome,
@@ -285,6 +305,7 @@ export default async function ClientiPage() {
       telefono,
       tags,
       isClub,
+      isOpenDay,
       eventiCount,
       ltvCents,
       eventi,

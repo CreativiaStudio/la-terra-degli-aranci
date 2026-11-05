@@ -24,6 +24,7 @@ const PILLARS: NavItem[] = [
 ];
 
 const SETTINGS: NavItem[] = [
+  { href: "/admin/preventivi", label: "Preventivi & Proposte", icon: "📝" },
   { href: "/admin/contratti", label: "Contratti & Opzioni", icon: "✍️" },
   { href: "/admin/openday", label: "Open Day Live", icon: "🌿" },
   { href: "/admin/statistiche", label: "Statistiche", icon: "📊" },
@@ -50,21 +51,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "1rem",
-          padding: "0.85rem 1rem",
-          borderRadius: "10px",
+          gap: "0.75rem",
+          padding: "0.42rem 0.75rem",
+          borderRadius: "8px",
           textDecoration: "none",
           fontWeight: active ? "700" : "500",
-          fontSize: "0.95rem",
+          fontSize: "0.88rem",
           color: active ? "#ffffff" : "#b0aba5",
           background: active ? "linear-gradient(90deg, #e58c2c 0%, #d47b1e 100%)" : "transparent",
-          boxShadow: active ? "0 4px 12px rgba(229,140,44,0.3)" : "none",
-          transition: "all 0.2s ease",
+          boxShadow: active ? "0 2px 8px rgba(229,140,44,0.3)" : "none",
+          transition: "all 0.15s ease",
           whiteSpace: "nowrap",
           overflow: "hidden",
         }}
       >
-        <span style={{ fontSize: "1.3rem", flexShrink: 0 }}>{item.icon}</span>
+        <span style={{ fontSize: "1.15rem", flexShrink: 0 }}>{item.icon}</span>
         {!collapsed && <span>{item.label}</span>}
       </Link>
     );
@@ -161,11 +162,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {/* Navigation Items */}
         <nav
           style={{
-            padding: "1.2rem 0.8rem",
+            padding: "0.8rem 0.6rem",
             flex: 1,
             display: "flex",
             flexDirection: "column",
-            gap: "0.5rem",
+            gap: "0.2rem",
             overflowY: "auto",
           }}
         >
@@ -174,23 +175,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Separatore Moduli & Strumenti */}
           <div
             style={{
-              marginTop: "1rem",
-              paddingTop: "1rem",
+              marginTop: "0.6rem",
+              paddingTop: "0.6rem",
               borderTop: "1px solid #332f2b",
               display: "flex",
               flexDirection: "column",
-              gap: "0.5rem",
+              gap: "0.15rem",
             }}
           >
             {!collapsed && (
               <span
                 style={{
-                  fontSize: "0.68rem",
+                  fontSize: "0.65rem",
                   textTransform: "uppercase",
-                  letterSpacing: "2px",
+                  letterSpacing: "1.5px",
                   color: "#6f6a64",
                   fontWeight: 700,
-                  padding: "0 1rem 0.2rem",
+                  padding: "0 0.75rem 0.2rem",
                 }}
               >
                 Impostazioni

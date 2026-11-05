@@ -29,6 +29,7 @@ export interface ClienteRow {
   /** Tag assegnati: VIP Club TDA, Sposi, Privato, Nuovo. */
   tags: string[];
   isClub: boolean;
+  isOpenDay?: boolean;
   eventiCount: number;
   ltvCents: number;
   eventi: ClienteEventoRow[];
@@ -386,6 +387,7 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
       if (selectedStage === "firmato" && !c.hasSignedContract) return false;
       if (selectedStage === "opzione" && !c.eventi?.some((ev) => ev.stage === "opzione")) return false;
       if (selectedStage === "lead" && (c.hasSignedContract || c.eventi?.some((ev) => ev.stage === "opzione"))) return false;
+      if (selectedStage === "openday" && !c.isOpenDay && !c.tags?.some((t) => t.toLowerCase().includes("open"))) return false;
       if (selectedStage === "svolto" && !c.eventi?.some((ev) => ev.stage === "svolto")) return false;
 
       if (selectedMonth === "prossimi_30" || selectedMonth === "prossimi_60") {
@@ -588,7 +590,8 @@ export default function ClientiClient({ clienti }: ClientiClientProps) {
                 <option value="firmato">🟢 Contratti Firmati</option>
                 <option value="opzione">⏳ Opzioni 7gg Attive</option>
                 <option value="lead">🌿 Nuovi Lead & Visite</option>
-                <option value="svolto">🏛️ Eventi Svolti / Storico</option>
+                  <option value="openday">💍 Registrati Open Day</option>
+                  <option value="svolto">🏛️ Eventi Svolti / Storico</option>
               </select>
             </label>
             <span

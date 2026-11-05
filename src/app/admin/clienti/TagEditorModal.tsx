@@ -23,6 +23,7 @@ export const TAG_STYLES: Record<string, TagStyle> = {
   Aziendale: { bg: "#f5f3ff", color: "#6d28d9", border: "#ddd6fe" },
   "⚠️ Con Riserva": { bg: "#fef2f2", color: "#991b1b", border: "#fca5a5" },
   "🔒 Riservato Direzione": { bg: "#334155", color: "#f8fafc", border: "#1e293b" },
+  "Open Day": { bg: "#fdf4ff", color: "#a21caf", border: "#f5d0fe" },
 };
 
 /** Etichette predefinite proposte come toggle rapido nel modale. */
@@ -30,6 +31,7 @@ export const TAG_PRESETS: string[] = [
   "VIP Club TDA",
   "Sposi",
   "Privato",
+  "Open Day",
   "Cliente Storico",
   "Nuovo",
   "Aziendale",
