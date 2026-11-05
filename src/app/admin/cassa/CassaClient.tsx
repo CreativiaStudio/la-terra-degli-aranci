@@ -79,6 +79,7 @@ export interface CassaPaymentRow {
   registrato_da: string;
   created_at: string;
   eventoLabel: string;
+  is_demo?: boolean;
 }
 
 export interface CassaCompanySummary {
@@ -494,6 +495,27 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
     });
   }, [payments, incassiQuery]);
   const [incQuoteId, setIncQuoteId] = useState(eventOptions[0]?.id || "");
+  const [incEventSearch, setIncEventSearch] = useState("");
+  const [isChangingEvent, setIsChangingEvent] = useState(false);
+
+  const filteredEventOptions = useMemo(() => {
+    const q = incEventSearch.trim().toLowerCase();
+    if (!q) return eventOptions;
+    return eventOptions.filter((ev) => {
+      const haystack = [
+        ev.label,
+        ev.id,
+        ev.data_evento ? formatDate(ev.data_evento) : "",
+        ev.data_evento || "",
+      ].join(" ").toLowerCase();
+      return haystack.includes(q);
+    });
+  }, [eventOptions, incEventSearch]);
+
+  const selectedEventOption = useMemo(() => {
+    return eventOptions.find((ev) => ev.id === incQuoteId) || null;
+  }, [eventOptions, incQuoteId]);
+
   const [incData, setIncData] = useState(todayIso());
   const [incImporto, setIncImporto] = useState("");
   const [incMetodo, setIncMetodo] = useState<Metodo>("bonifico");
@@ -540,6 +562,8 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
     setIncRif("");
     setIncNote("");
     setIncQuoteId(eventOptions[0]?.id || "");
+    setIncEventSearch("");
+    setIsChangingEvent(false);
     setIncassoOpen(true);
   };
 
@@ -749,9 +773,27 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                     <tr key={p.id} style={{ borderBottom: "1px solid #f0eee9", opacity: annullato ? 0.55 : 1 }}>
                       <td style={{ padding: "0.8rem 0.6rem", whiteSpace: "nowrap" }}>{formatDate(p.data_incasso)}</td>
                       <td style={{ padding: "0.8rem 0.6rem" }}>
-                        <a href={`/admin/eventi/${p.quote_id}`} style={{ color: "#1e1b18", fontWeight: 700, textDecoration: "none" }}>
-                          {p.eventoLabel}
-                        </a>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap" }}>
+                          {p.is_demo && (
+                            <span
+                              style={{
+                                fontSize: "0.68rem",
+                                fontWeight: 800,
+                                padding: "0.15rem 0.45rem",
+                                borderRadius: "999px",
+                                background: "#fef3c7",
+                                color: "#92400e",
+                                border: "1px solid #fde68a",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              🎭 DEMO
+                            </span>
+                          )}
+                          <a href={`/admin/eventi/${p.quote_id}`} style={{ color: "#1e1b18", fontWeight: 700, textDecoration: "none" }}>
+                            {p.eventoLabel}
+                          </a>
+                        </div>
                       </td>
                       <td style={{ padding: "0.8rem 0.6rem", textAlign: "right", fontWeight: 700, color: annullato ? "#9a9a9a" : "#16a34a", whiteSpace: "nowrap" }}>
                         {formatEuro(p.importo_cents / 100)}
@@ -2339,22 +2381,245 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
             </h2>
 
             <form onSubmit={handleRecordIncasso} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <label style={{ display: "flex", flexDirection: "column", gap: "0.35rem", fontSize: "0.85rem", color: "#514d48", fontWeight: 600 }}>
-                Evento
-                <select
-                  value={incQuoteId}
-                  onChange={(e) => setIncQuoteId(e.target.value)}
-                  required
-                  style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", border: "1px solid #ddd", fontSize: "0.95rem", background: "#fff" }}
-                >
-                  <option value="">— Seleziona evento —</option>
-                  {eventOptions.map((ev) => (
-                    <option key={ev.id} value={ev.id}>
-                      {ev.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {/* Selezione e Ricerca Rapida Cliente / Evento */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "0.85rem", color: "#514d48", fontWeight: 700 }}>
+                    Cliente / Evento Associato *
+                  </span>
+                  {selectedEventOption && !isChangingEvent && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsChangingEvent(true);
+                        setIncEventSearch("");
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#c2410c",
+                        fontWeight: 700,
+                        fontSize: "0.8rem",
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                      }}
+                    >
+                      🔍 Cerca o Cambia Evento
+                    </button>
+                  )}
+                </div>
+
+                {selectedEventOption && !isChangingEvent ? (
+                  <div
+                    style={{
+                      padding: "0.85rem 1rem",
+                      borderRadius: "10px",
+                      background: selectedEventOption.is_demo ? "#fffbeb" : "#fdfbf7",
+                      border: `1.5px solid ${selectedEventOption.is_demo ? "#fcd34d" : "#d4c8b8"}`,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: "0.8rem",
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                        {selectedEventOption.is_demo && (
+                          <span
+                            style={{
+                              fontSize: "0.68rem",
+                              fontWeight: 800,
+                              padding: "0.15rem 0.45rem",
+                              borderRadius: "999px",
+                              background: "#fef3c7",
+                              color: "#92400e",
+                              border: "1px solid #fde68a",
+                            }}
+                          >
+                            🎭 DEMO
+                          </span>
+                        )}
+                        <strong style={{ fontSize: "0.95rem", color: "#1e1b18" }}>
+                          {selectedEventOption.label.replace(/^🎭 DEMO · /, "")}
+                        </strong>
+                      </div>
+                      {selectedEventOption.data_evento && (
+                        <div style={{ color: "#78716c", fontSize: "0.78rem", marginTop: "0.2rem" }}>
+                          📅 Data Evento: <strong>{formatDate(selectedEventOption.data_evento)}</strong>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsChangingEvent(true);
+                        setIncEventSearch("");
+                      }}
+                      style={{
+                        padding: "0.45rem 0.85rem",
+                        borderRadius: "8px",
+                        background: "#fff",
+                        border: "1px solid #d4c8b8",
+                        fontSize: "0.8rem",
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        color: "#514d48",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Cambia ▾
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      border: "1.5px solid #e58c2c",
+                      borderRadius: "10px",
+                      padding: "0.8rem",
+                      background: "#faf8f5",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.6rem",
+                    }}
+                  >
+                    <div style={{ position: "relative" }}>
+                      <input
+                        type="text"
+                        autoFocus
+                        value={incEventSearch}
+                        onChange={(e) => setIncEventSearch(e.target.value)}
+                        placeholder="🔍 Cerca cliente per nome, sposi o data (es. Valerio, Leonardo, Coppola, 2027)..."
+                        style={{
+                          width: "100%",
+                          padding: "0.65rem 0.85rem",
+                          borderRadius: "8px",
+                          border: "1px solid #cbd5e1",
+                          fontSize: "0.88rem",
+                          outline: "none",
+                          background: "#fff",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                      {incEventSearch && (
+                        <button
+                          type="button"
+                          onClick={() => setIncEventSearch("")}
+                          style={{
+                            position: "absolute",
+                            right: "0.6rem",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            background: "none",
+                            border: "none",
+                            color: "#94a3b8",
+                            cursor: "pointer",
+                            fontSize: "0.9rem",
+                            fontWeight: 700,
+                          }}
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+
+                    <div
+                      style={{
+                        maxHeight: "180px",
+                        overflowY: "auto",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "0.35rem",
+                      }}
+                    >
+                      {filteredEventOptions.length === 0 ? (
+                        <div style={{ padding: "0.8rem", textAlign: "center", color: "#94a3b8", fontSize: "0.82rem" }}>
+                          Nessun cliente o evento trovato per &ldquo;{incEventSearch}&rdquo;.
+                        </div>
+                      ) : (
+                        filteredEventOptions.slice(0, 25).map((ev) => {
+                          const isSel = ev.id === incQuoteId;
+                          return (
+                            <div
+                              key={ev.id}
+                              onClick={() => {
+                                setIncQuoteId(ev.id);
+                                setIsChangingEvent(false);
+                                setIncEventSearch("");
+                              }}
+                              style={{
+                                padding: "0.55rem 0.75rem",
+                                borderRadius: "8px",
+                                background: isSel ? "#ffedd5" : "#fff",
+                                border: `1px solid ${isSel ? "#fb923c" : "#e2e8f0"}`,
+                                cursor: "pointer",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                gap: "0.5rem",
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              <div style={{ display: "flex", alignItems: "center", gap: "0.45rem", flexWrap: "wrap" }}>
+                                {ev.is_demo && (
+                                  <span
+                                    style={{
+                                      fontSize: "0.65rem",
+                                      fontWeight: 800,
+                                      padding: "0.1rem 0.4rem",
+                                      borderRadius: "999px",
+                                      background: "#fef3c7",
+                                      color: "#92400e",
+                                      border: "1px solid #fde68a",
+                                    }}
+                                  >
+                                    🎭 DEMO
+                                  </span>
+                                )}
+                                <span style={{ fontSize: "0.86rem", fontWeight: isSel ? 800 : 600, color: "#1e1b18" }}>
+                                  {ev.label.replace(/^🎭 DEMO · /, "")}
+                                </span>
+                              </div>
+                              <span
+                                style={{
+                                  fontSize: "0.75rem",
+                                  fontWeight: 700,
+                                  color: isSel ? "#c2410c" : "#e58c2c",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                {isSel ? "✓ Selezionato" : "Seleziona →"}
+                              </span>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    {selectedEventOption && (
+                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsChangingEvent(false);
+                            setIncEventSearch("");
+                          }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "#64748b",
+                            fontSize: "0.78rem",
+                            cursor: "pointer",
+                            fontWeight: 600,
+                            textDecoration: "underline",
+                          }}
+                        >
+                          Mantieni selezione attuale
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <label style={{ display: "flex", flexDirection: "column", gap: "0.35rem", fontSize: "0.85rem", color: "#514d48", fontWeight: 600 }}>

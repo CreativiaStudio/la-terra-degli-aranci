@@ -220,8 +220,18 @@ export default async function CalendarioPage({
     }
   }
 
+  const isSecurityTestPayload = (str: string) => {
+    const s = str.toLowerCase();
+    return s.includes("<script") || s.includes("drop table") || s.includes("alert(") || s.includes("--");
+  };
+
   const registeredClients = Array.from(clientMap.values())
-    .filter((c) => c.nome || c.cognome || c.telefono || c.email)
+    .filter((c) => {
+      if (!c.nome && !c.cognome && !c.telefono && !c.email) return false;
+      const full = `${c.nome} ${c.cognome} ${c.email} ${c.telefono}`;
+      if (isSecurityTestPayload(full)) return false;
+      return true;
+    })
     .sort((a, b) => `${a.nome} ${a.cognome}`.localeCompare(`${b.nome} ${b.cognome}`));
 
   return (

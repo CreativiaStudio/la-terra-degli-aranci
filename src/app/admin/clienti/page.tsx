@@ -164,8 +164,15 @@ export default async function ClientiPage() {
       .filter(Boolean)
   );
 
+  const isSecurityTestPayload = (str: string) => {
+    const s = str.toLowerCase();
+    return s.includes("<script") || s.includes("drop table") || s.includes("alert(") || s.includes("--");
+  };
+
   const rows: ClienteRow[] = [];
   for (const [cid, client] of clientMap) {
+    const rawCheck = `${client?.nome || ""} ${client?.cognome || ""} ${client?.email || ""} ${client?.telefono || ""}`;
+    if (isSecurityTestPayload(rawCheck)) continue;
     const cQuotes = quotesByClient.get(cid) || [];
     const nome = String(client?.nome || "").trim() || "Cliente";
     const cognome = String(client?.cognome || "").trim();

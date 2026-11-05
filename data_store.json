@@ -270,6 +270,246 @@
       "is_demo": true,
       "created_at": "2026-09-10T14:00:00Z",
       "updated_at": "2026-11-05T12:56:54.360Z"
+    },
+    {
+      "id": "client-demo1",
+      "nome": "Valerio",
+      "cognome": "De Simone",
+      "email": "valerio.desimone@gmail.com",
+      "telefono": "+39 347 1122334",
+      "partner": "Laura",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": "DSMVLR90A01F839K",
+      "tags": [],
+      "lead_source": "Napoli (Posillipo)",
+      "is_demo": true,
+      "created_at": "2026-07-23T07:06:08.106+00:00"
+    },
+    {
+      "id": "client-demo3",
+      "nome": "Studio Notarile Avv. Vincenzo",
+      "cognome": "Ferrara",
+      "email": "studio.ferrara@notariato.it",
+      "telefono": "+39 081 7654321",
+      "partner": "",
+      "ragione_sociale": "Studio Notarile Avv. Vincenzo Ferrara",
+      "partita_iva": null,
+      "codice_fiscale": "FRRVNC75B12F839Z",
+      "tags": [],
+      "lead_source": "Napoli Centro",
+      "is_demo": true,
+      "created_at": "2026-07-23T07:06:08.106+00:00"
+    },
+    {
+      "id": "client-demo4",
+      "nome": "Dott. Gianluigi",
+      "cognome": "Coppola",
+      "email": "gianluigi.coppola@sanita.it",
+      "telefono": "+39 335 8899001",
+      "partner": "Marika",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": "CPPGNL88C15F839T",
+      "tags": [],
+      "lead_source": "Napoli (Vomero)",
+      "is_demo": true,
+      "created_at": "2022-10-10T00:00:00+00:00"
+    },
+    {
+      "id": "3e86e3f2-9186-470a-bfcf-3037d674ef6a",
+      "nome": "Paolo",
+      "cognome": "Ferrara",
+      "email": "paolo.ferrara50@gmail.com",
+      "telefono": "347 220 9081",
+      "partner": "Elena",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": null,
+      "tags": [],
+      "lead_source": "Tablet Segreteria (Visita)",
+      "is_demo": false,
+      "created_at": "2026-10-09T09:05:42.696+00:00"
+    },
+    {
+      "id": "client-1791534338756",
+      "nome": "Davide",
+      "cognome": "Nappi",
+      "email": "davide.serena2027@gmail.com",
+      "telefono": "+39 349 9887766",
+      "partner": "Serena",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": "NPPDBD90A01F839X",
+      "tags": [],
+      "lead_source": "Napoli",
+      "is_demo": false,
+      "created_at": "2026-10-09T08:25:38.756+00:00"
+    },
+    {
+      "id": "6db3038f-140d-40a4-b7de-e1dd06590dd2",
+      "nome": "Lorenzo",
+      "cognome": "Romano",
+      "email": "lorenzo.romano@libero.it",
+      "telefono": "+39 338 7654321",
+      "partner": "Camilla",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": "CFAA29E8A7-B79B-",
+      "tags": [],
+      "lead_source": "Napoli",
+      "is_demo": false,
+      "created_at": "2026-09-01T10:00:00+00:00"
+    },
+    {
+      "id": "63f10172-4163-42c4-97b4-71c7f3ad27bf",
+      "nome": "Antonio",
+      "cognome": "De Rosa",
+      "email": "antonio.derosa@outlook.it",
+      "telefono": "+39 335 4433221",
+      "partner": "Chiara",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": "CF21E47337-6AE8-",
+      "tags": [],
+      "lead_source": "Napoli",
+      "is_demo": false,
+      "created_at": "2026-09-01T10:00:00+00:00"
+    },
+    {
+      "id": "41d73a9f-8f47-4e41-9c77-20b1e7fc2588",
+      "nome": "Dott.ssa Giulia",
+      "cognome": "De Angelis",
+      "email": "giulia.deangelis@gmail.com",
+      "telefono": "+39 349 9871122",
+      "partner": "",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": "CFACE47C98-6156-",
+      "tags": [],
+      "lead_source": "Napoli",
+      "is_demo": false,
+      "created_at": "2026-09-01T10:00:00+00:00"
+    },
+    {
+      "id": "2ded73a5-1324-4717-a737-757a148b1a08",
+      "nome": "Davide",
+      "cognome": "Rinaldi",
+      "email": "davide.rinaldi@gmail.com",
+      "telefono": "+39 333 1122334",
+      "partner": "Elena",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": "CF8C03AC08-F8A3-",
+      "tags": [],
+      "lead_source": "Napoli",
+      "is_demo": false,
+      "created_at": "2026-09-01T10:00:00+00:00"
+    },
+    {
+      "id": "598f7982-f962-4f06-b695-9bbd061d4841",
+      "nome": "Gennaro",
+      "cognome": "Marino",
+      "email": "gennaro.marino@alice.it",
+      "telefono": "+39 340 5566778",
+      "partner": "Federica",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": "CF397A5DF1-B3DE-",
+      "tags": [],
+      "lead_source": "Napoli",
+      "is_demo": false,
+      "created_at": "2026-09-01T10:00:00+00:00"
+    },
+    {
+      "id": "b9bd8689-66fe-4a60-b631-d5c0f555b8c7",
+      "nome": "Roberto",
+      "cognome": "D'Amico",
+      "email": "roberto.damico@yahoo.it",
+      "telefono": "+39 348 2233445",
+      "partner": "Beatrice",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": "CFCE0D5C01-F480-",
+      "tags": [],
+      "lead_source": "Napoli",
+      "is_demo": false,
+      "created_at": "2026-09-01T10:00:00+00:00"
+    },
+    {
+      "id": "898f4b99-c39a-493b-96a6-4a833e674609",
+      "nome": "Fabio",
+      "cognome": "Caruso",
+      "email": "fabio.caruso@gmail.com",
+      "telefono": "+39 331 9988776",
+      "partner": "Noemi",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": "CF6E5A940C-1752-",
+      "tags": [],
+      "lead_source": "Napoli",
+      "is_demo": false,
+      "created_at": "2026-09-01T10:00:00+00:00"
+    },
+    {
+      "id": "1f04f52a-41e3-413f-ac18-f16bed9ecd5e",
+      "nome": "Claudio",
+      "cognome": "Ferri",
+      "email": "claudio.ferri@virgilio.it",
+      "telefono": "+39 345 6677889",
+      "partner": "Simona",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": "CFCF3AFB9B-C76B-",
+      "tags": [],
+      "lead_source": "Napoli",
+      "is_demo": false,
+      "created_at": "2026-09-01T10:00:00+00:00"
+    },
+    {
+      "id": "82dba888-c9cb-4979-9532-e26b0363ef8a",
+      "nome": "Edoardo",
+      "cognome": "Gallo",
+      "email": "edoardo.gallo@gmail.com",
+      "telefono": "+39 339 3344556",
+      "partner": "Giorgia",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": "CFE2EDCF4E-A73D-",
+      "tags": [],
+      "lead_source": "Napoli",
+      "is_demo": false,
+      "created_at": "2026-09-01T10:00:00+00:00"
+    },
+    {
+      "id": "2351289a-1901-4556-9dea-f6afa03dc829",
+      "nome": "Federico",
+      "cognome": "Testa",
+      "email": "federico.testa@hotmail.it",
+      "telefono": "+39 346 7788990",
+      "partner": "Ludovica",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": "CFAE3706F6-5FFA-",
+      "tags": [],
+      "lead_source": "Napoli",
+      "is_demo": false,
+      "created_at": "2026-09-01T10:00:00+00:00"
+    },
+    {
+      "id": "b82a0f22-dd90-4c73-ac66-ddf212f17a7c",
+      "nome": "Marco",
+      "cognome": "Esposito",
+      "email": "marco.esposito@gmail.com",
+      "telefono": "+39 347 8891234",
+      "partner": "Sofia",
+      "ragione_sociale": null,
+      "partita_iva": null,
+      "codice_fiscale": "CFF340737D-B2D6-",
+      "tags": [],
+      "lead_source": "Napoli",
+      "is_demo": false,
+      "created_at": "2026-09-01T10:00:00+00:00"
     }
   ],
   "quotes": [
@@ -470,6 +710,988 @@
           "splitLabel": "40% SS / 60% Iovino"
         }
       ]
+    },
+    {
+      "id": "quote-demo1",
+      "client_id": "client-demo1",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-09-15",
+      "turno": "cena",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [],
+      "numero_ospiti": 120,
+      "prezzo": 18000,
+      "totale_calcolato": 18000,
+      "importo_caparra": 0,
+      "importo_secondo_acconto": 0,
+      "status": "convertito",
+      "data_firma": null,
+      "items": [],
+      "created_at": "2026-07-23T07:06:08.106+00:00",
+      "updated_at": "2026-09-17T19:43:26.935+00:00",
+      "is_demo": true
+    },
+    {
+      "id": "quote-demo3",
+      "client_id": "client-demo3",
+      "tipo_evento": "eventi",
+      "data_evento": "2026-10-05",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "sala_bianca",
+      "spazi_riservati": [],
+      "numero_ospiti": 100,
+      "prezzo": 2400,
+      "totale_calcolato": 2400,
+      "importo_caparra": 0,
+      "importo_secondo_acconto": 0,
+      "status": "firmato",
+      "data_firma": null,
+      "items": [
+        {
+          "id": "1785250076342-0.15277046030253716",
+          "quantita": 1,
+          "descrizione": "Sushi Corner & Degustazione Crudi di Mare",
+          "prezzo_unitario": 1500
+        },
+        {
+          "id": "1785250078976-0.19352554286906842",
+          "quantita": 1,
+          "descrizione": "Angolo Liquori Biologici dell'Agrumeto (Arancello, Limoncello, Mandarinetto)",
+          "prezzo_unitario": 400
+        },
+        {
+          "id": "1785250080334-0.5310675576945291",
+          "quantita": 1,
+          "descrizione": "Servizio Wedding Planning & Progetto Creativo",
+          "prezzo_unitario": 500
+        }
+      ],
+      "created_at": "2026-07-23T07:06:08.106+00:00",
+      "updated_at": "2026-07-28T14:49:13.354+00:00",
+      "is_demo": true
+    },
+    {
+      "id": "quote-demo4-old",
+      "client_id": "client-demo4",
+      "tipo_evento": "wedding",
+      "data_evento": "2023-05-20",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "sala_bianca",
+      "spazi_riservati": [],
+      "numero_ospiti": 100,
+      "prezzo": 15000,
+      "totale_calcolato": 15000,
+      "importo_caparra": 0,
+      "importo_secondo_acconto": 0,
+      "status": "firmato",
+      "data_firma": null,
+      "items": [],
+      "created_at": "2022-10-10T00:00:00+00:00",
+      "updated_at": "2026-11-02T19:07:23.983+00:00",
+      "is_demo": true
+    },
+    {
+      "id": "quote-demo4-new",
+      "client_id": "client-demo4",
+      "tipo_evento": "eventi",
+      "data_evento": "2025-04-10",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "sala_bianca",
+      "spazi_riservati": [],
+      "numero_ospiti": 100,
+      "prezzo": 4000,
+      "totale_calcolato": 4000,
+      "importo_caparra": 0,
+      "importo_secondo_acconto": 0,
+      "status": "firmato",
+      "data_firma": null,
+      "items": [],
+      "created_at": "2026-07-23T07:06:08.106+00:00",
+      "updated_at": "2026-11-02T19:07:23.983+00:00",
+      "is_demo": true
+    },
+    {
+      "id": "59bec2a3-8a7b-4437-9d36-74ad1d86f440",
+      "client_id": "3e86e3f2-9186-470a-bfcf-3037d674ef6a",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-15",
+      "turno": "pranzo",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_bianca",
+      "spazi_riservati": [
+        "Sala Bianca",
+        "Giardino Mediterraneo (Agrumeto)"
+      ],
+      "numero_ospiti": 100,
+      "prezzo": 7000,
+      "totale_calcolato": 7000,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "inviato",
+      "data_firma": null,
+      "items": [
+        {
+          "id": 1791537026978,
+          "totale": 7000,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Canone Fitto Struttura",
+          "prezzo_unitario": 7000
+        }
+      ],
+      "created_at": "2026-10-09T09:10:26.984+00:00",
+      "updated_at": "2026-10-09T09:10:26.984+00:00",
+      "is_demo": false
+    },
+    {
+      "id": "quote-sim-1791534338756",
+      "client_id": "client-1791534338756",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-09-18",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Giardino delle Promesse",
+        "Sala Bianca",
+        "Terrazza"
+      ],
+      "numero_ospiti": 130,
+      "prezzo": 23800,
+      "totale_calcolato": 23800,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "firmato",
+      "data_firma": "2026-10-09T08:25:38.756+00:00",
+      "items": [
+        {
+          "id": "item-1",
+          "totale": 4500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "splitLabel": "100% Santo Stefano",
+          "descrizione": "Canone Concessione Villa in Esclusiva (Pranzo)",
+          "prezzo_unitario": 4500
+        },
+        {
+          "id": "item-2",
+          "totale": 18200,
+          "quantita": 130,
+          "splitKey": "40_60",
+          "splitLabel": "40% Santo Stefano / 60% Iovino",
+          "descrizione": "Menu Nozze Mandarancio Gran Buffet & Banchetto (130 Ospiti)",
+          "prezzo_unitario": 140
+        },
+        {
+          "id": "item-extra-1",
+          "totale": 600,
+          "quantita": 1,
+          "splitKey": "angle",
+          "splitLabel": "€100 Santo Stefano, resto Iovino",
+          "descrizione": "Angolo Spritz & Aperitivi (Accoglienza Agrumeto)",
+          "prezzo_unitario": 600
+        },
+        {
+          "id": "item-extra-2",
+          "totale": 500,
+          "quantita": 1,
+          "splitKey": "ss50",
+          "splitLabel": "€50 Santo Stefano, resto Iovino",
+          "descrizione": "Fontane Luminose Fredde (Taglio Torta)",
+          "prezzo_unitario": 500
+        }
+      ],
+      "created_at": "2026-10-09T08:25:38.756+00:00",
+      "updated_at": "2026-10-09T08:25:38.761+00:00",
+      "is_demo": false
+    },
+    {
+      "id": "e2bd4cb2-d65b-4211-adf6-0b39c00f58cd",
+      "client_id": "6db3038f-140d-40a4-b7de-e1dd06590dd2",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-03",
+      "turno": "cena",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_tufo",
+      "spazi_riservati": [
+        "Sala Tufo",
+        "Giardino delle Promesse",
+        "Terrazza Taglio Torta"
+      ],
+      "numero_ospiti": 85,
+      "prezzo": 14400,
+      "totale_calcolato": 14400,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "firmato",
+      "data_firma": null,
+      "items": [
+        {
+          "id": 1791407505788,
+          "totale": 3500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Canone Concessione Villa (Semi-Esclusiva sala_tufo)",
+          "prezzo_unitario": 3500
+        },
+        {
+          "id": 1791407505925,
+          "totale": 10200,
+          "quantita": 85,
+          "splitKey": "40_60",
+          "descrizione": "Banchetto Gourmet Ricevimento (85 Ospiti)",
+          "prezzo_unitario": 120
+        },
+        {
+          "id": 1791407511780,
+          "totale": 700,
+          "quantita": 1,
+          "splitKey": "40_60",
+          "descrizione": "Angolo Sigari, Cioccolato Pregiato & Rum",
+          "prezzo_unitario": 700
+        }
+      ],
+      "created_at": "2026-09-10T12:00:00+00:00",
+      "updated_at": "2026-10-07T21:11:44.102+00:00",
+      "is_demo": false
+    },
+    {
+      "id": "edaca3ef-b858-43b5-8a8c-c500ee001ccc",
+      "client_id": "63f10172-4163-42c4-97b4-71c7f3ad27bf",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-04",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Sala Bianca",
+        "Sala Tufo"
+      ],
+      "numero_ospiti": 120,
+      "prezzo": 20100,
+      "totale_calcolato": 20100,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "convertito",
+      "data_firma": null,
+      "items": [
+        {
+          "id": 1791407513464,
+          "totale": 4500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Canone Concessione Villa (Esclusiva)",
+          "prezzo_unitario": 4500
+        },
+        {
+          "id": 1791407505048,
+          "totale": 13800,
+          "quantita": 120,
+          "splitKey": "40_60",
+          "descrizione": "Banchetto Gourmet Ricevimento (120 Ospiti)",
+          "prezzo_unitario": 115
+        },
+        {
+          "id": 1791407504352,
+          "totale": 1200,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Rito Civile nel Giardino delle Promesse",
+          "prezzo_unitario": 1200
+        },
+        {
+          "id": 1791407507163,
+          "totale": 600,
+          "quantita": 1,
+          "splitKey": "40_60",
+          "descrizione": "Carretto Gelato Artigianale Napoletano",
+          "prezzo_unitario": 600
+        }
+      ],
+      "created_at": "2026-09-10T12:00:00+00:00",
+      "updated_at": "2026-10-07T21:11:44.102+00:00",
+      "is_demo": false
+    },
+    {
+      "id": "8583d35c-18ce-4c2b-9eb2-783292aae33e",
+      "client_id": "41d73a9f-8f47-4e41-9c77-20b1e7fc2588",
+      "tipo_evento": "eventi",
+      "data_evento": "2027-07-08",
+      "turno": "cena",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_tufo",
+      "spazi_riservati": [
+        "Sala Tufo",
+        "Terrazza Agrumeto"
+      ],
+      "numero_ospiti": 65,
+      "prezzo": 6100,
+      "totale_calcolato": 6100,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 0,
+      "status": "firmato",
+      "data_firma": null,
+      "items": [
+        {
+          "id": 1791407508414,
+          "totale": 2000,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Canone Concessione Villa (Semi-Esclusiva sala_tufo)",
+          "prezzo_unitario": 2000
+        },
+        {
+          "id": 1791407508373,
+          "totale": 3250,
+          "quantita": 65,
+          "splitKey": "40_60",
+          "descrizione": "Banchetto Gourmet Ricevimento (65 Ospiti)",
+          "prezzo_unitario": 50
+        },
+        {
+          "id": 1791407511186,
+          "totale": 850,
+          "quantita": 1,
+          "splitKey": "40_60",
+          "descrizione": "DJ Set & Cocktail Bar Illimitato Laurea",
+          "prezzo_unitario": 850
+        }
+      ],
+      "created_at": "2026-09-10T12:00:00+00:00",
+      "updated_at": "2026-10-07T21:11:44.102+00:00",
+      "is_demo": false
+    },
+    {
+      "id": "c903448e-6a08-43ed-8082-a87f8c648192",
+      "client_id": "2ded73a5-1324-4717-a737-757a148b1a08",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-10",
+      "turno": "pranzo",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_bianca",
+      "spazi_riservati": [
+        "Sala Bianca",
+        "Agrumeto Storico"
+      ],
+      "numero_ospiti": 90,
+      "prezzo": 13850,
+      "totale_calcolato": 13850,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "firmato",
+      "data_firma": null,
+      "items": [
+        {
+          "id": 1791407505498,
+          "totale": 3500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Canone Concessione Villa (Semi-Esclusiva sala_bianca)",
+          "prezzo_unitario": 3500
+        },
+        {
+          "id": 1791407512677,
+          "totale": 10350,
+          "quantita": 90,
+          "splitKey": "40_60",
+          "descrizione": "Banchetto Gourmet Ricevimento (90 Ospiti)",
+          "prezzo_unitario": 115
+        }
+      ],
+      "created_at": "2026-09-10T12:00:00+00:00",
+      "updated_at": "2026-10-07T21:11:44.102+00:00",
+      "is_demo": false
+    },
+    {
+      "id": "91e1475a-ef5f-4be0-880b-232ec8a63c7b",
+      "client_id": "598f7982-f962-4f06-b695-9bbd061d4841",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-10",
+      "turno": "pranzo",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_tufo",
+      "spazi_riservati": [
+        "Sala Tufo",
+        "Giardino delle Promesse"
+      ],
+      "numero_ospiti": 75,
+      "prezzo": 11750,
+      "totale_calcolato": 11750,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "firmato",
+      "data_firma": null,
+      "items": [
+        {
+          "id": 1791407508198,
+          "totale": 3500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Canone Concessione Villa (Semi-Esclusiva sala_tufo)",
+          "prezzo_unitario": 3500
+        },
+        {
+          "id": 1791407513563,
+          "totale": 8250,
+          "quantita": 75,
+          "splitKey": "40_60",
+          "descrizione": "Banchetto Gourmet Ricevimento (75 Ospiti)",
+          "prezzo_unitario": 110
+        }
+      ],
+      "created_at": "2026-09-10T12:00:00+00:00",
+      "updated_at": "2026-10-07T21:11:44.102+00:00",
+      "is_demo": false
+    },
+    {
+      "id": "db91c807-3c1b-4260-9bae-cdf76be48c97",
+      "client_id": "b9bd8689-66fe-4a60-b631-d5c0f555b8c7",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-10",
+      "turno": "cena",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Sala Bianca",
+        "Sala Tufo"
+      ],
+      "numero_ospiti": 110,
+      "prezzo": 17700,
+      "totale_calcolato": 17700,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "opzione",
+      "data_firma": null,
+      "items": [
+        {
+          "id": 1791407513825,
+          "totale": 4500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Canone Concessione Villa (Esclusiva)",
+          "prezzo_unitario": 4500
+        },
+        {
+          "id": 1791407504757,
+          "totale": 13200,
+          "quantita": 110,
+          "splitKey": "40_60",
+          "descrizione": "Banchetto Gourmet Ricevimento (110 Ospiti)",
+          "prezzo_unitario": 120
+        }
+      ],
+      "created_at": "2026-09-10T12:00:00+00:00",
+      "updated_at": "2026-10-07T21:11:44.102+00:00",
+      "is_demo": false
+    },
+    {
+      "id": "b94e1739-e2b0-462b-9a1c-1b4f306c59f4",
+      "client_id": "898f4b99-c39a-493b-96a6-4a833e674609",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-11",
+      "turno": "cena",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Sala Tufo",
+        "Terrazza"
+      ],
+      "numero_ospiti": 130,
+      "prezzo": 19450,
+      "totale_calcolato": 19450,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "inviato",
+      "data_firma": null,
+      "items": [
+        {
+          "id": 1791407510838,
+          "totale": 4500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Canone Concessione Villa (Esclusiva)",
+          "prezzo_unitario": 4500
+        },
+        {
+          "id": 1791407510120,
+          "totale": 14950,
+          "quantita": 130,
+          "splitKey": "40_60",
+          "descrizione": "Banchetto Gourmet Ricevimento (130 Ospiti)",
+          "prezzo_unitario": 115
+        }
+      ],
+      "created_at": "2026-09-10T12:00:00+00:00",
+      "updated_at": "2026-10-07T21:11:44.102+00:00",
+      "is_demo": false
+    },
+    {
+      "id": "560c8969-b516-4a4f-8bc3-5f6dc3c7ed99",
+      "client_id": "1f04f52a-41e3-413f-ac18-f16bed9ecd5e",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-17",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Sala Bianca",
+        "Sala Tufo",
+        "Terrazza Panoramica"
+      ],
+      "numero_ospiti": 150,
+      "prezzo": 24650,
+      "totale_calcolato": 24650,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "firmato",
+      "data_firma": null,
+      "items": [
+        {
+          "id": 1791407504749,
+          "totale": 4500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Canone Concessione Villa (Esclusiva)",
+          "prezzo_unitario": 4500
+        },
+        {
+          "id": 1791407513930,
+          "totale": 17250,
+          "quantita": 150,
+          "splitKey": "40_60",
+          "descrizione": "Banchetto Gourmet Ricevimento (150 Ospiti)",
+          "prezzo_unitario": 115
+        },
+        {
+          "id": 1791407504584,
+          "totale": 800,
+          "quantita": 1,
+          "splitKey": "40_60",
+          "descrizione": "Angolo Sigari Cubani & Distillati Pregiati",
+          "prezzo_unitario": 800
+        },
+        {
+          "id": 1791407513084,
+          "totale": 1200,
+          "quantita": 1,
+          "splitKey": "40_60",
+          "descrizione": "Show Cooking Brace Gourmet in Giardino",
+          "prezzo_unitario": 1200
+        },
+        {
+          "id": 1791407508525,
+          "totale": 900,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Illuminazione Architetturale Catene Vintage Giardino",
+          "prezzo_unitario": 900
+        }
+      ],
+      "created_at": "2026-09-10T12:00:00+00:00",
+      "updated_at": "2026-10-07T21:11:44.102+00:00",
+      "is_demo": false
+    },
+    {
+      "id": "1664c5ff-84a8-44b7-a9b3-c14c9f00be5b",
+      "client_id": "82dba888-c9cb-4979-9532-e26b0363ef8a",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-24",
+      "turno": "cena",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Sala Tufo",
+        "Sala Bianca"
+      ],
+      "numero_ospiti": 125,
+      "prezzo": 18250,
+      "totale_calcolato": 18250,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "bozza_visita",
+      "data_firma": null,
+      "items": [
+        {
+          "id": 1791407512698,
+          "totale": 4500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Canone Concessione Villa (Esclusiva)",
+          "prezzo_unitario": 4500
+        },
+        {
+          "id": 1791407511441,
+          "totale": 13750,
+          "quantita": 125,
+          "splitKey": "40_60",
+          "descrizione": "Banchetto Gourmet Ricevimento (125 Ospiti)",
+          "prezzo_unitario": 110
+        }
+      ],
+      "created_at": "2026-09-10T12:00:00+00:00",
+      "updated_at": "2026-10-07T21:11:44.102+00:00",
+      "is_demo": false
+    },
+    {
+      "id": "dffa3705-5312-4bfe-924a-996c2e44fa7f",
+      "client_id": "2351289a-1901-4556-9dea-f6afa03dc829",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-31",
+      "turno": "cena",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Sala Bianca",
+        "Sala Tufo",
+        "Terrazza Taglio Torta"
+      ],
+      "numero_ospiti": 160,
+      "prezzo": 26900,
+      "totale_calcolato": 26900,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "firmato",
+      "data_firma": null,
+      "items": [
+        {
+          "id": 1791407506316,
+          "totale": 4500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Canone Concessione Villa (Esclusiva)",
+          "prezzo_unitario": 4500
+        },
+        {
+          "id": 1791407512203,
+          "totale": 20000,
+          "quantita": 160,
+          "splitKey": "40_60",
+          "descrizione": "Banchetto Gourmet Ricevimento (160 Ospiti)",
+          "prezzo_unitario": 125
+        },
+        {
+          "id": 1791407511834,
+          "totale": 800,
+          "quantita": 1,
+          "splitKey": "40_60",
+          "descrizione": "Show Cooking Pizza Fritta Napoletana & Montanarine",
+          "prezzo_unitario": 800
+        },
+        {
+          "id": 1791407509477,
+          "totale": 1600,
+          "quantita": 1,
+          "splitKey": "40_60",
+          "descrizione": "Open Bar Illimitato con Barman Acrobatico",
+          "prezzo_unitario": 1600
+        }
+      ],
+      "created_at": "2026-09-10T12:00:00+00:00",
+      "updated_at": "2026-10-07T21:11:44.102+00:00",
+      "is_demo": false
+    },
+    {
+      "id": "quote-valerio-wedding-2024",
+      "client_id": "client-demo1",
+      "tipo_evento": "wedding",
+      "data_evento": "2024-06-14",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "esclusiva"
+      ],
+      "numero_ospiti": 120,
+      "prezzo": 16500,
+      "totale_calcolato": 16500,
+      "importo_caparra": 0,
+      "importo_secondo_acconto": 0,
+      "status": "firmato",
+      "data_firma": "2023-11-15T10:00:00+00:00",
+      "items": [
+        {
+          "id": 1,
+          "totale": 3500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Canone Struttura Esclusiva",
+          "prezzo_unitario": 3500
+        },
+        {
+          "id": 2,
+          "totale": 12000,
+          "quantita": 120,
+          "splitKey": "ib100",
+          "descrizione": "Banchetto Nuziale Gourmet (120 ospiti)",
+          "prezzo_unitario": 100
+        },
+        {
+          "id": 3,
+          "totale": 1000,
+          "quantita": 1,
+          "splitKey": "ib100",
+          "descrizione": "Open Bar Premium & Sigari",
+          "prezzo_unitario": 1000
+        }
+      ],
+      "created_at": "2023-10-01T10:00:00+00:00",
+      "updated_at": "2026-11-02T19:07:23.983+00:00",
+      "is_demo": true
+    },
+    {
+      "id": "quote-valerio-battesimo-2025",
+      "client_id": "client-demo1",
+      "tipo_evento": "eventi",
+      "data_evento": "2025-05-10",
+      "turno": "pranzo",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_bianca",
+      "spazi_riservati": [
+        "sala_bianca",
+        "giardino_d_inverno"
+      ],
+      "numero_ospiti": 60,
+      "prezzo": 5400,
+      "totale_calcolato": 5400,
+      "importo_caparra": 0,
+      "importo_secondo_acconto": 0,
+      "status": "firmato",
+      "data_firma": "2025-01-20T10:00:00+00:00",
+      "items": [
+        {
+          "id": 1,
+          "totale": 1500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Locazione Sala Bianca & Giardino",
+          "prezzo_unitario": 1500
+        },
+        {
+          "id": 2,
+          "totale": 3900,
+          "quantita": 60,
+          "splitKey": "ib100",
+          "descrizione": "Menù Degustazione Battesimo (60 ospiti)",
+          "prezzo_unitario": 65
+        }
+      ],
+      "created_at": "2025-01-10T10:00:00+00:00",
+      "updated_at": "2026-11-02T19:07:23.983+00:00",
+      "is_demo": true
+    },
+    {
+      "id": "quote-valerio-compleanno-2027",
+      "client_id": "client-demo1",
+      "tipo_evento": "eventi",
+      "data_evento": "2027-07-25",
+      "turno": "cena",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_tufo",
+      "spazi_riservati": [
+        "sala_tufo"
+      ],
+      "numero_ospiti": 45,
+      "prezzo": 4200,
+      "totale_calcolato": 4200,
+      "importo_caparra": 0,
+      "importo_secondo_acconto": 0,
+      "status": "firmato",
+      "data_firma": "2026-09-01T10:00:00+00:00",
+      "items": [
+        {
+          "id": 1,
+          "totale": 1200,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Sala Tufo & Agrumeto Cena",
+          "prezzo_unitario": 1200
+        },
+        {
+          "id": 2,
+          "totale": 2700,
+          "quantita": 45,
+          "splitKey": "ib100",
+          "descrizione": "Apericena Gourmet & Finger Food (45 ospiti)",
+          "prezzo_unitario": 60
+        },
+        {
+          "id": 3,
+          "totale": 300,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Torta Sartoriale & Sweet Table",
+          "prezzo_unitario": 300
+        }
+      ],
+      "created_at": "2026-08-20T10:00:00+00:00",
+      "updated_at": "2026-11-02T19:07:23.983+00:00",
+      "is_demo": true
+    },
+    {
+      "id": "quote-gianluigi-wedding-2023",
+      "client_id": "client-demo4",
+      "tipo_evento": "wedding",
+      "data_evento": "2023-09-22",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "esclusiva"
+      ],
+      "numero_ospiti": 110,
+      "prezzo": 17500,
+      "totale_calcolato": 17500,
+      "importo_caparra": 0,
+      "importo_secondo_acconto": 0,
+      "status": "firmato",
+      "data_firma": "2023-03-10T10:00:00+00:00",
+      "items": [
+        {
+          "id": 1,
+          "totale": 3500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Esclusiva Tenuta",
+          "prezzo_unitario": 3500
+        },
+        {
+          "id": 2,
+          "totale": 13200,
+          "quantita": 110,
+          "splitKey": "ib100",
+          "descrizione": "Banchetto Nuziale (110 ospiti)",
+          "prezzo_unitario": 120
+        },
+        {
+          "id": 3,
+          "totale": 800,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Allestimenti Floreali & Luci",
+          "prezzo_unitario": 800
+        }
+      ],
+      "created_at": "2023-01-15T10:00:00+00:00",
+      "updated_at": "2026-11-02T19:07:23.983+00:00",
+      "is_demo": true
+    },
+    {
+      "id": "quote-marco-promessa-2026",
+      "client_id": "b82a0f22-dd90-4c73-ac66-ddf212f17a7c",
+      "tipo_evento": "eventi",
+      "data_evento": "2026-04-18",
+      "turno": "pranzo",
+      "tipo_esclusiva": "semi_esclusiva",
+      "formula_opzione": "sala_tufo",
+      "spazi_riservati": [
+        "sala_tufo"
+      ],
+      "numero_ospiti": 50,
+      "prezzo": 3800,
+      "totale_calcolato": 3800,
+      "importo_caparra": 0,
+      "importo_secondo_acconto": 0,
+      "status": "firmato",
+      "data_firma": "2026-01-15T10:00:00+00:00",
+      "items": [
+        {
+          "id": 1,
+          "totale": 1300,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Sala Tufo Pranzo",
+          "prezzo_unitario": 1300
+        },
+        {
+          "id": 2,
+          "totale": 2500,
+          "quantita": 50,
+          "splitKey": "ib100",
+          "descrizione": "Aperitivo & Pranzo Promessa (50 ospiti)",
+          "prezzo_unitario": 50
+        }
+      ],
+      "created_at": "2026-01-10T10:00:00+00:00",
+      "updated_at": "2026-11-02T19:07:23.983+00:00",
+      "is_demo": false
+    },
+    {
+      "id": "2ea7faa3-ef17-4d28-b067-6b33a1f12e80",
+      "client_id": "b82a0f22-dd90-4c73-ac66-ddf212f17a7c",
+      "tipo_evento": "wedding",
+      "data_evento": "2027-07-03",
+      "turno": "pranzo",
+      "tipo_esclusiva": "esclusiva",
+      "formula_opzione": "esclusiva",
+      "spazi_riservati": [
+        "Agrumeto Storico",
+        "Sala Tufo",
+        "Sala Bianca",
+        "Terrazza Panoramica"
+      ],
+      "numero_ospiti": 140,
+      "prezzo": 22000,
+      "totale_calcolato": 22000,
+      "importo_caparra": 1500,
+      "importo_secondo_acconto": 3000,
+      "status": "convertito",
+      "data_firma": null,
+      "items": [
+        {
+          "id": 1791407508312,
+          "totale": 4500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Canone Concessione Villa (Esclusiva)",
+          "prezzo_unitario": 4500
+        },
+        {
+          "id": 1791407508246,
+          "totale": 15400,
+          "quantita": 140,
+          "splitKey": "40_60",
+          "descrizione": "Banchetto Gourmet Ricevimento (140 Ospiti)",
+          "prezzo_unitario": 110
+        },
+        {
+          "id": 1791407513852,
+          "totale": 600,
+          "quantita": 1,
+          "splitKey": "40_60",
+          "descrizione": "Show Cooking Graffette Calde all'Arancio",
+          "prezzo_unitario": 600
+        },
+        {
+          "id": 1791407509795,
+          "totale": 1500,
+          "quantita": 1,
+          "splitKey": "40_60",
+          "descrizione": "Open Bar Premium Illimitato Dopopranzo",
+          "prezzo_unitario": 1500
+        },
+        {
+          "id": 1791407510963,
+          "totale": 500,
+          "quantita": 1,
+          "splitKey": "ss100",
+          "descrizione": "Spettacolo Fontane Fredde Piriche Taglio Torta",
+          "prezzo_unitario": 500
+        }
+      ],
+      "created_at": "2026-09-10T12:00:00+00:00",
+      "updated_at": "2026-10-07T21:11:44.101+00:00",
+      "is_demo": false
     }
   ],
   "signed_contracts": [],

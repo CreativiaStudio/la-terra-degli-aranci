@@ -87,9 +87,24 @@ export default async function CassaPage({
   const validTabs: CassaTab[] = ["incassi", "scadenze", "societa"];
   const initialTab: CassaTab = (validTabs as string[]).includes(tabRaw) ? (tabRaw as CassaTab) : "incassi";
 
-  const [quotes, payments] = await Promise.all([getQuotesFast(), Promise.resolve(getAllPaymentsLocal())]);
+  const [quotesRaw, payments] = await Promise.all([getQuotesFast(), Promise.resolve(getAllPaymentsLocal())]);
   const store = getStore();
   const today = new Date().toISOString().slice(0, 10);
+
+  /* Unione quotes: Supabase + store.quotes (demo e quote locali) con anagrafica cliente */
+  const quotesMap = new Map<string, any>();
+  for (const q of quotesRaw || []) {
+    if (q && q.id) quotesMap.set(String(q.id).toLowerCase(), q);
+  }
+  for (const q of store.quotes || []) {
+    const key = String(q?.id || "").toLowerCase();
+    if (!key) continue;
+    if (!quotesMap.has(key)) {
+      const client = (store.clients || []).find((c: any) => c && c.id === q.client_id) || q.clients || { nome: "Cliente", cognome: "" };
+      quotesMap.set(key, { ...q, clients: client });
+    }
+  }
+  const quotes = Array.from(quotesMap.values());
 
   /* Indici in memoria */
   const paymentsByQuote = new Map<string, any[]>();
@@ -223,6 +238,12 @@ export default async function CassaPage({
       : `Evento ${String(p.quote_id || "").slice(0, 8).toUpperCase()}`;
     const dataEvento = q ? onlyDate(q.data_evento) : "";
     const tipoLabel = q?.tipo_evento === "wedding" ? "Matrimonio" : "Privato";
+    const isDemo = Boolean(
+      (p as any).is_demo ||
+      q?.is_demo ||
+      q?.clients?.is_demo ||
+      String(p.quote_id || "").includes("demo")
+    );
     return {
       id: p.id,
       quote_id: p.quote_id,
@@ -238,6 +259,7 @@ export default async function CassaPage({
       registrato_da: p.registrato_da,
       created_at: p.created_at,
       eventoLabel: q ? `${sposi} (${tipoLabel}${dataEvento ? ` · ${dataEvento}` : ""})` : sposi,
+      is_demo: isDemo,
     };
   });
 

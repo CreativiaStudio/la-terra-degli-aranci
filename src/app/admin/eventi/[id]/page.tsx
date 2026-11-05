@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { getQuotesFast } from "@/lib/dataHelper";
 import {
   getAllQuotesLocal,
   getLocalStore,
@@ -16,8 +17,8 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
-/** Cerca la quote per id esatto e, in fallback, per prefisso a 8 caratteri. */
-function findQuote(id: string) {
+/** Cerca la quote per id esatto e, in fallback, per prefisso a 8 caratteri o da Supabase. */
+async function findQuote(id: string) {
   const exact = getQuoteLocal(id);
   if (exact) return exact;
 
@@ -26,10 +27,25 @@ function findQuote(id: string) {
   const found =
     store.quotes.find((q: any) => String(q.id).toLowerCase() === search) ||
     store.quotes.find((q: any) => String(q.id).toLowerCase().startsWith(search));
-  if (!found) return null;
+  if (found) {
+    const client = store.clients.find((c: any) => c.id === found.client_id) || null;
+    return { ...found, clients: client };
+  }
 
-  const client = store.clients.find((c: any) => c.id === found.client_id) || null;
-  return { ...found, clients: client };
+  // Fallback Supabase
+  try {
+    const fastQuotes = await getQuotesFast();
+    const sbFound =
+      fastQuotes.find((q: any) => String(q.id).toLowerCase() === search) ||
+      fastQuotes.find((q: any) => String(q.id).toLowerCase().startsWith(search));
+    if (sbFound) {
+      return sbFound;
+    }
+  } catch {
+    // ignore
+  }
+
+  return null;
 }
 
 export default async function EventRegiaPage({
@@ -50,7 +66,7 @@ export default async function EventRegiaPage({
     | "diario"
     | "ospiti";
 
-  const quote = findQuote(id);
+  const quote = await findQuote(id);
   if (!quote) {
     if (id.startsWith("client-") || id.startsWith("od-")) {
       redirect(`/openday/diario?id=${id}`);
