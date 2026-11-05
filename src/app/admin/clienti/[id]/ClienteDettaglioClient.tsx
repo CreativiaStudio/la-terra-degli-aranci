@@ -485,82 +485,123 @@ function RicevimentoCard({ r }: { r: ClienteRicevimentoRow }) {
       </div>
 
       {/* 4 RIEPILOGHI CASSA SANTO STEFANO / IOVINO */}
-      <div style={{ marginTop: "1rem", paddingTop: "0.9rem", borderTop: `1px solid ${BORDER}` }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem" }}>
-          <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.8px", color: "#8a847c", fontWeight: 800 }}>
-            💶 Ripartizione Incassi (Ufficiale vs Contanti / Extra)
-          </span>
-          <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#16a34a" }}>
-            Totale Incassato: {formatEuro(r.incassato)}
-          </span>
-        </div>
+      {(() => {
+        const isOfficial = (p: any) => p.natura === "ufficiale" || (!p.natura && p.metodo !== "contanti");
+        const isExtra = (p: any) => p.natura === "extra" || (!p.natura && p.metodo === "contanti");
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.6rem" }}>
-          <div style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", background: "#fff", border: "1px solid #bfdbfe" }}>
-            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", fontWeight: 800, color: "#1d4ed8" }}>
-              1. Ufficiale Santo Stefano
-            </div>
-            <div style={{ fontSize: "0.7rem", color: "#64748b" }}>Fitto Location (Tracciato)</div>
-            <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#1e3a8a", marginTop: "0.2rem" }}>
-              {formatEuro(r.ssOfficial || 0)}
-            </div>
-          </div>
+        const ssOffPayments = (r.payments || []).filter((p) => p.incassato_da === "santo_stefano" && isOfficial(p));
+        const iovOffPayments = (r.payments || []).filter((p) => p.incassato_da === "iovino" && isOfficial(p));
+        const ssCashPayments = (r.payments || []).filter((p) => p.incassato_da === "santo_stefano" && isExtra(p));
+        const iovCashPayments = (r.payments || []).filter((p) => p.incassato_da === "iovino" && isExtra(p));
 
-          <div style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", background: "#fff", border: "1px solid #ddd6fe" }}>
-            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", fontWeight: 800, color: "#6d28d9" }}>
-              2. Ufficiale Iovino Banqueting
+        const renderMiniBreakdown = (list: any[]) => {
+          if (list.length === 0) return null;
+          return (
+            <div style={{ marginTop: "0.4rem", borderTop: "1px dashed #e2e8f0", paddingTop: "0.3rem" }}>
+              <div style={{ fontSize: "0.62rem", fontWeight: 700, color: "#64748b", marginBottom: "0.15rem" }}>
+                Voci incluse:
+              </div>
+              <ul style={{ margin: 0, paddingLeft: "0.9rem", fontSize: "0.7rem", color: "#334155" }}>
+                {list.map((p) => (
+                  <li key={p.id} style={{ marginBottom: "0.15rem" }}>
+                    <strong>{formatEuro(p.importo_cents / 100)}</strong> — {p.note || p.riferimento || "Movimento registrato"}
+                  </li>
+                ))}
+              </ul>
             </div>
-            <div style={{ fontSize: "0.7rem", color: "#64748b" }}>Menu Wedding (Tracciato)</div>
-            <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#4c1d95", marginTop: "0.2rem" }}>
-              {formatEuro(r.iovinoOfficial || 0)}
-            </div>
-          </div>
+          );
+        };
 
-          <div style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", background: "#fff", border: "1px solid #fed7aa" }}>
-            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", fontWeight: 800, color: "#c2410c" }}>
-              3. Contanti Santo Stefano
-            </div>
-            <div style={{ fontSize: "0.7rem", color: "#64748b" }}>Extra Location / Fornitori</div>
-            <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#9a3412", marginTop: "0.2rem" }}>
-              {formatEuro(r.ssCash || 0)}
-            </div>
-          </div>
+        const residuo = Math.max(0, r.concordato - r.incassato);
 
-          <div style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", background: "#fff", border: "1px solid #a7f3d0" }}>
-            <div style={{ fontSize: "0.65rem", textTransform: "uppercase", fontWeight: 800, color: "#047857" }}>
-              4. Contanti Iovino Banqueting
+        return (
+          <div style={{ marginTop: "1rem", paddingTop: "0.9rem", borderTop: `1px solid ${BORDER}` }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.6rem", flexWrap: "wrap", gap: "0.5rem" }}>
+              <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.8px", color: "#8a847c", fontWeight: 800 }}>
+                💶 Ripartizione Incassi Riscosse ad Oggi (Ufficiale vs Extra)
+              </span>
+              <div style={{ display: "flex", gap: "0.8rem", alignItems: "center" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#16a34a" }}>
+                  Incassato Reale: {formatEuro(r.incassato)}
+                </span>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: residuo > 0 ? "#b91c1c" : "#16a34a" }}>
+                  Residuo a Saldo: {formatEuro(residuo)}
+                </span>
+              </div>
             </div>
-            <div style={{ fontSize: "0.7rem", color: "#64748b" }}>Extra Banqueting / Fornitori</div>
-            <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#065f46", marginTop: "0.2rem" }}>
-              {formatEuro(r.iovinoCash || 0)}
-            </div>
-          </div>
-        </div>
 
-        {/* Registro Singoli Pagamenti dell'Evento */}
-        {r.payments && r.payments.length > 0 && (
-          <div style={{ marginTop: "0.75rem", background: "#fff", borderRadius: 8, border: `1px solid ${BORDER}`, padding: "0.6rem 0.8rem" }}>
-            <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 700, color: "#8a847c", marginBottom: "0.4rem" }}>
-              Storico Movimenti Registrati ({r.payments.length})
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
-              {r.payments.map((p) => (
-                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.8rem", borderBottom: "1px solid #f5f5f4", paddingBottom: "0.25rem" }}>
-                  <div>
-                    <span style={{ fontWeight: 700, color: ANTHRACITE }}>{formatDate(p.data_incasso)}</span>
-                    <span style={{ margin: "0 0.4rem", color: "#a8a29e" }}>·</span>
-                    <span style={{ color: p.natura === "extra" ? "#c2410c" : "#1e40af", fontWeight: 600 }}>
-                      {p.natura === "extra" ? "Extra Contanti" : "Ufficiale"} ({p.incassato_da === "santo_stefano" ? "Santo Stefano S.r.l." : "Iovino Banqueting S.r.l."})
-                    </span>
-                    {p.note && <span style={{ color: "#78716c", marginLeft: "0.4rem", fontSize: "0.75rem" }}>({p.note})</span>}
-                  </div>
-                  <strong style={{ color: "#16a34a" }}>{formatEuro(p.importo_cents / 100)}</strong>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "0.6rem" }}>
+              <div style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", background: "#fff", border: "1px solid #bfdbfe" }}>
+                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", fontWeight: 800, color: "#1d4ed8" }}>
+                  1. Ufficiale Santo Stefano
                 </div>
-              ))}
+                <div style={{ fontSize: "0.7rem", color: "#64748b" }}>Fitto Location (Tracciato)</div>
+                <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#1e3a8a", marginTop: "0.2rem" }}>
+                  {formatEuro(r.ssOfficial || 0)}
+                </div>
+                {renderMiniBreakdown(ssOffPayments)}
+              </div>
+
+              <div style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", background: "#fff", border: "1px solid #ddd6fe" }}>
+                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", fontWeight: 800, color: "#6d28d9" }}>
+                  2. Ufficiale Iovino Banqueting
+                </div>
+                <div style={{ fontSize: "0.7rem", color: "#64748b" }}>Menu Wedding (Tracciato)</div>
+                <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#4c1d95", marginTop: "0.2rem" }}>
+                  {formatEuro(r.iovinoOfficial || 0)}
+                </div>
+                {renderMiniBreakdown(iovOffPayments)}
+              </div>
+
+              <div style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", background: "#fff", border: "1px solid #fed7aa" }}>
+                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", fontWeight: 800, color: "#c2410c" }}>
+                  3. Contanti Santo Stefano
+                </div>
+                <div style={{ fontSize: "0.7rem", color: "#64748b" }}>Extra Location / Fornitori</div>
+                <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#9a3412", marginTop: "0.2rem" }}>
+                  {formatEuro(r.ssCash || 0)}
+                </div>
+                {renderMiniBreakdown(ssCashPayments)}
+              </div>
+
+              <div style={{ padding: "0.65rem 0.8rem", borderRadius: "8px", background: "#fff", border: "1px solid #a7f3d0" }}>
+                <div style={{ fontSize: "0.65rem", textTransform: "uppercase", fontWeight: 800, color: "#047857" }}>
+                  4. Contanti Iovino Banqueting
+                </div>
+                <div style={{ fontSize: "0.7rem", color: "#64748b" }}>Extra Banqueting / Fornitori</div>
+                <div style={{ fontSize: "1.1rem", fontWeight: 800, color: "#065f46", marginTop: "0.2rem" }}>
+                  {formatEuro(r.iovinoCash || 0)}
+                </div>
+                {renderMiniBreakdown(iovCashPayments)}
+              </div>
             </div>
+
+            {/* Registro Singoli Pagamenti dell'Evento */}
+            {r.payments && r.payments.length > 0 && (
+              <div style={{ marginTop: "0.75rem", background: "#fff", borderRadius: 8, border: `1px solid ${BORDER}`, padding: "0.6rem 0.8rem" }}>
+                <div style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: 700, color: "#8a847c", marginBottom: "0.4rem" }}>
+                  Storico Movimenti Registrati ({r.payments.length})
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                  {r.payments.map((p) => (
+                    <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.8rem", borderBottom: "1px solid #f5f5f4", paddingBottom: "0.25rem" }}>
+                      <div>
+                        <span style={{ fontWeight: 700, color: ANTHRACITE }}>{formatDate(p.data_incasso)}</span>
+                        <span style={{ margin: "0 0.4rem", color: "#a8a29e" }}>·</span>
+                        <span style={{ color: p.natura === "extra" ? "#c2410c" : "#1e40af", fontWeight: 600 }}>
+                          {p.natura === "extra" ? "Extra Contanti" : "Ufficiale"} ({p.incassato_da === "santo_stefano" ? "Santo Stefano S.r.l." : "Iovino Banqueting S.r.l."})
+                        </span>
+                        {p.note && <span style={{ color: "#78716c", marginLeft: "0.4rem", fontSize: "0.75rem" }}>({p.note})</span>}
+                      </div>
+                      <strong style={{ color: "#16a34a" }}>{formatEuro(p.importo_cents / 100)}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
 
       <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.85rem", flexWrap: "wrap" }}>
         <a
