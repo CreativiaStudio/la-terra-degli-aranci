@@ -55,6 +55,12 @@ export interface CassaEventoRow {
   conguaglio: { da: string; a: string; importo_cents: number } | null;
   rate: CassaRateRow[];
   items: CassaItemRow[];
+  extra_quote?: {
+    totale: number;
+    totale_santo_stefano: number;
+    totale_iovino: number;
+    items_count: number;
+  } | null;
 }
 
 export interface CassaPaymentRow {
@@ -186,20 +192,54 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
   const [societaView, setSocietaView] = useState<"evento" | "globale">(eventi.length > 0 ? "evento" : "globale");
   const [selectedEventId, setSelectedEventId] = useState<string>(eventi[0]?.id || "");
   const [societaQuery, setSocietaQuery] = useState("");
+  const [filterYear, setFilterYear] = useState<"all" | "2027" | "2026" | "2025">("all");
+  const [filterType, setFilterType] = useState<"all" | "wedding" | "eventi">("all");
+  const [filterWithPayments, setFilterWithPayments] = useState<boolean>(false);
+  const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
+
+  const isOfficialPayment = (p: CassaPaymentRow) => p.natura === "ufficiale" || (!p.natura && p.metodo !== "contanti");
+  const isExtraPayment = (p: CassaPaymentRow) => p.natura === "extra" || (!p.natura && p.metodo === "contanti");
 
   const filteredEventi = useMemo(() => {
     const needle = societaQuery.trim().toLowerCase();
-    if (!needle) return eventi;
     return eventi.filter((ev) => {
-      const haystack = [ev.sposi, ev.codice, ev.data_evento || "", formatDate(ev.data_evento)].join(" ").toLowerCase();
+      if (filterYear !== "all") {
+        if (!ev.data_evento || !ev.data_evento.startsWith(filterYear)) return false;
+      }
+      if (filterType !== "all") {
+        if (ev.tipo_evento !== filterType) return false;
+      }
+      if (filterWithPayments) {
+        const hasPay = payments.some((p) => p.quote_id === ev.id && p.stato === "valido");
+        if (!hasPay) return false;
+      }
+      if (!needle) return true;
+      const haystack = [
+        ev.sposi,
+        ev.codice,
+        ev.data_evento || "",
+        formatDate(ev.data_evento),
+        ev.formula,
+        ev.stageLabel,
+      ].join(" ").toLowerCase();
       return haystack.includes(needle);
     });
-  }, [eventi, societaQuery]);
+  }, [eventi, societaQuery, filterYear, filterType, filterWithPayments, payments]);
 
   const selectedEvent = useMemo(
     () => eventi.find((ev) => ev.id === selectedEventId) || filteredEventi[0] || eventi[0] || null,
     [eventi, filteredEventi, selectedEventId]
   );
+
+  const currentEventIndex = useMemo(() => {
+    return filteredEventi.findIndex((e) => e.id === selectedEvent?.id);
+  }, [filteredEventi, selectedEvent]);
+
+  const prevEvent = currentEventIndex > 0 ? filteredEventi[currentEventIndex - 1] : null;
+  const nextEvent =
+    currentEventIndex >= 0 && currentEventIndex < filteredEventi.length - 1
+      ? filteredEventi[currentEventIndex + 1]
+      : null;
 
   const eventoPayments = useMemo(
     () =>
@@ -218,9 +258,215 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
     };
   }, [selectedEvent]);
 
+  // Calcolo analitico completo dell'evento (Ufficiale + Extra + Conguaglio Netto)
+  const ripartizioneEvento = useMemo(() => {
+    if (!selectedEvent) return null;
+
+    const eventPays = payments.filter((p) => p.quote_id === selectedEvent.id && p.stato === "valido");
+
+    // 1. Incassi UFFICIALI (bonifico, pos, assegno)
+    const ssOffInc = eventPays
+      .filter((p) => p.incassato_da === "santo_stefano" && isOfficialPayment(p))
+      .reduce((sum, p) => sum + p.importo_cents, 0);
+    const iovOffInc = eventPays
+      .filter((p) => p.incassato_da === "iovino" && isOfficialPayment(p))
+      .reduce((sum, p) => sum + p.importo_cents, 0);
+    const totOffInc = ssOffInc + iovOffInc;
+
+    // 2. Incassi EXTRA (contanti / natura extra)
+    const ssExtInc = eventPays
+      .filter((p) => p.incassato_da === "santo_stefano" && isExtraPayment(p))
+      .reduce((sum, p) => sum + p.importo_cents, 0);
+    const iovExtInc = eventPays
+      .filter((p) => p.incassato_da === "iovino" && isExtraPayment(p))
+      .reduce((sum, p) => sum + p.importo_cents, 0);
+    const totExtInc = ssExtInc + iovExtInc;
+
+    // 3. Spettanza UFFICIALE (contrattuale)
+    const ssOffSp = selectedEvent.spettanza.santo_stefano;
+    const iovOffSp = selectedEvent.spettanza.iovino;
+    const totOffSp = ssOffSp + iovOffSp;
+
+    const ssOffRes = Math.max(0, ssOffSp - ssOffInc);
+    const iovOffRes = Math.max(0, iovOffSp - iovOffInc);
+    const totOffRes = Math.max(0, totOffSp - totOffInc);
+
+    // 4. Spettanza EXTRA (da extra_quote se definito o default dai contanti registrati)
+    const eq = selectedEvent.extra_quote;
+    const eqSS = eq?.totale_santo_stefano ? Math.round(eq.totale_santo_stefano * 100) : 0;
+    const eqIov = eq?.totale_iovino ? Math.round(eq.totale_iovino * 100) : 0;
+    const eqTot = eq?.totale ? Math.round(eq.totale * 100) : 0;
+
+    const ssExtSp = Math.max(eqSS, ssExtInc);
+    const iovExtSp = Math.max(eqIov, iovExtInc);
+    const totExtSp = Math.max(eqTot, ssExtSp + iovExtSp);
+
+    const ssExtRes = Math.max(0, ssExtSp - ssExtInc);
+    const iovExtRes = Math.max(0, iovExtSp - iovExtInc);
+    const totExtRes = Math.max(0, totExtSp - totExtInc);
+
+    // 5. Totali COMBINATI (Ufficiale + Extra)
+    const ssTotSp = ssOffSp + ssExtSp;
+    const iovTotSp = iovOffSp + iovExtSp;
+    const totGlobaleSp = totOffSp + totExtSp;
+
+    const ssTotInc = ssOffInc + ssExtInc;
+    const iovTotInc = iovOffInc + iovExtInc;
+    const totGlobaleInc = totOffInc + totExtInc;
+
+    const ssTotRes = ssOffRes + ssExtRes;
+    const iovTotRes = iovOffRes + iovExtRes;
+    const totGlobaleRes = totOffRes + totExtRes;
+
+    // 6. Conguagli
+    const deltaOffSS = ssOffInc - ssOffSp;
+    const conguaglioUfficiale =
+      deltaOffSS > 0
+        ? { da: "santo_stefano" as const, a: "iovino" as const, importo_cents: deltaOffSS }
+        : deltaOffSS < 0
+        ? { da: "iovino" as const, a: "santo_stefano" as const, importo_cents: Math.abs(deltaOffSS) }
+        : null;
+
+    const deltaExtSS = ssExtInc - ssExtSp;
+    const conguaglioExtra =
+      deltaExtSS > 0
+        ? { da: "santo_stefano" as const, a: "iovino" as const, importo_cents: deltaExtSS }
+        : deltaExtSS < 0
+        ? { da: "iovino" as const, a: "santo_stefano" as const, importo_cents: Math.abs(deltaExtSS) }
+        : null;
+
+    const deltaNettoSS = ssTotInc - ssTotSp;
+    const conguaglioNetto =
+      deltaNettoSS > 0
+        ? { da: "santo_stefano" as const, a: "iovino" as const, importo_cents: deltaNettoSS }
+        : deltaNettoSS < 0
+        ? { da: "iovino" as const, a: "santo_stefano" as const, importo_cents: Math.abs(deltaNettoSS) }
+        : null;
+
+    return {
+      ssOffSp, iovOffSp, totOffSp,
+      ssOffInc, iovOffInc, totOffInc,
+      ssOffRes, iovOffRes, totOffRes,
+      ssExtSp, iovExtSp, totExtSp,
+      ssExtInc, iovExtInc, totExtInc,
+      ssExtRes, iovExtRes, totExtRes,
+      ssTotSp, iovTotSp, totGlobaleSp,
+      ssTotInc, iovTotInc, totGlobaleInc,
+      ssTotRes, iovTotRes, totGlobaleRes,
+      conguaglioUfficiale,
+      conguaglioExtra,
+      conguaglioNetto,
+      hasExtraQuote: Boolean(eq && eq.items_count > 0),
+      extraQuoteItemsCount: eq?.items_count || 0,
+    };
+  }, [selectedEvent, payments]);
+
+  // Calcolo analitico globale (tutti gli eventi dell'azienda)
+  const ripartizioneGlobale = useMemo(() => {
+    const validPays = payments.filter((p) => p.stato === "valido");
+
+    let ssOffSp = 0;
+    let iovOffSp = 0;
+    for (const ev of eventi) {
+      ssOffSp += ev.spettanza.santo_stefano;
+      iovOffSp += ev.spettanza.iovino;
+    }
+    const totOffSp = ssOffSp + iovOffSp;
+
+    const ssOffInc = validPays
+      .filter((p) => p.incassato_da === "santo_stefano" && isOfficialPayment(p))
+      .reduce((sum, p) => sum + p.importo_cents, 0);
+    const iovOffInc = validPays
+      .filter((p) => p.incassato_da === "iovino" && isOfficialPayment(p))
+      .reduce((sum, p) => sum + p.importo_cents, 0);
+    const totOffInc = ssOffInc + iovOffInc;
+
+    const ssOffRes = Math.max(0, ssOffSp - ssOffInc);
+    const iovOffRes = Math.max(0, iovOffSp - iovOffInc);
+    const totOffRes = Math.max(0, totOffSp - totOffInc);
+
+    let ssExtSp = 0;
+    let iovExtSp = 0;
+    for (const ev of eventi) {
+      const eq = ev.extra_quote;
+      const eqSS = eq?.totale_santo_stefano ? Math.round(eq.totale_santo_stefano * 100) : 0;
+      const eqIov = eq?.totale_iovino ? Math.round(eq.totale_iovino * 100) : 0;
+      ssExtSp += eqSS;
+      iovExtSp += eqIov;
+    }
+
+    const ssExtInc = validPays
+      .filter((p) => p.incassato_da === "santo_stefano" && isExtraPayment(p))
+      .reduce((sum, p) => sum + p.importo_cents, 0);
+    const iovExtInc = validPays
+      .filter((p) => p.incassato_da === "iovino" && isExtraPayment(p))
+      .reduce((sum, p) => sum + p.importo_cents, 0);
+    const totExtInc = ssExtInc + iovExtInc;
+
+    ssExtSp = Math.max(ssExtSp, ssExtInc);
+    iovExtSp = Math.max(iovExtSp, iovExtInc);
+    const totExtSp = ssExtSp + iovExtSp;
+
+    const ssExtRes = Math.max(0, ssExtSp - ssExtInc);
+    const iovExtRes = Math.max(0, iovExtSp - iovExtInc);
+    const totExtRes = Math.max(0, totExtSp - totExtInc);
+
+    const ssTotSp = ssOffSp + ssExtSp;
+    const iovTotSp = iovOffSp + iovExtSp;
+    const totGlobaleSp = totOffSp + totExtSp;
+
+    const ssTotInc = ssOffInc + ssExtInc;
+    const iovTotInc = iovOffInc + iovExtInc;
+    const totGlobaleInc = totOffInc + totExtInc;
+
+    const ssTotRes = ssOffRes + ssExtRes;
+    const iovTotRes = iovOffRes + iovExtRes;
+    const totGlobaleRes = totOffRes + totExtRes;
+
+    const deltaOffSS = ssOffInc - ssOffSp;
+    const conguaglioUfficiale =
+      deltaOffSS > 0
+        ? { da: "santo_stefano" as const, a: "iovino" as const, importo_cents: deltaOffSS }
+        : deltaOffSS < 0
+        ? { da: "iovino" as const, a: "santo_stefano" as const, importo_cents: Math.abs(deltaOffSS) }
+        : null;
+
+    const deltaExtSS = ssExtInc - ssExtSp;
+    const conguaglioExtra =
+      deltaExtSS > 0
+        ? { da: "santo_stefano" as const, a: "iovino" as const, importo_cents: deltaExtSS }
+        : deltaExtSS < 0
+        ? { da: "iovino" as const, a: "santo_stefano" as const, importo_cents: Math.abs(deltaExtSS) }
+        : null;
+
+    const deltaNettoSS = ssTotInc - ssTotSp;
+    const conguaglioNetto =
+      deltaNettoSS > 0
+        ? { da: "santo_stefano" as const, a: "iovino" as const, importo_cents: deltaNettoSS }
+        : deltaNettoSS < 0
+        ? { da: "iovino" as const, a: "santo_stefano" as const, importo_cents: Math.abs(deltaNettoSS) }
+        : null;
+
+    return {
+      ssOffSp, iovOffSp, totOffSp,
+      ssOffInc, iovOffInc, totOffInc,
+      ssOffRes, iovOffRes, totOffRes,
+      ssExtSp, iovExtSp, totExtSp,
+      ssExtInc, iovExtInc, totExtInc,
+      ssExtRes, iovExtRes, totExtRes,
+      ssTotSp, iovTotSp, totGlobaleSp,
+      ssTotInc, iovTotInc, totGlobaleInc,
+      ssTotRes, iovTotRes, totGlobaleRes,
+      conguaglioUfficiale,
+      conguaglioExtra,
+      conguaglioNetto,
+    };
+  }, [eventi, payments]);
+
   const selectEvento = (id: string) => {
     setSelectedEventId(id);
     setSocietaView("evento");
+    setIsSearchFocused(false);
   };
 
   /* -------------------------- Registro Incassi -------------------------- */
@@ -695,19 +941,209 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
             </div>
 
             {societaView === "evento" && (
-              <>
-                <input
-                  type="search"
-                  value={societaQuery}
-                  onChange={(e) => setSocietaQuery(e.target.value)}
-                  placeholder="🔍 Cerca evento per Nome Sposi, Codice TDA o Data (es. Marco Esposito, 03/07/2027, TDA-0BA26A24)..."
-                  aria-label="Cerca evento"
-                  style={{ width: "100%", padding: "0.8rem 1rem", borderRadius: "10px", border: "1px solid #ddd", fontSize: "0.95rem", boxSizing: "border-box" }}
-                />
-                <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", padding: "0.8rem 0 0.2rem 0" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+                {/* Riga 1: Ricerca testuale con Clear + Select dropdown + Tasti Precedente/Successivo */}
+                <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
+                  <div style={{ position: "relative", flex: "1 1 300px" }}>
+                    <input
+                      type="search"
+                      value={societaQuery}
+                      onChange={(e) => setSocietaQuery(e.target.value)}
+                      onFocus={() => setIsSearchFocused(true)}
+                      placeholder="🔍 Cerca per nome sposi, codice o data (es. Marco Esposito, 18/09/2027)..."
+                      aria-label="Cerca evento"
+                      style={{
+                        width: "100%",
+                        padding: "0.8rem 2.4rem 0.8rem 1rem",
+                        borderRadius: "10px",
+                        border: "1.5px solid #d4c8b8",
+                        fontSize: "0.92rem",
+                        boxSizing: "border-box",
+                        background: "#fff",
+                      }}
+                    />
+                    {societaQuery && (
+                      <button
+                        type="button"
+                        onClick={() => setSocietaQuery("")}
+                        style={{
+                          position: "absolute",
+                          right: "0.8rem",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "transparent",
+                          border: "none",
+                          fontSize: "1rem",
+                          cursor: "pointer",
+                          color: "#94a3b8",
+                        }}
+                        title="Cancella ricerca"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown per selezione rapida istantanea */}
+                  <div style={{ flex: "1 1 280px" }}>
+                    <select
+                      value={selectedEvent?.id || ""}
+                      onChange={(e) => selectEvento(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "0.8rem 1rem",
+                        borderRadius: "10px",
+                        border: "1.5px solid #d4c8b8",
+                        fontSize: "0.92rem",
+                        fontWeight: 600,
+                        background: "#fcfbf9",
+                        color: "#1e1b18",
+                        cursor: "pointer",
+                      }}
+                      aria-label="Seleziona evento dal menu a tendina"
+                    >
+                      {filteredEventi.length === 0 ? (
+                        <option value="">Nessun evento corrispondente ai filtri</option>
+                      ) : (
+                        filteredEventi.map((ev) => (
+                          <option key={ev.id} value={ev.id}>
+                            {ev.tipo_evento === "wedding" ? "💍" : "🎉"} {formatDate(ev.data_evento)} — {ev.sposi} ({formatEuro(ev.concordato_cents / 100)})
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Tasti di navigazione rapida Precedente / Successivo */}
+                  <div style={{ display: "inline-flex", gap: "0.35rem" }}>
+                    <button
+                      type="button"
+                      disabled={!prevEvent}
+                      onClick={() => prevEvent && selectEvento(prevEvent.id)}
+                      style={{
+                        padding: "0.75rem 0.9rem",
+                        borderRadius: "10px",
+                        border: "1px solid #d4c8b8",
+                        background: prevEvent ? "#fff" : "#f1efec",
+                        color: prevEvent ? "#1e1b18" : "#a8a29e",
+                        fontWeight: 700,
+                        fontSize: "0.85rem",
+                        cursor: prevEvent ? "pointer" : "not-allowed",
+                        whiteSpace: "nowrap",
+                      }}
+                      title={prevEvent ? `Vai a ${prevEvent.sposi}` : "Nessun evento precedente"}
+                    >
+                      ◀ Prec
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!nextEvent}
+                      onClick={() => nextEvent && selectEvento(nextEvent.id)}
+                      style={{
+                        padding: "0.75rem 0.9rem",
+                        borderRadius: "10px",
+                        border: "1px solid #d4c8b8",
+                        background: nextEvent ? "#fff" : "#f1efec",
+                        color: nextEvent ? "#1e1b18" : "#a8a29e",
+                        fontWeight: 700,
+                        fontSize: "0.85rem",
+                        cursor: nextEvent ? "pointer" : "not-allowed",
+                        whiteSpace: "nowrap",
+                      }}
+                      title={nextEvent ? `Vai a ${nextEvent.sposi}` : "Nessun evento successivo"}
+                    >
+                      Succ ▶
+                    </button>
+                  </div>
+                </div>
+
+                {/* Riga 2: Filtri Rapidi Anno, Tipo e Incassi */}
+                <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
+                  <span style={{ fontSize: "0.74rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "#8a847c", marginRight: "0.2rem" }}>
+                    Filtra:
+                  </span>
+                  {[
+                    { id: "all", label: `Tutti (${eventi.length})` },
+                    { id: "2027", label: `2027 (${eventi.filter((e) => e.data_evento?.startsWith("2027")).length})` },
+                    { id: "2026", label: `2026 (${eventi.filter((e) => e.data_evento?.startsWith("2026")).length})` },
+                    { id: "2025", label: `2025 (${eventi.filter((e) => e.data_evento?.startsWith("2025")).length})` },
+                  ].map((chip) => {
+                    const active = filterYear === chip.id;
+                    return (
+                      <button
+                        key={chip.id}
+                        type="button"
+                        onClick={() => setFilterYear(chip.id as any)}
+                        style={{
+                          border: active ? "1.5px solid #e58c2c" : "1px solid #e0ddd9",
+                          background: active ? "#fff7ed" : "#fff",
+                          color: active ? "#c2410c" : "#6a6764",
+                          borderRadius: "999px",
+                          padding: "0.3rem 0.75rem",
+                          fontSize: "0.76rem",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {chip.label}
+                      </button>
+                    );
+                  })}
+
+                  <span style={{ width: "1px", height: "16px", background: "#e0ddd9", margin: "0 0.2rem" }} />
+
+                  {[
+                    { id: "all", label: "Tutti i tipi" },
+                    { id: "wedding", label: `💍 Matrimoni (${eventi.filter((e) => e.tipo_evento === "wedding").length})` },
+                    { id: "eventi", label: `🎉 Privati (${eventi.filter((e) => e.tipo_evento !== "wedding").length})` },
+                  ].map((chip) => {
+                    const active = filterType === chip.id;
+                    return (
+                      <button
+                        key={chip.id}
+                        type="button"
+                        onClick={() => setFilterType(chip.id as any)}
+                        style={{
+                          border: active ? "1.5px solid #2563eb" : "1px solid #e0ddd9",
+                          background: active ? "#eff6ff" : "#fff",
+                          color: active ? "#1d4ed8" : "#6a6764",
+                          borderRadius: "999px",
+                          padding: "0.3rem 0.75rem",
+                          fontSize: "0.76rem",
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        {chip.label}
+                      </button>
+                    );
+                  })}
+
+                  <span style={{ width: "1px", height: "16px", background: "#e0ddd9", margin: "0 0.2rem" }} />
+
+                  <button
+                    type="button"
+                    onClick={() => setFilterWithPayments((v) => !v)}
+                    style={{
+                      border: filterWithPayments ? "1.5px solid #16a34a" : "1px solid #e0ddd9",
+                      background: filterWithPayments ? "#f0fdf4" : "#fff",
+                      color: filterWithPayments ? "#15803d" : "#6a6764",
+                      borderRadius: "999px",
+                      padding: "0.3rem 0.75rem",
+                      fontSize: "0.76rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    💰 Solo con incassi ({eventi.filter((e) => payments.some((p) => p.quote_id === e.id && p.stato === "valido")).length})
+                  </button>
+                </div>
+
+                {/* Riga 3: Pill carousel con evidenziazione chiara */}
+                <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", padding: "0.5rem 0 0.2rem 0" }}>
                   {filteredEventi.length === 0 ? (
                     <span style={{ color: "#94a3b8", fontSize: "0.85rem", padding: "0.4rem 0" }}>
-                      Nessun evento trovato per “{societaQuery}”.
+                      Nessun evento trovato con i filtri attuali.
                     </span>
                   ) : (
                     filteredEventi.map((ev) => {
@@ -720,33 +1156,35 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                           style={{
                             whiteSpace: "nowrap",
                             borderRadius: "999px",
-                            border: active ? "1px solid #e58c2c" : "1px solid #e0ddd9",
+                            border: active ? "2px solid #e58c2c" : "1px solid #e0ddd9",
                             background: active ? "#fff7ed" : "#fff",
                             color: active ? "#c2410c" : "#514d48",
-                            fontWeight: 700,
+                            fontWeight: active ? 800 : 600,
                             fontSize: "0.82rem",
-                            padding: "0.5rem 0.9rem",
+                            padding: "0.45rem 0.85rem",
                             cursor: "pointer",
+                            boxShadow: active ? "0 2px 8px rgba(229,140,44,0.25)" : "none",
                           }}
                         >
+                          {active ? "✓ " : ""}
                           {ev.tipo_evento === "wedding" ? "💍" : "🎉"} {ev.sposi} · {formatDate(ev.data_evento)}
                         </button>
                       );
                     })
                   )}
                 </div>
-              </>
+              </div>
             )}
           </div>
 
-          {societaView === "evento" && selectedEvent && (
+          {societaView === "evento" && selectedEvent && ripartizioneEvento && (
             <>
               {/* Testata evento */}
               <div style={{ ...cardStyle, borderLeft: "6px solid #e58c2c" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "1rem" }}>
                   <div>
                     <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1.5px", fontWeight: 800, color: "#c2410c" }}>
-                      {selectedEvent.tipo_evento === "wedding" ? "MATRIMONIO" : "EVENTO"}
+                      {selectedEvent.tipo_evento === "wedding" ? "MATRIMONIO" : "EVENTO PRIVATO"}
                     </span>
                     <h2 style={{ margin: "0.3rem 0", color: "#1e1b18", fontSize: "1.5rem" }}>
                       {selectedEvent.tipo_evento === "wedding" ? "💍" : "🎉"} {selectedEvent.sposi} — {selectedEvent.codice}
@@ -755,93 +1193,349 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                       📅 {formatDate(selectedEvent.data_evento)} · {selectedEvent.turno.toLowerCase().includes("cena") ? "🌙" : "☀️"}{" "}
                       {turnoLabelIt(selectedEvent.turno)} · 🏛️ {selectedEvent.formula} · 👥 {selectedEvent.ospiti} ospiti
                     </div>
-                    <span
+                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginTop: "0.5rem", flexWrap: "wrap" }}>
+                      <span
+                        style={{
+                          fontSize: "0.72rem",
+                          fontWeight: 800,
+                          padding: "0.2rem 0.6rem",
+                          borderRadius: "999px",
+                          background: selectedEvent.badgeColor ? `${selectedEvent.badgeColor}22` : "#f0eee9",
+                          color: selectedEvent.badgeColor || "#514d48",
+                          border: `1px solid ${selectedEvent.badgeColor || "#e0ddd9"}`,
+                        }}
+                      >
+                        {selectedEvent.stageLabel}
+                      </span>
+                      {selectedEvent.extra_quote && (
+                        <span
+                          style={{
+                            fontSize: "0.72rem",
+                            fontWeight: 800,
+                            padding: "0.2rem 0.6rem",
+                            borderRadius: "999px",
+                            background: "#fef3c7",
+                            color: "#92400e",
+                            border: "1px solid #fde68a",
+                          }}
+                        >
+                          🌿 Preventivo Extra Attivo ({selectedEvent.extra_quote.items_count} voci)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+                    <a
+                      href={`/admin/preventivi/${selectedEvent.id}/extra`}
                       style={{
-                        display: "inline-block",
-                        marginTop: "0.5rem",
-                        fontSize: "0.72rem",
-                        fontWeight: 800,
-                        padding: "0.2rem 0.6rem",
-                        borderRadius: "999px",
-                        background: selectedEvent.badgeColor ? `${selectedEvent.badgeColor}22` : "#f0eee9",
-                        color: selectedEvent.badgeColor || "#514d48",
-                        border: `1px solid ${selectedEvent.badgeColor || "#e0ddd9"}`,
+                        padding: "0.7rem 1.1rem",
+                        borderRadius: "10px",
+                        background: "#fff",
+                        color: "#92400e",
+                        border: "1.5px solid #f59e0b",
+                        fontWeight: 700,
+                        textDecoration: "none",
+                        fontSize: "0.85rem",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      {selectedEvent.stageLabel}
+                      🌿 Preventivo Parallelo Extra ➔
+                    </a>
+                    <a
+                      href={`/admin/eventi/${selectedEvent.id}`}
+                      style={{
+                        padding: "0.7rem 1.1rem",
+                        borderRadius: "10px",
+                        background: "linear-gradient(135deg, #e58c2c 0%, #d17a22 100%)",
+                        color: "#fff",
+                        fontWeight: 700,
+                        textDecoration: "none",
+                        fontSize: "0.85rem",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Scheda Regia 360° ➔
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* BARRA SINTETICA A 3 GRANDI INDICATORI ECONOMICI (UFFICIALE vs EXTRA vs TOTALE) */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem" }}>
+                {/* 1. Totale Ufficiale */}
+                <div style={{ ...cardStyle, borderLeft: "6px solid #2563eb", background: "#f8fafc" }}>
+                  <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 800, color: "#2563eb" }}>
+                    🏛️ 1. PARTE UFFICIALE (FATTURATA)
+                  </span>
+                  <div style={{ fontSize: "1.35rem", fontWeight: 800, color: "#1e293b", margin: "0.3rem 0 0.8rem" }}>
+                    {formatEuro(ripartizioneEvento.totOffSp / 100)}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.85rem" }}>
+                    <div>
+                      <small style={{ color: "#64748b", display: "block" }}>Incassato Ufficiale</small>
+                      <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneEvento.totOffInc / 100)}</strong>
+                    </div>
+                    <div>
+                      <small style={{ color: "#64748b", display: "block" }}>Residuo Ufficiale</small>
+                      <strong style={{ color: ripartizioneEvento.totOffRes > 0 ? "#2563eb" : "#16a34a" }}>
+                        {formatEuro(ripartizioneEvento.totOffRes / 100)}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Totale Extra */}
+                <div style={{ ...cardStyle, borderLeft: "6px solid #d97706", background: "#fffbeb" }}>
+                  <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 800, color: "#d97706" }}>
+                    🌿 2. PARTE &quot;EXTRA&quot; (CONTANTI & FORNITORI)
+                  </span>
+                  <div style={{ fontSize: "1.35rem", fontWeight: 800, color: "#78350f", margin: "0.3rem 0 0.8rem" }}>
+                    {formatEuro(ripartizioneEvento.totExtSp / 100)}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.85rem" }}>
+                    <div>
+                      <small style={{ color: "#92400e", display: "block" }}>Incassato Contanti</small>
+                      <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneEvento.totExtInc / 100)}</strong>
+                    </div>
+                    <div>
+                      <small style={{ color: "#92400e", display: "block" }}>Residuo Extra</small>
+                      <strong style={{ color: ripartizioneEvento.totExtRes > 0 ? "#d97706" : "#16a34a" }}>
+                        {formatEuro(ripartizioneEvento.totExtRes / 100)}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Totale Generale Evento */}
+                <div style={{ ...cardStyle, borderLeft: "6px solid #e58c2c", background: "#faf8f5" }}>
+                  <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 800, color: "#c2410c" }}>
+                    💎 3. TOTALE GENERALE EVENTO
+                  </span>
+                  <div style={{ fontSize: "1.35rem", fontWeight: 800, color: "#1e1b18", margin: "0.3rem 0 0.8rem" }}>
+                    {formatEuro(ripartizioneEvento.totGlobaleSp / 100)}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.85rem" }}>
+                    <div>
+                      <small style={{ color: "#78716c", display: "block" }}>Incassato Reale Totale</small>
+                      <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneEvento.totGlobaleInc / 100)}</strong>
+                    </div>
+                    <div>
+                      <small style={{ color: "#78716c", display: "block" }}>Residuo Complessivo</small>
+                      <strong style={{ color: ripartizioneEvento.totGlobaleRes > 0 ? "#dc2626" : "#16a34a" }}>
+                        {formatEuro(ripartizioneEvento.totGlobaleRes / 100)}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* CARD DETTAGLIATE DI RIPARTIZIONE SOCIETARIA (SANTO STEFANO vs IOVINO) */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "1.5rem" }}>
+                {/* SANTO STEFANO S.R.L. */}
+                <div style={{ ...cardStyle, borderLeft: "6px solid #ea580c" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
+                    <div>
+                      <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 800, color: "#c2410c" }}>
+                        STRUTTURA & VILLA (IVA 22%)
+                      </span>
+                      <h3 style={{ margin: "0.2rem 0", color: "#1e1b18", fontSize: "1.3rem" }}>
+                        Santo Stefano S.r.l. <small style={{ fontSize: "0.8rem", color: "#8a847c" }}>(Roberto)</small>
+                      </h3>
+                    </div>
+                    <span style={{ fontSize: "1.2rem", fontWeight: 800, color: "#c2410c" }}>
+                      {formatEuro(ripartizioneEvento.ssTotSp / 100)}
                     </span>
                   </div>
-                  <a
-                    href={`/admin/eventi/${selectedEvent.id}`}
-                    style={{
-                      padding: "0.7rem 1.1rem",
-                      borderRadius: "10px",
-                      background: "linear-gradient(135deg, #e58c2c 0%, #d17a22 100%)",
-                      color: "#fff",
-                      fontWeight: 700,
-                      textDecoration: "none",
-                      fontSize: "0.85rem",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    Scheda Regia 360° ➔
-                  </a>
-                </div>
-              </div>
 
-              {/* Card di riepilogo spettanza evento */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "1.5rem" }}>
-                {(["santo_stefano", "iovino"] as const).map((company) => {
-                  const isSs = company === "santo_stefano";
-                  const spettanza = selectedEvent.spettanza[company];
-                  const incassato = selectedEvent.incassato_per[company];
-                  const residuo = selectedEvent.residuo_per[company];
-                  return (
-                    <div key={company} style={{ ...cardStyle, borderLeft: `6px solid ${isSs ? "#ea580c" : "#16a34a"}` }}>
-                      <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 800, color: isSs ? "#c2410c" : "#15803d" }}>
-                        {isSs ? "QUOTA STRUTTURA & VILLA (IVA 22%)" : "QUOTA SOMMINISTRAZIONE (IVA 10%)"}
-                      </span>
-                      <h3 style={{ margin: "0.35rem 0 1rem 0", color: "#1e1b18", fontSize: "1.25rem" }}>{COMPANY_LABELS[company]}</h3>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.8rem" }}>
-                        <div>
-                          <small style={{ display: "block", color: "#8a847c" }}>Spettanza Evento</small>
-                          <strong style={{ fontSize: "1.05rem", color: "#1e1b18" }}>{formatEuro(spettanza / 100)}</strong>
-                        </div>
-                        <div>
-                          <small style={{ display: "block", color: "#8a847c" }}>Incassato Reale</small>
-                          <strong style={{ fontSize: "1.05rem", color: isSs ? "#ea580c" : "#16a34a" }}>{formatEuro(incassato / 100)}</strong>
-                        </div>
-                        <div>
-                          <small style={{ display: "block", color: "#8a847c" }}>Residuo</small>
-                          <strong style={{ fontSize: "1.05rem", color: residuo > 0 ? "#0284c7" : "#16a34a" }}>{formatEuro(residuo / 100)}</strong>
-                        </div>
+                  {/* Sezione A: Quota Ufficiale Santo Stefano */}
+                  <div style={{ padding: "0.85rem", borderRadius: "10px", background: "#f8fafc", border: "1px solid #e2e8f0", marginBottom: "0.75rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", fontWeight: 700, color: "#2563eb", marginBottom: "0.4rem" }}>
+                      <span>🏛️ Quota Ufficiale (Fitto & Servizi Fatturati)</span>
+                      <span>{formatEuro(ripartizioneEvento.ssOffSp / 100)}</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.8rem" }}>
+                      <div>
+                        <span style={{ color: "#64748b" }}>Incassato Bonifico/POS:</span>{" "}
+                        <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneEvento.ssOffInc / 100)}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "#64748b" }}>Residuo Ufficiale:</span>{" "}
+                        <strong style={{ color: ripartizioneEvento.ssOffRes > 0 ? "#2563eb" : "#16a34a" }}>
+                          {formatEuro(ripartizioneEvento.ssOffRes / 100)}
+                        </strong>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+
+                  {/* Sezione B: Quota Extra Santo Stefano */}
+                  <div style={{ padding: "0.85rem", borderRadius: "10px", background: "#fffbeb", border: "1px solid #fde68a", marginBottom: "0.75rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", fontWeight: 700, color: "#92400e", marginBottom: "0.4rem" }}>
+                      <span>🌿 Quota &quot;Extra&quot; (Contanti & Allestimenti)</span>
+                      <span>{formatEuro(ripartizioneEvento.ssExtSp / 100)}</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.8rem" }}>
+                      <div>
+                        <span style={{ color: "#92400e" }}>Incassato Contanti:</span>{" "}
+                        <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneEvento.ssExtInc / 100)}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "#92400e" }}>Residuo Extra:</span>{" "}
+                        <strong style={{ color: ripartizioneEvento.ssExtRes > 0 ? "#d97706" : "#16a34a" }}>
+                          {formatEuro(ripartizioneEvento.ssExtRes / 100)}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Riepilogo Totale Santo Stefano */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "2px solid #f0eee9", paddingTop: "0.6rem", fontSize: "0.9rem" }}>
+                    <span style={{ fontWeight: 800, color: "#1e1b18" }}>Totale Spettanza Santo Stefano:</span>
+                    <strong style={{ fontSize: "1.1rem", color: "#1e1b18" }}>{formatEuro(ripartizioneEvento.ssTotSp / 100)}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "#6a6764", marginTop: "0.2rem" }}>
+                    <span>Incassato Reale Totale: <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneEvento.ssTotInc / 100)}</strong></span>
+                    <span>Residuo Totale: <strong style={{ color: ripartizioneEvento.ssTotRes > 0 ? "#c2410c" : "#16a34a" }}>{formatEuro(ripartizioneEvento.ssTotRes / 100)}</strong></span>
+                  </div>
+                </div>
+
+                {/* IOVINO BANQUETING S.R.L. */}
+                <div style={{ ...cardStyle, borderLeft: "6px solid #16a34a" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
+                    <div>
+                      <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 800, color: "#15803d" }}>
+                        SOMMINISTRAZIONE (IVA 10%)
+                      </span>
+                      <h3 style={{ margin: "0.2rem 0", color: "#1e1b18", fontSize: "1.3rem" }}>
+                        Iovino Banqueting S.r.l. <small style={{ fontSize: "0.8rem", color: "#8a847c" }}>(Rosaria)</small>
+                      </h3>
+                    </div>
+                    <span style={{ fontSize: "1.2rem", fontWeight: 800, color: "#15803d" }}>
+                      {formatEuro(ripartizioneEvento.iovTotSp / 100)}
+                    </span>
+                  </div>
+
+                  {/* Sezione A: Quota Ufficiale Iovino */}
+                  <div style={{ padding: "0.85rem", borderRadius: "10px", background: "#f8fafc", border: "1px solid #e2e8f0", marginBottom: "0.75rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", fontWeight: 700, color: "#2563eb", marginBottom: "0.4rem" }}>
+                      <span>🏛️ Quota Ufficiale (Ristorazione & Somministrazione)</span>
+                      <span>{formatEuro(ripartizioneEvento.iovOffSp / 100)}</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.8rem" }}>
+                      <div>
+                        <span style={{ color: "#64748b" }}>Incassato Bonifico/POS:</span>{" "}
+                        <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneEvento.iovOffInc / 100)}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "#64748b" }}>Residuo Ufficiale:</span>{" "}
+                        <strong style={{ color: ripartizioneEvento.iovOffRes > 0 ? "#2563eb" : "#16a34a" }}>
+                          {formatEuro(ripartizioneEvento.iovOffRes / 100)}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sezione B: Quota Extra Iovino */}
+                  <div style={{ padding: "0.85rem", borderRadius: "10px", background: "#fffbeb", border: "1px solid #fde68a", marginBottom: "0.75rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", fontWeight: 700, color: "#92400e", marginBottom: "0.4rem" }}>
+                      <span>🌿 Quota &quot;Extra&quot; (Contanti & Banqueting Extra)</span>
+                      <span>{formatEuro(ripartizioneEvento.iovExtSp / 100)}</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.8rem" }}>
+                      <div>
+                        <span style={{ color: "#92400e" }}>Incassato Contanti:</span>{" "}
+                        <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneEvento.iovExtInc / 100)}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "#92400e" }}>Residuo Extra:</span>{" "}
+                        <strong style={{ color: ripartizioneEvento.iovExtRes > 0 ? "#d97706" : "#16a34a" }}>
+                          {formatEuro(ripartizioneEvento.iovExtRes / 100)}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Riepilogo Totale Iovino */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "2px solid #f0eee9", paddingTop: "0.6rem", fontSize: "0.9rem" }}>
+                    <span style={{ fontWeight: 800, color: "#1e1b18" }}>Totale Spettanza Iovino Banqueting:</span>
+                    <strong style={{ fontSize: "1.1rem", color: "#1e1b18" }}>{formatEuro(ripartizioneEvento.iovTotSp / 100)}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "#6a6764", marginTop: "0.2rem" }}>
+                    <span>Incassato Reale Totale: <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneEvento.iovTotInc / 100)}</strong></span>
+                    <span>Residuo Totale: <strong style={{ color: ripartizioneEvento.iovTotRes > 0 ? "#15803d" : "#16a34a" }}>{formatEuro(ripartizioneEvento.iovTotRes / 100)}</strong></span>
+                  </div>
+                </div>
               </div>
 
-              {/* Conguaglio evento */}
-              <div style={{ ...cardStyle, background: "linear-gradient(135deg, #1e1b18 0%, #3a342e 100%)", color: "#fff", border: "none", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
-                <div>
-                  <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "2px", color: "#e58c2c", fontWeight: 800 }}>
-                    CONGUAGLIO INTER-SOCIETARIO QUESTO EVENTO
-                  </span>
-                  <h3 style={{ margin: "0.4rem 0 0 0", fontSize: "1.35rem", color: "#fff" }}>
-                    {selectedEvent.conguaglio
-                      ? `${COMPANY_LABELS[selectedEvent.conguaglio.da]} → ${COMPANY_LABELS[selectedEvent.conguaglio.a]}`
-                      : "Incassi allineati: nessun conguaglio dovuto su questo evento"}
-                  </h3>
+              {/* CONGUAGLIO A 3 LIVELLI (UFFICIALE, EXTRA E SALDO NETTO FINALE) */}
+              <div style={{ ...cardStyle, background: "linear-gradient(135deg, #1e1b18 0%, #3a342e 100%)", color: "#fff", border: "none" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginBottom: "1rem", borderBottom: "1px solid rgba(255,255,255,0.12)", paddingBottom: "0.8rem" }}>
+                  <div>
+                    <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "2px", color: "#e58c2c", fontWeight: 800 }}>
+                      QUADRO CONGUAGLI INTER-SOCIETARI QUESTO EVENTO
+                    </span>
+                    <h3 style={{ margin: "0.3rem 0 0 0", fontSize: "1.25rem", color: "#fff" }}>
+                      Allineamento Contabile tra Roberto Sola e Rosaria Iovino
+                    </h3>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <span style={{ fontSize: "0.72rem", color: "#a59d93", textTransform: "uppercase", display: "block" }}>Saldo Netto Finale</span>
+                    <span style={{ fontSize: "1.8rem", fontWeight: 800, color: "#e58c2c" }}>
+                      {ripartizioneEvento.conguaglioNetto ? formatEuro(ripartizioneEvento.conguaglioNetto.importo_cents / 100) : formatEuro(0)}
+                    </span>
+                  </div>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <span style={{ fontSize: "2rem", fontWeight: 800, color: "#e58c2c" }}>
-                    {selectedEvent.conguaglio ? formatEuro(selectedEvent.conguaglio.importo_cents / 100) : formatEuro(0)}
-                  </span>
-                  <small style={{ display: "block", color: "#a59d93" }}>
-                    {selectedEvent.conguaglio
-                      ? `Deve essere versato a ${COMPANY_LABELS[selectedEvent.conguaglio.a]}`
-                      : "Importo di conguaglio"}
-                  </small>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1rem" }}>
+                  {/* Conguaglio Ufficiale */}
+                  <div style={{ padding: "0.9rem", borderRadius: "10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                    <span style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "1px", color: "#93c5fd", fontWeight: 800, display: "block" }}>
+                      🏛️ 1. Conguaglio Canale Ufficiale
+                    </span>
+                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff", margin: "0.3rem 0" }}>
+                      {ripartizioneEvento.conguaglioUfficiale
+                        ? `${COMPANY_LABELS[ripartizioneEvento.conguaglioUfficiale.da]} → ${COMPANY_LABELS[ripartizioneEvento.conguaglioUfficiale.a]}`
+                        : "Incassi ufficiali allineati"}
+                    </div>
+                    <small style={{ color: "#94a3b8" }}>
+                      {ripartizioneEvento.conguaglioUfficiale
+                        ? `Bonifico bancario dovuto: ${formatEuro(ripartizioneEvento.conguaglioUfficiale.importo_cents / 100)}`
+                        : "Nessun bonifico inter-societario necessario"}
+                    </small>
+                  </div>
+
+                  {/* Conguaglio Extra */}
+                  <div style={{ padding: "0.9rem", borderRadius: "10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                    <span style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "1px", color: "#fcd34d", fontWeight: 800, display: "block" }}>
+                      🌿 2. Conguaglio Canale Extra
+                    </span>
+                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff", margin: "0.3rem 0" }}>
+                      {ripartizioneEvento.conguaglioExtra
+                        ? `${COMPANY_LABELS[ripartizioneEvento.conguaglioExtra.da]} → ${COMPANY_LABELS[ripartizioneEvento.conguaglioExtra.a]}`
+                        : "Incassi contanti allineati"}
+                    </div>
+                    <small style={{ color: "#94a3b8" }}>
+                      {ripartizioneEvento.conguaglioExtra
+                        ? `Compensazione contanti: ${formatEuro(ripartizioneEvento.conguaglioExtra.importo_cents / 100)}`
+                        : "Cassa contanti pareggiata"}
+                    </small>
+                  </div>
+
+                  {/* Risoluzione Netta */}
+                  <div style={{ padding: "0.9rem", borderRadius: "10px", background: "rgba(229,140,44,0.12)", border: "1px solid rgba(229,140,44,0.3)" }}>
+                    <span style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "1px", color: "#f6c177", fontWeight: 800, display: "block" }}>
+                      ⚖️ 3. Risoluzione Netta Combinata
+                    </span>
+                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff", margin: "0.3rem 0" }}>
+                      {ripartizioneEvento.conguaglioNetto
+                        ? `${COMPANY_LABELS[ripartizioneEvento.conguaglioNetto.da]} versa a ${COMPANY_LABELS[ripartizioneEvento.conguaglioNetto.a]}`
+                        : "Conti perfettamente pareggiati"}
+                    </div>
+                    <small style={{ color: "#f6c177" }}>
+                      {ripartizioneEvento.conguaglioNetto
+                        ? `Importo netto a saldo: ${formatEuro(ripartizioneEvento.conguaglioNetto.importo_cents / 100)}`
+                        : "Nessun passaggio economico dovuto"}
+                    </small>
+                  </div>
                 </div>
               </div>
 
@@ -1066,59 +1760,284 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
             </div>
           )}
 
-          {societaView === "globale" && (
+          {societaView === "globale" && ripartizioneGlobale && (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: "1.5rem" }}>
-                {(["santo_stefano", "iovino"] as const).map((company) => {
-                  const data = summary[company];
-                  const isSs = company === "santo_stefano";
-                  return (
-                    <div key={company} style={{ ...cardStyle, borderLeft: `6px solid ${isSs ? "#ea580c" : "#16a34a"}` }}>
-                      <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 800, color: isSs ? "#c2410c" : "#15803d" }}>
-                        {isSs ? "QUOTA STRUTTURA & VILLA (IVA 22%)" : "QUOTA SOMMINISTRAZIONE (IVA 10%)"}
-                      </span>
-                      <h3 style={{ margin: "0.35rem 0 1rem 0", color: "#1e1b18", fontSize: "1.25rem" }}>{COMPANY_LABELS[company]}</h3>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.8rem" }}>
-                        <div>
-                          <small style={{ display: "block", color: "#8a847c" }}>Spettanza Totale</small>
-                          <strong style={{ fontSize: "1.05rem", color: "#1e1b18" }}>{formatEuro(data.spettanza_cents / 100)}</strong>
-                        </div>
-                        <div>
-                          <small style={{ display: "block", color: "#8a847c" }}>Incassato Reale</small>
-                          <strong style={{ fontSize: "1.05rem", color: isSs ? "#ea580c" : "#16a34a" }}>{formatEuro(data.incassato_cents / 100)}</strong>
-                        </div>
-                        <div>
-                          <small style={{ display: "block", color: "#8a847c" }}>Residuo</small>
-                          <strong style={{ fontSize: "1.05rem", color: data.residuo_cents > 0 ? "#0284c7" : "#16a34a" }}>
-                            {formatEuro(data.residuo_cents / 100)}
-                          </strong>
-                        </div>
-                      </div>
+              {/* BARRA SINTETICA A 3 GRANDI INDICATORI ECONOMICI AZIENDALI */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem" }}>
+                {/* 1. Totale Ufficiale Aziendale */}
+                <div style={{ ...cardStyle, borderLeft: "6px solid #2563eb", background: "#f8fafc" }}>
+                  <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 800, color: "#2563eb" }}>
+                    🏛️ 1. TOTALE UFFICIALE AZIENDALE (FATTURATO)
+                  </span>
+                  <div style={{ fontSize: "1.35rem", fontWeight: 800, color: "#1e293b", margin: "0.3rem 0 0.8rem" }}>
+                    {formatEuro(ripartizioneGlobale.totOffSp / 100)}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.85rem" }}>
+                    <div>
+                      <small style={{ color: "#64748b", display: "block" }}>Incassato Ufficiale</small>
+                      <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneGlobale.totOffInc / 100)}</strong>
                     </div>
-                  );
-                })}
+                    <div>
+                      <small style={{ color: "#64748b", display: "block" }}>Residuo Ufficiale</small>
+                      <strong style={{ color: ripartizioneGlobale.totOffRes > 0 ? "#2563eb" : "#16a34a" }}>
+                        {formatEuro(ripartizioneGlobale.totOffRes / 100)}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Totale Extra Aziendale */}
+                <div style={{ ...cardStyle, borderLeft: "6px solid #d97706", background: "#fffbeb" }}>
+                  <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 800, color: "#d97706" }}>
+                    🌿 2. TOTALE &quot;EXTRA&quot; AZIENDALE (CONTANTI)
+                  </span>
+                  <div style={{ fontSize: "1.35rem", fontWeight: 800, color: "#78350f", margin: "0.3rem 0 0.8rem" }}>
+                    {formatEuro(ripartizioneGlobale.totExtSp / 100)}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.85rem" }}>
+                    <div>
+                      <small style={{ color: "#92400e", display: "block" }}>Incassato Contanti</small>
+                      <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneGlobale.totExtInc / 100)}</strong>
+                    </div>
+                    <div>
+                      <small style={{ color: "#92400e", display: "block" }}>Residuo Extra</small>
+                      <strong style={{ color: ripartizioneGlobale.totExtRes > 0 ? "#d97706" : "#16a34a" }}>
+                        {formatEuro(ripartizioneGlobale.totExtRes / 100)}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Totale Generale Aziendale */}
+                <div style={{ ...cardStyle, borderLeft: "6px solid #e58c2c", background: "#faf8f5" }}>
+                  <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 800, color: "#c2410c" }}>
+                    💎 3. VOLUME D&apos;AFFARI CONSOLIDATO
+                  </span>
+                  <div style={{ fontSize: "1.35rem", fontWeight: 800, color: "#1e1b18", margin: "0.3rem 0 0.8rem" }}>
+                    {formatEuro(ripartizioneGlobale.totGlobaleSp / 100)}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.85rem" }}>
+                    <div>
+                      <small style={{ color: "#78716c", display: "block" }}>Incassi Totali Reali</small>
+                      <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneGlobale.totGlobaleInc / 100)}</strong>
+                    </div>
+                    <div>
+                      <small style={{ color: "#78716c", display: "block" }}>Residuo Globale</small>
+                      <strong style={{ color: ripartizioneGlobale.totGlobaleRes > 0 ? "#dc2626" : "#16a34a" }}>
+                        {formatEuro(ripartizioneGlobale.totGlobaleRes / 100)}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* Conguaglio globale */}
-              <div style={{ ...cardStyle, background: "linear-gradient(135deg, #1e1b18 0%, #3a342e 100%)", color: "#fff", border: "none", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
-                <div>
-                  <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "2px", color: "#e58c2c", fontWeight: 800 }}>
-                    CONGUAGLIO INTER-SOCIETARIO COMPLESSIVO
-                  </span>
-                  <h3 style={{ margin: "0.4rem 0 0 0", fontSize: "1.4rem", color: "#fff" }}>
-                    {summary.conguaglio
-                      ? `${COMPANY_LABELS[summary.conguaglio.da]} → ${COMPANY_LABELS[summary.conguaglio.a]}`
-                      : "Nessun conguaglio dovuto: incassi allineati alle spettanze"}
-                  </h3>
-                  {summary.eccedenza_cents > 0 && (
-                    <small style={{ color: "#f6c177" }}>Eccedenza incassata rispetto al concordato: {formatEuro(summary.eccedenza_cents / 100)}</small>
-                  )}
+              {/* CARD DETTAGLIATE GLOBALI (SANTO STEFANO vs IOVINO) */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: "1.5rem" }}>
+                {/* SANTO STEFANO S.R.L. */}
+                <div style={{ ...cardStyle, borderLeft: "6px solid #ea580c" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
+                    <div>
+                      <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 800, color: "#c2410c" }}>
+                        QUOTA STRUTTURA & VILLA (IVA 22%)
+                      </span>
+                      <h3 style={{ margin: "0.2rem 0", color: "#1e1b18", fontSize: "1.3rem" }}>
+                        Santo Stefano S.r.l. <small style={{ fontSize: "0.8rem", color: "#8a847c" }}>(Roberto Sola)</small>
+                      </h3>
+                    </div>
+                    <span style={{ fontSize: "1.2rem", fontWeight: 800, color: "#c2410c" }}>
+                      {formatEuro(ripartizioneGlobale.ssTotSp / 100)}
+                    </span>
+                  </div>
+
+                  {/* Sezione A: Quota Ufficiale Santo Stefano */}
+                  <div style={{ padding: "0.85rem", borderRadius: "10px", background: "#f8fafc", border: "1px solid #e2e8f0", marginBottom: "0.75rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", fontWeight: 700, color: "#2563eb", marginBottom: "0.4rem" }}>
+                      <span>🏛️ Quota Ufficiale Complessiva</span>
+                      <span>{formatEuro(ripartizioneGlobale.ssOffSp / 100)}</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.8rem" }}>
+                      <div>
+                        <span style={{ color: "#64748b" }}>Incassato Bonifico/POS:</span>{" "}
+                        <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneGlobale.ssOffInc / 100)}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "#64748b" }}>Residuo Ufficiale:</span>{" "}
+                        <strong style={{ color: ripartizioneGlobale.ssOffRes > 0 ? "#2563eb" : "#16a34a" }}>
+                          {formatEuro(ripartizioneGlobale.ssOffRes / 100)}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sezione B: Quota Extra Santo Stefano */}
+                  <div style={{ padding: "0.85rem", borderRadius: "10px", background: "#fffbeb", border: "1px solid #fde68a", marginBottom: "0.75rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", fontWeight: 700, color: "#92400e", marginBottom: "0.4rem" }}>
+                      <span>🌿 Quota &quot;Extra&quot; Complessiva (Contanti)</span>
+                      <span>{formatEuro(ripartizioneGlobale.ssExtSp / 100)}</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.8rem" }}>
+                      <div>
+                        <span style={{ color: "#92400e" }}>Incassato Contanti:</span>{" "}
+                        <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneGlobale.ssExtInc / 100)}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "#92400e" }}>Residuo Extra:</span>{" "}
+                        <strong style={{ color: ripartizioneGlobale.ssExtRes > 0 ? "#d97706" : "#16a34a" }}>
+                          {formatEuro(ripartizioneGlobale.ssExtRes / 100)}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Riepilogo Totale Santo Stefano */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "2px solid #f0eee9", paddingTop: "0.6rem", fontSize: "0.9rem" }}>
+                    <span style={{ fontWeight: 800, color: "#1e1b18" }}>Totale Spettanza Santo Stefano:</span>
+                    <strong style={{ fontSize: "1.1rem", color: "#1e1b18" }}>{formatEuro(ripartizioneGlobale.ssTotSp / 100)}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "#6a6764", marginTop: "0.2rem" }}>
+                    <span>Incassato Reale Totale: <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneGlobale.ssTotInc / 100)}</strong></span>
+                    <span>Residuo Totale: <strong style={{ color: ripartizioneGlobale.ssTotRes > 0 ? "#c2410c" : "#16a34a" }}>{formatEuro(ripartizioneGlobale.ssTotRes / 100)}</strong></span>
+                  </div>
                 </div>
-                <div style={{ textAlign: "right" }}>
-                  <span style={{ fontSize: "2rem", fontWeight: 800, color: "#e58c2c" }}>
-                    {summary.conguaglio ? formatEuro(summary.conguaglio.importo_cents / 100) : formatEuro(0)}
-                  </span>
-                  <small style={{ display: "block", color: "#a59d93" }}>Importo di conguaglio tra Roberto e Rosaria</small>
+
+                {/* IOVINO BANQUETING S.R.L. */}
+                <div style={{ ...cardStyle, borderLeft: "6px solid #16a34a" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
+                    <div>
+                      <span style={{ fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 800, color: "#15803d" }}>
+                        QUOTA SOMMINISTRAZIONE (IVA 10%)
+                      </span>
+                      <h3 style={{ margin: "0.2rem 0", color: "#1e1b18", fontSize: "1.3rem" }}>
+                        Iovino Banqueting S.r.l. <small style={{ fontSize: "0.8rem", color: "#8a847c" }}>(Rosaria Iovino)</small>
+                      </h3>
+                    </div>
+                    <span style={{ fontSize: "1.2rem", fontWeight: 800, color: "#15803d" }}>
+                      {formatEuro(ripartizioneGlobale.iovTotSp / 100)}
+                    </span>
+                  </div>
+
+                  {/* Sezione A: Quota Ufficiale Iovino */}
+                  <div style={{ padding: "0.85rem", borderRadius: "10px", background: "#f8fafc", border: "1px solid #e2e8f0", marginBottom: "0.75rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", fontWeight: 700, color: "#2563eb", marginBottom: "0.4rem" }}>
+                      <span>🏛️ Quota Ufficiale Complessiva</span>
+                      <span>{formatEuro(ripartizioneGlobale.iovOffSp / 100)}</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.8rem" }}>
+                      <div>
+                        <span style={{ color: "#64748b" }}>Incassato Bonifico/POS:</span>{" "}
+                        <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneGlobale.iovOffInc / 100)}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "#64748b" }}>Residuo Ufficiale:</span>{" "}
+                        <strong style={{ color: ripartizioneGlobale.iovOffRes > 0 ? "#2563eb" : "#16a34a" }}>
+                          {formatEuro(ripartizioneGlobale.iovOffRes / 100)}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sezione B: Quota Extra Iovino */}
+                  <div style={{ padding: "0.85rem", borderRadius: "10px", background: "#fffbeb", border: "1px solid #fde68a", marginBottom: "0.75rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", fontWeight: 700, color: "#92400e", marginBottom: "0.4rem" }}>
+                      <span>🌿 Quota &quot;Extra&quot; Complessiva (Contanti)</span>
+                      <span>{formatEuro(ripartizioneGlobale.iovExtSp / 100)}</span>
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.8rem" }}>
+                      <div>
+                        <span style={{ color: "#92400e" }}>Incassato Contanti:</span>{" "}
+                        <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneGlobale.iovExtInc / 100)}</strong>
+                      </div>
+                      <div>
+                        <span style={{ color: "#92400e" }}>Residuo Extra:</span>{" "}
+                        <strong style={{ color: ripartizioneGlobale.iovExtRes > 0 ? "#d97706" : "#16a34a" }}>
+                          {formatEuro(ripartizioneGlobale.iovExtRes / 100)}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Riepilogo Totale Iovino */}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "2px solid #f0eee9", paddingTop: "0.6rem", fontSize: "0.9rem" }}>
+                    <span style={{ fontWeight: 800, color: "#1e1b18" }}>Totale Spettanza Iovino Banqueting:</span>
+                    <strong style={{ fontSize: "1.1rem", color: "#1e1b18" }}>{formatEuro(ripartizioneGlobale.iovTotSp / 100)}</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.82rem", color: "#6a6764", marginTop: "0.2rem" }}>
+                    <span>Incassato Reale Totale: <strong style={{ color: "#16a34a" }}>{formatEuro(ripartizioneGlobale.iovTotInc / 100)}</strong></span>
+                    <span>Residuo Totale: <strong style={{ color: ripartizioneGlobale.iovTotRes > 0 ? "#15803d" : "#16a34a" }}>{formatEuro(ripartizioneGlobale.iovTotRes / 100)}</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              {/* CONGUAGLIO GLOBALE A 3 LIVELLI */}
+              <div style={{ ...cardStyle, background: "linear-gradient(135deg, #1e1b18 0%, #3a342e 100%)", color: "#fff", border: "none" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem", marginBottom: "1rem", borderBottom: "1px solid rgba(255,255,255,0.12)", paddingBottom: "0.8rem" }}>
+                  <div>
+                    <span style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "2px", color: "#e58c2c", fontWeight: 800 }}>
+                      CONGUAGLIO INTER-SOCIETARIO AZIENDALE CONSOLIDATO
+                    </span>
+                    <h3 style={{ margin: "0.3rem 0 0 0", fontSize: "1.35rem", color: "#fff" }}>
+                      Compensazione Economica Complessiva tra Roberto Sola e Rosaria Iovino
+                    </h3>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <span style={{ fontSize: "0.72rem", color: "#a59d93", textTransform: "uppercase", display: "block" }}>Saldo Netto Globale</span>
+                    <span style={{ fontSize: "1.9rem", fontWeight: 800, color: "#e58c2c" }}>
+                      {ripartizioneGlobale.conguaglioNetto ? formatEuro(ripartizioneGlobale.conguaglioNetto.importo_cents / 100) : formatEuro(0)}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1rem" }}>
+                  {/* Conguaglio Ufficiale Globale */}
+                  <div style={{ padding: "0.9rem", borderRadius: "10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                    <span style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "1px", color: "#93c5fd", fontWeight: 800, display: "block" }}>
+                      🏛️ 1. Bonifici Ufficiali tra Società
+                    </span>
+                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff", margin: "0.3rem 0" }}>
+                      {ripartizioneGlobale.conguaglioUfficiale
+                        ? `${COMPANY_LABELS[ripartizioneGlobale.conguaglioUfficiale.da]} → ${COMPANY_LABELS[ripartizioneGlobale.conguaglioUfficiale.a]}`
+                        : "Incassi ufficiali allineati alle spettanze"}
+                    </div>
+                    <small style={{ color: "#94a3b8" }}>
+                      {ripartizioneGlobale.conguaglioUfficiale
+                        ? `Bonifico inter-societario dovuto: ${formatEuro(ripartizioneGlobale.conguaglioUfficiale.importo_cents / 100)}`
+                        : "Nessun bonifico dovuto tra i conti societari"}
+                    </small>
+                  </div>
+
+                  {/* Conguaglio Extra Globale */}
+                  <div style={{ padding: "0.9rem", borderRadius: "10px", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                    <span style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "1px", color: "#fcd34d", fontWeight: 800, display: "block" }}>
+                      🌿 2. Cassa Extra (Contanti)
+                    </span>
+                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff", margin: "0.3rem 0" }}>
+                      {ripartizioneGlobale.conguaglioExtra
+                        ? `${COMPANY_LABELS[ripartizioneGlobale.conguaglioExtra.da]} → ${COMPANY_LABELS[ripartizioneGlobale.conguaglioExtra.a]}`
+                        : "Cassa contanti pareggiata"}
+                    </div>
+                    <small style={{ color: "#94a3b8" }}>
+                      {ripartizioneGlobale.conguaglioExtra
+                        ? `Compensazione contanti dovuta: ${formatEuro(ripartizioneGlobale.conguaglioExtra.importo_cents / 100)}`
+                        : "Incassi contanti allineati"}
+                    </small>
+                  </div>
+
+                  {/* Saldo Netto Globale */}
+                  <div style={{ padding: "0.9rem", borderRadius: "10px", background: "rgba(229,140,44,0.12)", border: "1px solid rgba(229,140,44,0.3)" }}>
+                    <span style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "1px", color: "#f6c177", fontWeight: 800, display: "block" }}>
+                      ⚖️ 3. Risoluzione Netta Complessiva
+                    </span>
+                    <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#fff", margin: "0.3rem 0" }}>
+                      {ripartizioneGlobale.conguaglioNetto
+                        ? `${COMPANY_LABELS[ripartizioneGlobale.conguaglioNetto.da]} versa a ${COMPANY_LABELS[ripartizioneGlobale.conguaglioNetto.a]}`
+                        : "Conti aziendali perfettamente bilanciati"}
+                    </div>
+                    <small style={{ color: "#f6c177" }}>
+                      {ripartizioneGlobale.conguaglioNetto
+                        ? `Saldo netto complessivo: ${formatEuro(ripartizioneGlobale.conguaglioNetto.importo_cents / 100)}`
+                        : "Nessun passaggio economico netto dovuto"}
+                    </small>
+                  </div>
                 </div>
               </div>
 

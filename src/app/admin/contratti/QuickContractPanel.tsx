@@ -275,8 +275,8 @@ export default function QuickContractPanel() {
       searchParams.get("email") ||
       searchParams.get("data")
   );
-  // Se arriva da un appuntamento precompilato parte aperto, altrimenti parte chiuso di default.
-  const [isOpen, setIsOpen] = useState(hasPrefilledParams);
+  // Di default parte sempre chiuso. Si apre solo al click di "Crea Nuovo Contratto".
+  const [isOpen, setIsOpen] = useState(false);
 
   const parsedSposi = useMemo(() => {
     return parseSposiParams(
@@ -333,7 +333,7 @@ export default function QuickContractPanel() {
     const draft = readDraft();
     if (draft) {
       setRecoveredDraft(draft);
-      setIsOpen(true);
+      // Non forziamo l'apertura automatica: il form resta chiuso di default finché l'utente non clicca.
     }
   }, [hasPrefilledParams]);
 

@@ -160,6 +160,21 @@ export default async function CassaPage({
 
     const items = buildEventItems(q, String(q.id || ""));
 
+    const eq = (store.extra_quotes || []).find((e: any) => {
+      const qid = String(e?.quote_id || "").toLowerCase();
+      const currentId = String(q.id || "").toLowerCase();
+      return qid === currentId || currentId.startsWith(qid) || qid.startsWith(currentId);
+    });
+
+    const extra_quote = eq
+      ? {
+          totale: Number(eq.totale || 0),
+          totale_santo_stefano: Number(eq.totale_santo_stefano || 0),
+          totale_iovino: Number(eq.totale_iovino || 0),
+          items_count: Array.isArray(eq.items) ? eq.items.length : 0,
+        }
+      : null;
+
     eventi.push({
       id: String(q.id || ""),
       codice: `TDA-${String(q.id || "").slice(0, 8).toUpperCase()}`,
@@ -184,6 +199,7 @@ export default async function CassaPage({
         : null,
       rate,
       items,
+      extra_quote,
     });
   }
 
