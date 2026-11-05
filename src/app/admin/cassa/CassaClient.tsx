@@ -256,6 +256,30 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
   const [incNote, setIncNote] = useState("");
   const [incError, setIncError] = useState("");
   const [incPending, startIncasso] = useTransition();
+  const [sollecitoTarget, setSollecitoTarget] = useState<{
+    sposi: string;
+    telefono: string;
+    rataLabel: string;
+    scadenza: string;
+    residuo: number;
+  } | null>(null);
+  const [sollecitoTesto, setSollecitoTesto] = useState("");
+
+  const openSollecito = (evento: any, rata: any) => {
+    const rawTel = String(evento.telefono || "").replace(/[^0-9]/g, "");
+    const tel = rawTel || "393331234567";
+    const residuo = Math.max(0, rata.importo_cents - rata.coperto_cents);
+    const nome = evento.sposi ? evento.sposi.split(" ")[0] : "Gentile Cliente";
+    const msg = `Ciao ${nome}, sono Roberto de La Terra degli Aranci. Ti contatto con discrezione in merito alla rata di ${rata.label} (${formatEuro(residuo / 100)}) con scadenza ${formatDate(rata.scadenza)}. Quando hai modo, ci possiamo sentire per verificare l'accredito? Un caro saluto, Roberto Sola`;
+    setSollecitoTarget({
+      sposi: evento.sposi,
+      telefono: tel,
+      rataLabel: rata.label,
+      scadenza: rata.scadenza,
+      residuo,
+    });
+    setSollecitoTesto(msg);
+  };
 
   const openIncasso = () => {
     setIncError("");
@@ -581,20 +605,46 @@ export default function CassaClient({ initialTab, eventi, payments, summary, eve
                       </td>
                       <td style={{ padding: "0.85rem 0.6rem", textAlign: "right", whiteSpace: "nowrap" }}>{formatEuro(rata.importo_cents / 100)}</td>
                       <td style={{ padding: "0.85rem 0.6rem", textAlign: "right", fontWeight: 700, whiteSpace: "nowrap" }}>{formatEuro(residuo / 100)}</td>
-                      <td style={{ padding: "0.85rem 0.6rem" }}>
-                        {rata.in_ritardo ? (
-                          <span style={{ fontSize: "0.72rem", fontWeight: 800, padding: "0.2rem 0.5rem", borderRadius: "999px", background: "#fee2e2", color: "#b91c1c" }}>
-                            Scaduta
-                          </span>
-                        ) : rata.stato === "parziale" ? (
-                          <span style={{ fontSize: "0.72rem", fontWeight: 700, padding: "0.2rem 0.5rem", borderRadius: "999px", background: "#fff7ed", color: "#c2410c" }}>
-                            Parziale
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: "0.72rem", fontWeight: 700, padding: "0.2rem 0.5rem", borderRadius: "999px", background: "#eff6ff", color: "#1d4ed8" }}>
-                            Da pagare
-                          </span>
-                        )}
+                      <td style={{ padding: "0.85rem 0.6rem", whiteSpace: "nowrap" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          {rata.in_ritardo ? (
+                            <span style={{ fontSize: "0.72rem", fontWeight: 800, padding: "0.2rem 0.5rem", borderRadius: "999px", background: "#fee2e2", color: "#b91c1c" }}>
+                              Scaduta
+                            </span>
+                          ) : rata.stato === "parziale" ? (
+                            <span style={{ fontSize: "0.72rem", fontWeight: 700, padding: "0.2rem 0.5rem", borderRadius: "999px", background: "#fff7ed", color: "#c2410c" }}>
+                              Parziale
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: "0.72rem", fontWeight: 700, padding: "0.2rem 0.5rem", borderRadius: "999px", background: "#f0fdf4", color: "#15803d" }}>
+                              In scadenza
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openSollecito(evento, rata);
+                            }}
+                            title="Invia sollecito WhatsApp con testo modificabile"
+                            style={{
+                              background: "#25D366",
+                              color: "#fff",
+                              border: "none",
+                              borderRadius: "6px",
+                              padding: "0.25rem 0.6rem",
+                              fontSize: "0.75rem",
+                              fontWeight: 700,
+                              cursor: "pointer",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "0.25rem",
+                              boxShadow: "0 2px 4px rgba(37,211,102,0.25)",
+                            }}
+                          >
+                            💬 WhatsApp
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
