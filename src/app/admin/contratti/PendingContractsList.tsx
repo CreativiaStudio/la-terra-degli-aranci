@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
 import type { PendingContractLocal } from "@/lib/localDb";
 import { isoToItalian } from "@/lib/dateInput";
-import { deletePendingContractAction } from "./pendingActions";
+import { deletePendingContractAction, countersignContractAction } from "./pendingActions";
 
 const AMBER = "#e58c2c";
 const ANTHRACITE = "#1e1b18";
@@ -82,6 +82,59 @@ export default function PendingContractsList({ initialContracts }: PendingContra
   const [contracts, setContracts] = useState<PendingContractLocal[]>(initialContracts);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [countersigningTarget, setCountersigningTarget] = useState<PendingContractLocal | null>(null);
+  const [editNome, setEditNome] = useState("");
+  const [editCognome, setEditCognome] = useState("");
+  const [editTelefono, setEditTelefono] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPartnerNome, setEditPartnerNome] = useState("");
+  const [editPartnerCognome, setEditPartnerCognome] = useState("");
+  const [editCodiceFiscale, setEditCodiceFiscale] = useState("");
+  const [editResidenza, setEditResidenza] = useState("");
+  const [isCountersigning, setIsCountersigning] = useState(false);
+
+  const openCountersignModal = (contract: PendingContractLocal) => {
+    const d = contract.clientSignData || {};
+    const c = contract.cliente || {};
+    setCountersigningTarget(contract);
+    setEditNome(d.nome || c.nome || "");
+    setEditCognome(d.cognome || c.cognome || "");
+    setEditTelefono(d.telefono || c.telefono || "");
+    setEditEmail(d.email || c.email || "");
+    setEditPartnerNome(d.sposera_nome || c.sposera_nome || d.partnerNome || "");
+    setEditPartnerCognome(d.sposera_cognome || c.sposera_cognome || d.partnerCognome || "");
+    setEditCodiceFiscale(d.codice_fiscale || c.codice_fiscale || "");
+    setEditResidenza(d.citta_di_residenza || d.residenza || c.citta_di_residenza || "");
+  };
+
+  const handleConfirmCountersign = async () => {
+    if (!countersigningTarget) return;
+    setIsCountersigning(true);
+    try {
+      const res = await countersignContractAction(countersigningTarget.quoteId, {
+        nome: editNome.trim(),
+        cognome: editCognome.trim(),
+        telefono: editTelefono.trim(),
+        email: editEmail.trim(),
+        partnerNome: editPartnerNome.trim(),
+        partnerCognome: editPartnerCognome.trim(),
+        codiceFiscale: editCodiceFiscale.trim(),
+        residenza: editResidenza.trim(),
+      });
+      if (res?.success) {
+        setContracts((prev) => prev.filter((c) => c.quoteId !== countersigningTarget.quoteId));
+        setCountersigningTarget(null);
+        router.refresh();
+      } else {
+        window.alert(res?.error || "Impossibile completare la controfirma. Riprova.");
+      }
+    } catch (err) {
+      console.error("Errore controfirma:", err);
+      window.alert("Errore durante la controfirma. Riprova tra qualche istante.");
+    } finally {
+      setIsCountersigning(false);
+    }
+  };
 
   useEffect(() => {
     setContracts(initialContracts);
@@ -217,7 +270,12 @@ export default function PendingContractsList({ initialContracts }: PendingContra
             let statusBorder = "#bbf7d0";
             let statusText = "";
 
-            if (contract.scaduta) {
+            if (contract.isAwaitingCountersign) {
+              statusBg = "#fffbeb";
+              statusColor = "#92400e";
+              statusBorder = "#f59e0b";
+              statusText = "✍️ FIRMATO DAL CLIENTE · In attesa di controfirma Roberto Sola";
+            } else if (contract.scaduta) {
               statusBg = "#fef2f2";
               statusColor = "#b91c1c";
               statusBorder = "#fecaca";
@@ -361,18 +419,35 @@ export default function PendingContractsList({ initialContracts }: PendingContra
                     paddingTop: "1rem",
                   }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(contract)}
-                    style={{
-                      ...actionButton,
-                      background: isCopied ? "#f0fdf4" : "#ffffff",
-                      borderColor: isCopied ? "#bbf7d0" : BORDER,
-                      color: isCopied ? "#15803d" : ANTHRACITE,
-                    }}
-                  >
-                    {isCopied ? "Copiato! ✓" : "📋 Copia Link"}
-                  </button>
+                  {contract.isAwaitingCountersign ? (
+                    <button
+                      type="button"
+                      onClick={() => openCountersignModal(contract)}
+                      style={{
+                        ...actionButton,
+                        background: "linear-gradient(135deg, #e58c2c 0%, #d17a22 100%)",
+                        color: "#ffffff",
+                        borderColor: "transparent",
+                        fontWeight: 800,
+                        boxShadow: "0 6px 16px rgba(229,140,44,0.35)",
+                      }}
+                    >
+                      ✍️ Controfirma Roberto Sola
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(contract)}
+                      style={{
+                        ...actionButton,
+                        background: isCopied ? "#f0fdf4" : "#ffffff",
+                        borderColor: isCopied ? "#bbf7d0" : BORDER,
+                        color: isCopied ? "#15803d" : ANTHRACITE,
+                      }}
+                    >
+                      {isCopied ? "Copiato! ✓" : "📋 Copia Link"}
+                    </button>
+                  )}
 
                   <a
                     href={
@@ -417,6 +492,229 @@ export default function PendingContractsList({ initialContracts }: PendingContra
           })}
         </div>
       )}
+
+      {countersigningTarget && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(30,27,24,0.6)",
+            backdropFilter: "blur(4px)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+          }}
+        >
+          <div
+            style={{
+              background: "#ffffff",
+              borderRadius: "18px",
+              width: "100%",
+              maxWidth: "680px",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
+              border: `2px solid ${AMBER}`,
+            }}
+          >
+            <header
+              style={{
+                background: "linear-gradient(135deg, #1e1b18 0%, #2e2924 100%)",
+                color: "#ffffff",
+                padding: "1.4rem 1.6rem",
+                borderBottom: "3px solid #c9a24b",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: "0.72rem", color: "#c9a24b", textTransform: "uppercase", letterSpacing: "0.14em", fontWeight: 700 }}>
+                  Perfezionamento Scrittura Privata
+                </div>
+                <h3 style={{ margin: "0.2rem 0 0 0", fontSize: "1.3rem", fontWeight: 600 }}>
+                  ✍️ Controfirma Direzione (Roberto Sola)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCountersigningTarget(null)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#ffffff",
+                  fontSize: "1.4rem",
+                  cursor: "pointer",
+                }}
+              >
+                ✕
+              </button>
+            </header>
+
+            <div style={{ padding: "1.6rem", display: "grid", gap: "1.2rem" }}>
+              <div
+                style={{
+                  background: "#fffbeb",
+                  border: "1px solid #fde68a",
+                  borderRadius: "12px",
+                  padding: "0.9rem 1.1rem",
+                  fontSize: "0.88rem",
+                  color: "#92400e",
+                }}
+              >
+                💡 <strong>Verifica in-place:</strong> Il cliente ha compilato e inviato il contratto. Controlla i dati anagrafici qui sotto e apporta eventuali correzioni ai refusi prima di apporre la controfirma definitiva.
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div>
+                  <label style={{ ...label, display: "block" }}>Nome Cliente</label>
+                  <input
+                    type="text"
+                    value={editNome}
+                    onChange={(e) => setEditNome(e.target.value)}
+                    style={{ width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: `1px solid ${BORDER}`, fontFamily: "inherit" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ ...label, display: "block" }}>Cognome Cliente</label>
+                  <input
+                    type="text"
+                    value={editCognome}
+                    onChange={(e) => setEditCognome(e.target.value)}
+                    style={{ width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: `1px solid ${BORDER}`, fontFamily: "inherit" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ ...label, display: "block" }}>Telefono</label>
+                  <input
+                    type="text"
+                    value={editTelefono}
+                    onChange={(e) => setEditTelefono(e.target.value)}
+                    style={{ width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: `1px solid ${BORDER}`, fontFamily: "inherit" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ ...label, display: "block" }}>Email</label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    style={{ width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: `1px solid ${BORDER}`, fontFamily: "inherit" }}
+                  />
+                </div>
+                {countersigningTarget.tipoEvento === "wedding" && (
+                  <>
+                    <div>
+                      <label style={{ ...label, display: "block" }}>Nome Partner (Sposo/a)</label>
+                      <input
+                        type="text"
+                        value={editPartnerNome}
+                        onChange={(e) => setEditPartnerNome(e.target.value)}
+                        style={{ width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: `1px solid ${BORDER}`, fontFamily: "inherit" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ ...label, display: "block" }}>Cognome Partner</label>
+                      <input
+                        type="text"
+                        value={editPartnerCognome}
+                        onChange={(e) => setEditPartnerCognome(e.target.value)}
+                        style={{ width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: `1px solid ${BORDER}`, fontFamily: "inherit" }}
+                      />
+                    </div>
+                  </>
+                )}
+                <div>
+                  <label style={{ ...label, display: "block" }}>Codice Fiscale</label>
+                  <input
+                    type="text"
+                    value={editCodiceFiscale}
+                    onChange={(e) => setEditCodiceFiscale(e.target.value.toUpperCase())}
+                    style={{ width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: `1px solid ${BORDER}`, fontFamily: "inherit" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ ...label, display: "block" }}>Città di Residenza</label>
+                  <input
+                    type="text"
+                    value={editResidenza}
+                    onChange={(e) => setEditResidenza(e.target.value)}
+                    style={{ width: "100%", padding: "0.6rem 0.8rem", borderRadius: "8px", border: `1px solid ${BORDER}`, fontFamily: "inherit" }}
+                  />
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: "#f9f8f6",
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: "12px",
+                  padding: "0.9rem 1.1rem",
+                  fontSize: "0.86rem",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: "0.8rem",
+                }}
+              >
+                <div>
+                  <div style={label}>Data Evento</div>
+                  <strong>{formatItalianDate(countersigningTarget.data_evento)}</strong>
+                </div>
+                <div>
+                  <div style={label}>Caparra (Santo Stefano)</div>
+                  <strong>{euro(countersigningTarget.caparra)}</strong>
+                </div>
+                <div>
+                  <div style={label}>Firma Cliente Ricevuta</div>
+                  <strong style={{ color: "#15803d" }}>✓ Firma Apposta</strong>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "0.8rem", justifyContent: "flex-end", marginTop: "1rem" }}>
+                <button
+                  type="button"
+                  onClick={() => setCountersigningTarget(null)}
+                  disabled={isCountersigning}
+                  style={{
+                    padding: "0.7rem 1.2rem",
+                    borderRadius: "10px",
+                    border: `1px solid ${BORDER}`,
+                    background: "#ffffff",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    fontWeight: 600,
+                  }}
+                >
+                  Annulla
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmCountersign}
+                  disabled={isCountersigning}
+                  style={{
+                    padding: "0.7rem 1.5rem",
+                    borderRadius: "10px",
+                    border: "none",
+                    background: "linear-gradient(135deg, #e58c2c 0%, #d17a22 100%)",
+                    color: "#ffffff",
+                    cursor: isCountersigning ? "wait" : "pointer",
+                    fontFamily: "inherit",
+                    fontWeight: 800,
+                    boxShadow: "0 4px 16px rgba(229,140,44,0.35)",
+                  }}
+                >
+                  {isCountersigning ? "Salvataggio e Controfirma in corso…" : "✍️ Salva e Apponi Controfirma Direzione"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
+
 }

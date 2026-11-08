@@ -1614,6 +1614,10 @@ export interface PendingContractLocal {
   updated_at: string | null;
   /** record quote completo, per eventuali usi avanzati a valle */
   quote: any;
+  /** Se true, il cliente ha già firmato ed è in attesa della controfirma di Roberto Sola */
+  isAwaitingCountersign?: boolean;
+  clientSignedAt?: string;
+  clientSignData?: any;
 }
 
 function formatEuroPending(value: number): string {
@@ -1686,7 +1690,10 @@ export function getPendingContractsLocal(): PendingContractLocal[] {
   const store = getStore();
 
   const signedKeys = new Set<string>();
-  collectContractKeys(store.signed_contracts, signedKeys);
+  const confirmedSigned = (store.signed_contracts || []).filter(
+    (sc: any) => sc && !sc.in_attesa_controfirma && sc.status !== 'in_attesa_controfirma'
+  );
+  collectContractKeys(confirmedSigned, signedKeys);
   collectContractKeys(store.final_contracts, signedKeys);
 
   const nowMs = Date.now();
@@ -1703,6 +1710,8 @@ export function getPendingContractsLocal(): PendingContractLocal[] {
   };
 
   const isPending = (q: any): boolean =>
+    q.status === 'in_attesa_controfirma' ||
+    q.fase_contratto === 'in_attesa_controfirma' ||
     q.fase_contratto === 'accordo_diretto' ||
     q.canale_contratto === 'accordo_diretto' ||
     q.source === 'admin_rapido' ||
@@ -2803,3 +2812,52 @@ export function purgeAllDemoData(): {
 
 
 
+
+/**
+ * Salva la controfirma di Roberto Sola perfezionando il contratto.
+ */
+export function countersignContractLocal(quoteId: string, updatedData?: Record<string, any>) {
+  const store = getStore();
+  const search = String(quoteId || '').toLowerCase().trim();
+  const preventivo = search.slice(0, 8);
+
+  const quote = (store.quotes || []).find(
+    (q: any) => q && (String(q.id).toLowerCase() === search || String(q.id).toLowerCase().startsWith(preventivo))
+  );
+
+  if (quote) {
+    quote.status = 'firmato';
+    quote.fase_contratto = 'perfezionato';
+    quote.countersigned_at = new Date().toISOString();
+    quote.countersigned_by = 'ing. Roberto Sola';
+    if (quote.opzione) quote.opzione.attiva = false;
+
+    if (updatedData) {
+      if (!quote.clients) quote.clients = {};
+      if (updatedData.nome) quote.clients.nome = updatedData.nome;
+      if (updatedData.cognome) quote.clients.cognome = updatedData.cognome;
+      if (updatedData.email) quote.clients.email = updatedData.email;
+      if (updatedData.telefono) quote.clients.telefono = updatedData.telefono;
+      if (updatedData.partnerNome) quote.clients.sposera_nome = updatedData.partnerNome;
+      if (updatedData.partnerCognome) quote.clients.sposera_cognome = updatedData.partnerCognome;
+      if (updatedData.codiceFiscale) quote.clients.codice_fiscale = updatedData.codiceFiscale;
+    }
+  }
+
+  if (!store.signed_contracts) store.signed_contracts = [];
+  const signedIdx = store.signed_contracts.findIndex(
+    (sc: any) => sc && (String(sc.quote_id).toLowerCase() === search || String(sc.quote_id).toLowerCase().startsWith(preventivo) || String(sc.preventivo).toLowerCase() === preventivo)
+  );
+  if (signedIdx >= 0) {
+    store.signed_contracts[signedIdx].status = 'firmato';
+    store.signed_contracts[signedIdx].in_attesa_controfirma = false;
+    store.signed_contracts[signedIdx].countersigned_at = new Date().toISOString();
+    store.signed_contracts[signedIdx].countersigned_by = 'ing. Roberto Sola';
+    if (updatedData && store.signed_contracts[signedIdx].datiCliente) {
+      Object.assign(store.signed_contracts[signedIdx].datiCliente, updatedData);
+    }
+  }
+
+  saveStore(store);
+  return true;
+}

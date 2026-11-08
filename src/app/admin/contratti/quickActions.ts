@@ -84,19 +84,31 @@ function buildWhatsAppText(params: {
     righe.push(`📍 Spazi riservati: ${params.spaziRiservati.join(", ")}`);
   }
 
-  righe.push(
-    `💶 Canone fitto location: € ${formatEuro(params.prezzo)} (100% Santo Stefano Srl)`,
-    `🔒 Caparra confirmatoria (alla firma): € ${formatEuro(params.caparra)}`
-  );
+  if (params.prezzo > 0) {
+    righe.push(
+      `💶 Canone fitto location: € ${formatEuro(params.prezzo)} (100% Santo Stefano Srl)`,
+      `🔒 Caparra confirmatoria (alla firma): € ${formatEuro(params.caparra)}`
+    );
+  } else {
+    righe.push(
+      `💶 Tariffa banqueting: Tariffa scalare base (€ 130/ospite per 100+ ospiti, +10€ per 70–99 ospiti)`,
+      `🔒 Caparra confirmatoria (per bloccare la data): € ${formatEuro(params.caparra)} (Santo Stefano Srl)`
+    );
+  }
 
   if (params.secondoAcconto > 0) {
-    righe.push(`📆 2° acconto (a -6 mesi dall'evento): € ${formatEuro(params.secondoAcconto)}`);
+    righe.push(`📆 2° acconto (a -6 mesi dall'evento): € ${formatEuro(params.secondoAcconto)} (Iovino Banqueting Srl)`);
+  }
+
+  if (params.prezzo > 0) {
+    righe.push(`💳 Saldo (all'evento): € ${formatEuro(params.saldo)}`);
+  } else {
+    righe.push(`💳 Saldo: il giorno dell'evento in base al numero definitivo ospiti (comunicato a 10 gg)`);
   }
 
   righe.push(
-    `💳 Saldo (all'evento): € ${formatEuro(params.saldo)}`,
     "",
-    "Firma il contratto digitale qui:",
+    "Compila e firma il contratto digitale qui:",
     params.absoluteUrl
   );
 
@@ -146,24 +158,25 @@ export async function createQuickContract(data: QuickContractInput) {
     const prezzoStr = String(prezzo);
 
     // Acconti: valori personalizzati da Roberto oppure standard TDA.
+    // Se prezzo === 0 (tariffa scalare), la caparra blocca comunque la data.
     const caparra =
       typeof data.caparraPersonalizzata === "number" && Number.isFinite(data.caparraPersonalizzata)
         ? Math.max(0, data.caparraPersonalizzata)
-        : Math.min(CAPARRA_STANDARD, prezzo);
+        : (prezzo > 0 ? Math.min(CAPARRA_STANDARD, prezzo) : CAPARRA_STANDARD);
     const secondoAcconto =
       typeof data.secondoAccontoPersonalizzato === "number" && Number.isFinite(data.secondoAccontoPersonalizzato)
         ? Math.max(0, data.secondoAccontoPersonalizzato)
         : data.tipoEvento === "wedding"
-          ? Math.min(SECONDO_ACCONTO_STANDARD, Math.max(0, prezzo - caparra))
+          ? (prezzo > 0 ? Math.min(SECONDO_ACCONTO_STANDARD, Math.max(0, prezzo - caparra)) : SECONDO_ACCONTO_STANDARD)
           : 0;
 
-    if (caparra + secondoAcconto > prezzo) {
+    if (prezzo > 0 && caparra + secondoAcconto > prezzo) {
       return {
         success: false as const,
         error: "La somma di caparra e 2° acconto supera il prezzo concordato: correggi gli importi.",
       };
     }
-    const saldo = Math.max(0, prezzo - caparra - secondoAcconto);
+    const saldo = prezzo > 0 ? Math.max(0, prezzo - caparra - secondoAcconto) : 0;
 
     // Opzione tecnica di 7 giorni: mantiene la data bloccata fino alla firma.
     const now = new Date();
@@ -178,11 +191,11 @@ export async function createQuickContract(data: QuickContractInput) {
       canale: "accordo_diretto",
     };
 
-    // Voce di contratto: Canone Fitto Struttura (split 100% Santo Stefano).
+    // Voce di contratto: Canone Fitto Struttura o Tariffa Scalare
     const items = [
       {
         id: Date.now(),
-        descrizione: "Canone Fitto Struttura",
+        descrizione: prezzo > 0 ? "Canone Fitto Struttura" : "Tariffa Base Scalare Wedding (€ 130/ospite 100+, +10€ 70–99)",
         quantita: 1,
         prezzo_unitario: prezzo,
         splitKey: "ss100",

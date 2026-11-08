@@ -264,7 +264,24 @@ function AmountInput({
   );
 }
 
-export default function QuickContractPanel() {
+export interface AvailableClientOption {
+  id: string;
+  nome: string;
+  cognome: string;
+  email: string;
+  telefono: string;
+  partnerNome?: string;
+  partnerCognome?: string;
+  ragioneSociale?: string;
+  codiceFiscale?: string;
+  partitaIva?: string;
+}
+
+export default function QuickContractPanel({
+  availableClients = [],
+}: {
+  availableClients?: AvailableClientOption[];
+}) {
   const searchParams = useSearchParams();
 
   const hasPrefilledParams = Boolean(
@@ -277,6 +294,7 @@ export default function QuickContractPanel() {
   );
   // Di default parte sempre chiuso. Si apre solo al click di "Crea Nuovo Contratto" o se si proviene da "Emetti Contratto" in calendario.
   const [isOpen, setIsOpen] = useState(() => searchParams.get("open") === "1" || searchParams.get("open") === "true");
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
 
   const parsedSposi = useMemo(() => {
     return parseSposiParams(
@@ -325,6 +343,27 @@ export default function QuickContractPanel() {
   const [result, setResult] = useState<GeneratedContract | null>(null);
   const [recoveredDraft, setRecoveredDraft] = useState<ContractDraft | null>(null);
   const autosaveReadyRef = useRef(false);
+
+  const handleSelectClient = (clientId: string) => {
+    setSelectedClientId(clientId);
+    if (!clientId) return;
+    const c = availableClients.find((item) => item.id === clientId);
+    if (!c) return;
+    if (c.ragioneSociale) {
+      setTipoCliente("azienda");
+      setRagioneSociale(c.ragioneSociale);
+    } else {
+      setTipoCliente("privato");
+    }
+    if (c.nome) setNome(c.nome);
+    if (c.cognome) setCognome(c.cognome);
+    if (c.telefono) setTelefono(c.telefono);
+    if (c.email) setEmail(c.email);
+    if (c.partnerNome) setPartnerNome(c.partnerNome);
+    if (c.partnerCognome) setPartnerCognome(c.partnerCognome);
+    if (c.codiceFiscale) setCodiceFiscale(c.codiceFiscale);
+    if (c.partitaIva) setPartitaIva(c.partitaIva);
+  };
 
   // Recupero bozza: all'apertura del form, se esiste una bozza non vuota la
   // propone all'utente solo se non stiamo aprendo un cliente specifico tramite URL.
@@ -452,6 +491,7 @@ export default function QuickContractPanel() {
   };
 
   const resetForm = () => {
+    setSelectedClientId("");
     setTipoEvento("wedding");
     setTipoCliente("privato");
     setNome("");
@@ -583,23 +623,22 @@ export default function QuickContractPanel() {
   );
 
   const validate = (): string => {
-    if (isAzienda && !ragioneSociale.trim()) return "Inserisci la Ragione Sociale dell'azienda.";
-    if (!nome.trim() || !cognome.trim()) {
-      return isAzienda
-        ? "Inserisci nome e cognome del referente."
-        : "Inserisci nome e cognome del cliente.";
-    }
-    if (!telefono.trim()) return "Inserisci un numero di telefono.";
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return "Inserisci un indirizzo email valido.";
-    if (!isAzienda && isWedding && (!partnerNome.trim() || !partnerCognome.trim())) {
-      return "Inserisci nome e cognome del/della partner.";
-    }
     if (!dataEvento) return "Seleziona la data dell'evento.";
     if (tipoEsclusiva === "semi_esclusiva" && !semiFormula) {
       return "Per la formula semi-esclusiva scegli Sala Bianca o Sala Tufo.";
     }
-    if (!(prezzo > 0)) return "Inserisci il prezzo concordato.";
-    if (cashflow.overflow) return "La somma di caparra e 2° acconto supera il prezzo: correggi gli importi.";
+    if (isAzienda && ragioneSociale.trim().length === 0 && (nome.trim() || cognome.trim())) {
+      return "Inserisci la Ragione Sociale dell'azienda.";
+    }
+    if (email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim())) {
+      return "Inserisci un indirizzo email valido.";
+    }
+    if (!isWedding && !(prezzo > 0)) {
+      return "Per gli eventi privati inserisci il prezzo concordato.";
+    }
+    if (prezzo > 0 && cashflow.overflow) {
+      return "La somma di caparra e 2° acconto supera il prezzo: correggi gli importi.";
+    }
     return "";
   };
 
@@ -617,9 +656,12 @@ export default function QuickContractPanel() {
     setIsLoading(true);
 
     try {
+      const finalNome = nome.trim() || (isWedding ? "Sposi TDA" : "Cliente TDA");
+      const finalCognome = cognome.trim();
+
       const res = await createQuickContract({
-        nome: nome.trim(),
-        cognome: cognome.trim(),
+        nome: finalNome,
+        cognome: finalCognome,
         telefono: telefono.trim(),
         email: email.trim(),
         partnerNome: isWedding && !isAzienda ? partnerNome.trim() : undefined,
@@ -629,13 +671,13 @@ export default function QuickContractPanel() {
         turno,
         tipoEsclusiva,
         spaziRiservati: tipoEsclusiva === "semi_esclusiva" ? spazi : [],
-        prezzo,
+        prezzo: prezzo > 0 ? prezzo : 0,
         tipoCliente,
-        ragioneSociale: isAzienda ? ragioneSociale.trim() : undefined,
-        partitaIva: isAzienda ? partitaIva.trim() : undefined,
-        codiceFiscale: isAzienda ? codiceFiscale.trim() : undefined,
-        sdi: isAzienda ? sdi.trim() : undefined,
-        pec: isAzienda ? pec.trim() : undefined,
+        ragioneSociale: isAzienda && ragioneSociale.trim() ? ragioneSociale.trim() : undefined,
+        partitaIva: isAzienda && partitaIva.trim() ? partitaIva.trim() : undefined,
+        codiceFiscale: isAzienda && codiceFiscale.trim() ? codiceFiscale.trim() : undefined,
+        sdi: isAzienda && sdi.trim() ? sdi.trim() : undefined,
+        pec: isAzienda && pec.trim() ? pec.trim() : undefined,
         caparraPersonalizzata: cashflow.caparra,
         secondoAccontoPersonalizzato: cashflow.secondoAcconto,
         opzioneDaConvertireId: opzioneId || undefined,
@@ -646,8 +688,8 @@ export default function QuickContractPanel() {
         return;
       }
 
-      const referente = `${nome.trim()} ${cognome.trim()}`;
-      const intestatari = isAzienda
+      const referente = [nome.trim(), cognome.trim()].filter(Boolean).join(" ") || "Cliente (Self-Service)";
+      const intestatari = isAzienda && ragioneSociale.trim()
         ? `${ragioneSociale.trim()} (rif. ${referente})`
         : isWedding && partnerNome.trim()
           ? `${referente} & ${partnerNome.trim()} ${partnerCognome.trim()}`
@@ -844,6 +886,71 @@ export default function QuickContractPanel() {
           </div>
         )}
 
+        {availableClients.length > 0 && (
+          <section
+            style={{
+              background: "#ffffff",
+              padding: "1.1rem 1.3rem",
+              borderRadius: "14px",
+              border: `1.5px solid ${GOLD}`,
+              boxShadow: "0 4px 14px rgba(201,162,75,0.12)",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+              <h3 style={{ ...sectionTitle, margin: 0, color: "#92400e" }}>
+                👤 Aggancia Lead CRM / Google Calendar (Opzionale)
+              </h3>
+              {selectedClientId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedClientId("");
+                    setNome("");
+                    setCognome("");
+                    setTelefono("");
+                    setEmail("");
+                    setPartnerNome("");
+                    setPartnerCognome("");
+                    setRagioneSociale("");
+                  }}
+                  style={{ fontSize: "0.78rem", color: "#666", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                >
+                  Scollega / Pulisci
+                </button>
+              )}
+            </div>
+            <p style={{ margin: "0 0 0.8rem 0", fontSize: "0.85rem", color: "#6a6764" }}>
+              Seleziona un contatto per precompilare i campi. Se lasci i campi anagrafici vuoti, il link generato permetterà alla coppia di compilarli in autonomia (Self-Service).
+            </p>
+            <select
+              value={selectedClientId}
+              onChange={(e) => handleSelectClient(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "0.75rem 1rem",
+                borderRadius: "10px",
+                border: `1.5px solid ${BORDER}`,
+                background: "#faf8f5",
+                fontSize: "0.95rem",
+                fontWeight: 600,
+                color: ANTHRACITE,
+                fontFamily: "inherit",
+              }}
+            >
+              <option value="">— Nessun lead agganciato (inserimento libero o compilazione a carico cliente) —</option>
+              {availableClients.map((c) => {
+                const label = c.ragioneSociale || `${c.nome} ${c.cognome}`.trim() || c.email || c.telefono || "Contatto senza nome";
+                const details = [c.telefono, c.email].filter(Boolean).join(" · ");
+                return (
+                  <option key={c.id} value={c.id}>
+                    {label} {details ? `(${details})` : ""}
+                  </option>
+                );
+              })}
+            </select>
+          </section>
+        )}
+
         <section>
           <h3 style={sectionTitle}>Tipo di cliente</h3>
           <div style={{ display: "flex", gap: "0.8rem", flexWrap: "wrap" }}>
@@ -908,19 +1015,19 @@ export default function QuickContractPanel() {
 
         <section>
           <h3 style={sectionTitle}>
-            {isAzienda ? "Referente (legale rappresentante)" : isWedding ? "Intestatario del contratto" : "Cliente"}
+            {isAzienda ? "Referente (legale rappresentante)" : isWedding ? "Intestatario del contratto (o vuoto per Self-Service)" : "Cliente"}
           </h3>
           <div style={fieldGrid}>
             <div className="form-group">
-              <label htmlFor="qc-nome">{isAzienda ? "Nome referente *" : "Nome *"}</label>
-              <input id="qc-nome" type="text" autoComplete="given-name" value={nome} onChange={(e) => setNome(e.target.value)} />
+              <label htmlFor="qc-nome">{isAzienda ? "Nome referente" : "Nome (opzionale se Self-Service)"}</label>
+              <input id="qc-nome" type="text" autoComplete="given-name" placeholder="Es. Mario" value={nome} onChange={(e) => setNome(e.target.value)} />
             </div>
             <div className="form-group">
-              <label htmlFor="qc-cognome">{isAzienda ? "Cognome referente *" : "Cognome *"}</label>
-              <input id="qc-cognome" type="text" autoComplete="family-name" value={cognome} onChange={(e) => setCognome(e.target.value)} />
+              <label htmlFor="qc-cognome">{isAzienda ? "Cognome referente" : "Cognome (opzionale se Self-Service)"}</label>
+              <input id="qc-cognome" type="text" autoComplete="family-name" placeholder="Es. Rossi" value={cognome} onChange={(e) => setCognome(e.target.value)} />
             </div>
             <div className="form-group">
-              <label htmlFor="qc-telefono">Telefono *</label>
+              <label htmlFor="qc-telefono">Telefono</label>
               <input
                 id="qc-telefono"
                 type="text"
@@ -932,23 +1039,23 @@ export default function QuickContractPanel() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="qc-email">Email *</label>
-              <input id="qc-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <label htmlFor="qc-email">Email</label>
+              <input id="qc-email" type="email" autoComplete="email" placeholder="mario.rossi@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
           </div>
         </section>
 
         {isWedding && !isAzienda && (
           <section>
-            <h3 style={sectionTitle}>Partner</h3>
+            <h3 style={sectionTitle}>Partner (opzionale se compilato dagli sposi)</h3>
             <div style={fieldGrid}>
               <div className="form-group">
-                <label htmlFor="qc-partner-nome">Nome partner *</label>
-                <input id="qc-partner-nome" type="text" value={partnerNome} onChange={(e) => setPartnerNome(e.target.value)} />
+                <label htmlFor="qc-partner-nome">Nome partner</label>
+                <input id="qc-partner-nome" type="text" placeholder="Es. Elena" value={partnerNome} onChange={(e) => setPartnerNome(e.target.value)} />
               </div>
               <div className="form-group">
-                <label htmlFor="qc-partner-cognome">Cognome partner *</label>
-                <input id="qc-partner-cognome" type="text" value={partnerCognome} onChange={(e) => setPartnerCognome(e.target.value)} />
+                <label htmlFor="qc-partner-cognome">Cognome partner</label>
+                <input id="qc-partner-cognome" type="text" placeholder="Es. Bianchi" value={partnerCognome} onChange={(e) => setPartnerCognome(e.target.value)} />
               </div>
             </div>
           </section>
@@ -1052,18 +1159,25 @@ export default function QuickContractPanel() {
 
         <section>
           <h3 style={sectionTitle}>Condizioni economiche</h3>
-          <div className="form-group" style={{ maxWidth: 320 }}>
-            <label htmlFor="qc-prezzo">Prezzo concordato (€) *</label>
+          <div className="form-group" style={{ maxWidth: 420 }}>
+            <label htmlFor="qc-prezzo">
+              {isWedding ? "Prezzo concordato (€) — opzionale (lascia vuoto per Tariffa Base Scalare)" : "Prezzo concordato (€) *"}
+            </label>
             <input
               id="qc-prezzo"
               type="number"
               inputMode="decimal"
               min={0}
               step="any"
-              placeholder="Es. 15000"
+              placeholder={isWedding ? "Vuoto = Tariffa Scalare (€ 130/ospite 100+)" : "Es. 7000"}
               value={prezzoInput}
               onChange={(e) => setPrezzoInput(e.target.value)}
             />
+            {isWedding && !prezzoInput && (
+              <div style={{ fontSize: "0.82rem", color: "#6a6764", marginTop: "0.35rem" }}>
+                💡 <strong>Tariffa Scalare Dinamica:</strong> la coppia blocca la data con la caparra di € 1.500; il saldo sarà calcolato sul numero effettivo di ospiti comunicato a 10 gg dall&apos;evento.
+              </div>
+            )}
           </div>
 
           <div

@@ -187,7 +187,7 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo, initialD
       sub: "Contratto di concessione uso temporaneo spazi e servizi banqueting.",
       btn: "Invia il contratto firmato",
       successTitle: "Contratto inviato con successo!",
-      successSub: "Grazie, abbiamo ricevuto il tuo contratto di matrimonio firmato.",
+      successSub: "Grazie, abbiamo ricevuto il tuo contratto firmato. Il documento è stato inoltrato alla direzione de La Terra degli Aranci (ing. Roberto Sola) per la controfirma definitiva.",
       riepilogo: "Riepilogo Matrimonio",
       numPrev: "Numero Preventivo",
       prezzo: "Prezzo Concordato (€)",
@@ -213,13 +213,13 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo, initialD
       c_art3_c2: "Nel caso il menu concordato preveda il buffet di antipasti il Cliente prende atto e accetta che lo stesso si aprirà al più due ore dopo l’arrivo dei primi ospiti, quindi anche in assenza degli sposi. Un eventuale after dinner, da svolgersi in Sala Tufo, è considerato un servizio supplementare il cui orario massimo di chiusura è alle ore 2,00",
       c_art4_t: "Art. 4 – Corrispettivo",
       c_art4_c1: "Il prezzo base, incrementabile sulla base dell’allegato “La Terra degli Aranci – Servizi del ricevimento di matrimonio”, è pari a:",
-      c_art4_c2: "€ 130,00 (Centotrenta/00) oltre IVA (per adulto);",
+      c_art4_c2: "€ 130,00 (Centotrenta/00) oltre IVA per adulto (oltre 100 ospiti; maggiorazione di € 10,00 oltre IVA per la fascia 70–99 ospiti);",
       c_art4_c3: "€ 50,00 (Cinquanta/00) oltre IVA (per bambino);",
       c_art4_c4: "Primo acconto da versare all’atto della firma del presente contratto alla “Santo Stefano S.r.l.”:",
       c_art4_c5: "€ 1.500,00 (MILLECINQUECENTO/00)",
       c_art4_c6: "Secondo acconto da versare 6 mesi prima della data dell’evento alla “Iovino Banqueting S.r.l. soc. unipersonale”:",
       c_art4_c7: "€ 3.000,00 (TREMILA/00)",
-      c_art4_c8: "Gli acconti indicati vengono versati a titolo di caparra confirmatoria e saranno imputati in conto prezzo all’atto del saldo complessivo dell’importo convenuto che sarà versato il giorno del ricevimento. Ciascuna parte potrà recedere dal presente contratto dandone comunicazione all’altra con lettera raccomandata a/r con preavviso di almeno 30 giorni dalla data del ricevimento. In caso di recesso dal presente impegno da parte del Cliente, le società “Santo Stefano S.r.l.” e “Iovino Banqueting S.r.l. soc. unipersonale” non saranno tenute a rendere alcun importo; nel caso contrario, le società “Santo Stefano S.r.l.” e “Iovino Banqueting S.r.l. soc. unipersonale” saranno tenute, solidalmente, alla restituzione del doppio della caparra ricevuta. Il numero definitivo degli ospiti dovrà essere comunicato e consegnato in sede entro 10 gg dalla data dell’evento. Il presente contratto potrà essere registrato in caso di uso",
+      c_art4_c8: "Gli acconti indicati vengono versati a titolo di caparra confirmatoria e saranno imputati in conto prezzo all’atto del saldo complessivo dell’importo convenuto che sarà versato il giorno del ricevimento. Ciascuna parte potrà recedere dal presente contratto dandone comunicazione all’altra con lettera raccomandata a/r con preavviso di almeno 30 giorni dalla data del ricevimento. In caso di recesso dal presente impegno da parte del Cliente, le società “Santo Stefano S.r.l.” e “Iovino Banqueting S.r.l. soc. unipersonale” non saranno tenute a rendere alcun importo; nel caso contrario, le società “Santo Stefano S.r.l.” e “Iovino Banqueting S.r.l. soc. unipersonale” saranno tenute, solidalmente, alla restituzione del doppio della caparra ricevuta. Il numero definitivo degli ospiti dovrà essere comunicato e consegnato in sede entro 10 gg dalla data dell’evento. Il presente contratto si intende perfezionato con la successiva controfirma della direzione de La Terra degli Aranci.",
       c_art4bis_t: "Art. 4-bis – Validità della proposta e revoca automatica",
       c_art4bis_c: "La presente proposta contrattuale resta valida ed efficace per il termine perentorio di 7 (sette) giorni decorrenti dalla data di trasmissione del link di sottoscrizione. Qualora entro tale termine non sia intervenuta la sottoscrizione digitale del presente accordo, la proposta si intenderà automaticamente e definitivamente revocata ad ogni effetto di legge, con facoltà per la struttura di liberare e riassegnare la data, gli spazi e i servizi prescelti a terzi senza obbligo di preventivo preavviso.",
       c_art5_t: "Art. 5 – Obblighi delle parti",
@@ -512,7 +512,7 @@ export default function WeddingForm({ initialPrezzo, initialPreventivo, initialD
           </div>
           <div className="form-group">
             <label>{t.prezzo}</label>
-            <input type="text" readOnly value={initialPrezzo} />
+            <input type="text" readOnly value={!initialPrezzo || initialPrezzo === "0" ? "Tariffa Base Scalare (€ 130/ospite per 100+ ospiti)" : initialPrezzo} />
           </div>
         </div>
       </div>

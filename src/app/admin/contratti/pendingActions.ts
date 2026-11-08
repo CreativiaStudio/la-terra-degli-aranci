@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { deletePendingContractLocal, getQuoteLocal } from '@/lib/localDb';
+import { deletePendingContractLocal, getQuoteLocal, countersignContractLocal } from '@/lib/localDb';
 import { logActivity, logError } from '@/lib/blackbox';
 
 /**
@@ -66,5 +66,63 @@ export async function deletePendingContractAction(quoteId: string) {
     console.error('Errore in deletePendingContractAction:', err);
     logError('CONTRATTI', 'Direzione Roberto', 'OPZIONE_REVOCA_ERRORE', err, { quoteId });
     return { success: false };
+  }
+}
+
+/**
+ * Appone la controfirma di Roberto Sola con eventuali modifiche anagrafiche in-place,
+ * perfezionando definitivamente il contratto digitale.
+ */
+export async function countersignContractAction(quoteId: string, updatedData?: Record<string, any>) {
+  try {
+    const quote = getQuoteLocal(quoteId);
+    const cliente = quote?.clients
+      ? `${String(quote.clients.nome || '').trim()} ${String(quote.clients.cognome || '').trim()}`.trim()
+      : '';
+    const preventivo = String(quoteId || '').slice(0, 8);
+
+    const success = countersignContractLocal(quoteId, updatedData);
+
+    try {
+      const { getServiceSupabase } = await import('@/lib/supabase');
+      const supabase = getServiceSupabase();
+      await supabase
+        .from('quotes')
+        .update({ status: 'firmato' })
+        .ilike('id', `${preventivo}%`);
+    } catch {
+      // ignore
+    }
+
+    if (success) {
+      logActivity({
+        category: 'CONTRATTI',
+        actor: 'Direzione Roberto Sola',
+        action: 'CONTRATTO_CONTROFIRMATO',
+        message: `Contratto perfezionato e controfirmato per ${cliente || `preventivo ${preventivo}`}${
+          quote?.data_evento ? ` (evento del ${quote.data_evento})` : ''
+        }.`,
+        metadata: {
+          quoteId,
+          preventivo,
+          cliente: cliente || null,
+          data_evento: quote?.data_evento ?? null,
+          tipo_evento: quote?.tipo_evento ?? null,
+          updatedData: updatedData || null,
+        },
+      });
+    }
+
+    revalidatePath('/admin/contratti', 'page');
+    revalidatePath('/admin/contratti', 'layout');
+    revalidatePath('/admin/eventi', 'page');
+    revalidatePath('/admin/calendario', 'page');
+    revalidatePath('/admin', 'page');
+
+    return { success };
+  } catch (err: unknown) {
+    console.error('Errore in countersignContractAction:', err);
+    logError('CONTRATTI', 'Direzione Roberto Sola', 'CONTROFIRMA_ERRORE', err, { quoteId });
+    return { success: false, error: 'Errore durante la controfirma' };
   }
 }

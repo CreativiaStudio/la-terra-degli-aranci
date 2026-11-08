@@ -161,25 +161,28 @@ export async function POST(req: NextRequest) {
       fileUrl = `https://pub-ace85c0d97114c1a980199bf8afb379b.r2.dev/${fileName}`;
     }
 
-    // Salva l'anagrafica completa ed i dati contrattuali firmati nel DB locale
+    // Salva l'anagrafica completa ed i dati contrattuali firmati dal cliente nel DB locale
     saveSignedContractLocal({
       ...body,
       pdf_url: fileUrl,
-      signed_at: new Date().toISOString()
+      signed_at: new Date().toISOString(),
+      firmato_cliente_at: new Date().toISOString(),
+      status: "in_attesa_controfirma",
+      in_attesa_controfirma: true,
     });
 
-    // AGGIORNAMENTO STATO: Quando il contratto viene firmato, aggiorniamo lo stato del preventivo a 'firmato'
+    // AGGIORNAMENTO STATO: Quando il cliente firma, passa a 'in_attesa_controfirma' per la convalida di Roberto
     if (body.preventivo) {
       try {
         const supabase = getServiceSupabase();
         await supabase
           .from('quotes')
-          .update({ status: 'firmato' })
+          .update({ status: 'in_attesa_controfirma' })
           .ilike('id', `${body.preventivo}%`);
       } catch (dbErr) {
         console.warn("Supabase update error:", dbErr);
       }
-      updateQuoteStatusLocalByPrefix(body.preventivo, 'firmato');
+      updateQuoteStatusLocalByPrefix(body.preventivo, 'in_attesa_controfirma');
 
       // Congelamento acconti ufficiale TDA:
       // 1° acconto fisso: €1.500 alla firma (Santo Stefano Srl)

@@ -331,10 +331,25 @@ export default async function ContrattiDashboard() {
   const weddingContracts = items.filter((i) => i.tipoEvento === "wedding").sort(byFirma);
   const eventiContracts = items.filter((i) => i.tipoEvento === "eventi").sort(byFirma);
 
+  const availableClients = (store.clients || [])
+    .filter((c: any) => c && (c.nome || c.cognome || c.email || c.ragione_sociale || c.telefono))
+    .map((c: any) => ({
+      id: String(c.id || ""),
+      nome: String(c.nome || ""),
+      cognome: String(c.cognome || ""),
+      email: String(c.email || ""),
+      telefono: String(c.telefono || ""),
+      partnerNome: String(c.sposera_nome || c.partner_nome || ""),
+      partnerCognome: String(c.sposera_cognome || c.partner_cognome || ""),
+      ragioneSociale: String(c.ragione_sociale || ""),
+      codiceFiscale: String(c.codice_fiscale || ""),
+      partitaIva: String(c.partita_iva || ""),
+    }));
+
   return (
     <div className="container">
       <Suspense fallback={null}>
-        <QuickContractPanel />
+        <QuickContractPanel availableClients={availableClients} />
       </Suspense>
 
       <PendingContractsList initialContracts={pendingContracts} />
