@@ -24,13 +24,40 @@ export async function generateMetadata({
     };
   }
 
+  const ogCardMap: Record<string, string> = {
+    "wedding-it": "/og-wedding-it.jpg",
+    "tda-presentation-2026-en": "/og-tda-2026-en.jpg",
+    "aziendale": "/og-aziendale.jpg",
+    "love-tales": "/og-love-tales.jpg",
+  };
+
+  const ogCardUrl = `https://ecosistema.laterradegliaranci.it${ogCardMap[slug] || "/og-presentazioni.jpg"}`;
+
   return {
     title: `${presentation.title} | La Terra degli Aranci`,
     description: presentation.description,
     openGraph: {
       title: `${presentation.title} | La Terra degli Aranci`,
       description: presentation.description,
-      images: [presentation.coverImage],
+      url: `https://ecosistema.laterradegliaranci.it/presentazioni/${slug}`,
+      siteName: "La Terra degli Aranci",
+      locale: "it_IT",
+      type: "article",
+      images: [
+        {
+          url: ogCardUrl,
+          width: 1200,
+          height: 630,
+          alt: presentation.title,
+          type: "image/jpeg",
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${presentation.title} | La Terra degli Aranci`,
+      description: presentation.description,
+      images: [ogCardUrl],
     },
   };
 }

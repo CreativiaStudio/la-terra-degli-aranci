@@ -10,8 +10,26 @@ export const metadata: Metadata = {
     title: "Presentazioni Ufficiali | La Terra degli Aranci",
     description:
       "Esplora i format, gli spazi e le esperienze esclusive di Villa La Terra degli Aranci attraverso le presentazioni interattive dedicate.",
-    type: "website",
+    url: "https://ecosistema.laterradegliaranci.it/presentazioni",
+    siteName: "La Terra degli Aranci",
     locale: "it_IT",
+    type: "website",
+    images: [
+      {
+        url: "https://ecosistema.laterradegliaranci.it/og-presentazioni.jpg",
+        width: 1200,
+        height: 630,
+        alt: "La Terra degli Aranci - Presentazioni Ufficiali",
+        type: "image/jpeg",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Presentazioni Ufficiali | La Terra degli Aranci",
+    description:
+      "Esplora i format, gli spazi e le esperienze esclusive di Villa La Terra degli Aranci attraverso le presentazioni interattive dedicate.",
+    images: ["https://ecosistema.laterradegliaranci.it/og-presentazioni.jpg"],
   },
 };
 
