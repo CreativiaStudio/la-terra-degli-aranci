@@ -1,72 +1,100 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import { Presentation } from "@/lib/presentazioni";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Maximize2,
-  Minimize,
-  Share2,
-  RotateCcw,
-  MessageCircle,
-  Check,
-} from "lucide-react";
+
+interface PresentationViewerProps {
+  presentation: Presentation;
+}
 
 const WHATSAPP_URL =
   "https://wa.me/390817148768?text=Buongiorno%2C%20vorrei%20informazioni%20sulla%20presentazione%20La%20Terra%20degli%20Aranci";
 
-export default function PresentationViewer({
-  presentation,
-}: {
-  presentation: Presentation;
-}) {
+export default function PresentationViewer({ presentation }: PresentationViewerProps) {
   const slides = presentation.slides;
   const totalSlides = slides.length;
+
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [hoverLeft, setHoverLeft] = useState(false);
+  const [hoverRight, setHoverRight] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [linkCopied, setLinkCopied] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const touchStartX = useRef<number | null>(null);
 
-  const currentSlide = slides[currentIndex];
-  const isLastSlide = currentIndex === totalSlides - 1;
+  const currentSlide = slides[currentIndex] || slides[0];
 
-  const goToSlide = useCallback(
-    (index: number) => {
-      setCurrentIndex((prev) => {
-        if (index < 0) return 0;
-        if (index > totalSlides - 1) return totalSlides - 1;
-        return index === prev ? prev : index;
-      });
-    },
-    [totalSlides]
-  );
-
-  const goToNextSlide = useCallback(() => {
-    setCurrentIndex((prev) => Math.min(prev + 1, totalSlides - 1));
+  const goToNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev < totalSlides - 1 ? prev + 1 : prev));
   }, [totalSlides]);
 
-  const goToPrevSlide = useCallback(() => {
-    setCurrentIndex((prev) => Math.max(prev - 1, 0));
+  const goToPrev = useCallback(() => {
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : prev));
   }, []);
 
-  const restartPresentation = useCallback(() => {
-    setCurrentIndex(0);
+  // Timer per auto-hide controlli dopo 3s di inattività del mouse
+  const handleMouseMove = useCallback(() => {
+    setControlsVisible(true);
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current);
+    }
+    idleTimerRef.current = setTimeout(() => {
+      setControlsVisible(false);
+    }, 3000);
   }, []);
 
+  useEffect(() => {
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, [handleMouseMove]);
+
+  // Controlli da tastiera
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
+        e.preventDefault();
+        goToNext();
+      } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+        e.preventDefault();
+        goToPrev();
+      } else if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        toggleFullscreen();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [goToNext, goToPrev]);
+
+  // Fullscreen
   const toggleFullscreen = useCallback(() => {
     if (typeof document === "undefined") return;
-    if (document.fullscreenElement) {
-      void document.exitFullscreen();
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
     } else {
-      void document.documentElement.requestFullscreen();
+      document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
     }
   }, []);
 
-  const handleShare = useCallback(async () => {
-    if (typeof navigator === "undefined") return;
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
 
-    if (typeof navigator.share === "function") {
+  // Condivisione / Copia Link
+  const handleShare = useCallback(async () => {
+    if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({
           title: presentation.title,
@@ -75,268 +103,328 @@ export default function PresentationViewer({
         });
         return;
       } catch {
-        // L'utente ha annullato la condivisione o la share API ha fallito:
-        // si ripiega sulla copia del link.
+        // Fallback a clipboard
       }
     }
-
-    try {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
       await navigator.clipboard.writeText(window.location.href);
-      setLinkCopied(true);
-      window.setTimeout(() => setLinkCopied(false), 2200);
-    } catch {
-      // Clipboard API non disponibile o permesso negato: nessun feedback.
+      setToastMessage("Link copiato negli appunti!");
+      setTimeout(() => setToastMessage(null), 2500);
     }
   }, [presentation.title, presentation.subtitle]);
 
-  const openWhatsApp = useCallback(() => {
-    window.open(WHATSAPP_URL, "_blank", "noopener,noreferrer");
-  }, []);
-
-  // Controlli da tastiera: frecce, spazio, invio, backspace, F.
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      switch (event.code) {
-        case "ArrowRight":
-        case "Space":
-        case "Enter":
-          event.preventDefault();
-          goToNextSlide();
-          break;
-        case "ArrowLeft":
-        case "Backspace":
-          event.preventDefault();
-          goToPrevSlide();
-          break;
-        case "KeyF":
-          event.preventDefault();
-          toggleFullscreen();
-          break;
-        default:
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [goToNextSlide, goToPrevSlide, toggleFullscreen]);
-
-  // Sincronizzazione stato fullscreen (es. uscita con ESC).
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(Boolean(document.fullscreenElement));
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () =>
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-  }, []);
-
-  // Gesture mobile: swipe orizzontale con soglia > 40px.
-  const handleTouchStart = (event: React.TouchEvent) => {
-    touchStartX.current = event.touches[0].clientX;
+  // Mobile Touch Gestures
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
   };
 
-  const handleTouchEnd = (event: React.TouchEvent) => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
-    const deltaX = event.changedTouches[0].clientX - touchStartX.current;
-    touchStartX.current = null;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX.current - touchEndX;
 
-    if (Math.abs(deltaX) <= 40) return;
-
-    if (deltaX < 0) {
-      goToNextSlide(); // Swipe a sinistra -> slide successiva
-    } else {
-      goToPrevSlide(); // Swipe a destra -> slide precedente
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) {
+        goToNext(); // Swipe sinistra -> avanti
+      } else {
+        goToPrev(); // Swipe destra -> indietro
+      }
     }
+    touchStartX.current = null;
   };
 
   return (
     <div
-      className="fixed inset-0 bg-[#0e1015] text-white flex flex-col justify-between overflow-hidden select-none z-50"
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "#18191b",
+        zIndex: 9999,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+        userSelect: "none",
+        fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Progress bar a segmenti stile Stories */}
-      <div className="flex gap-1 px-3 pt-3 sm:px-5">
-        {slides.map((slide, index) => {
-          const isActive = index === currentIndex;
-          const isPassed = index < currentIndex;
+      {/* Wrapper Slide Centrato 16:9 */}
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          maxWidth: "100vw",
+          maxHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {/* Immagine della slide Retina 2K */}
+        <img
+          key={currentSlide.id}
+          src={currentSlide.imageUrl}
+          alt={currentSlide.title || `Slide ${currentIndex + 1}`}
+          style={{
+            maxWidth: "100%",
+            maxHeight: "100%",
+            objectFit: "contain",
+            aspectRatio: "16 / 9",
+            boxShadow: "0 14px 40px rgba(0,0,0,0.6)",
+            pointerEvents: "none",
+            display: "block",
+          }}
+        />
 
-          return (
-            <button
-              key={slide.id}
-              type="button"
-              aria-label={`Vai alla slide ${index + 1}`}
-              onClick={() => goToSlide(index)}
-              className={`h-1 flex-1 rounded-full transition-colors duration-200 ${
-                isActive
-                  ? "bg-[#c5a059] shadow-[0_0_8px_rgba(197,160,89,0.8)]"
-                  : isPassed
-                    ? "bg-white/80"
-                    : "bg-white/20"
-              }`}
-            />
-          );
-        })}
-      </div>
+        {/* ========================================================================= */}
+        {/* LE DUE SEZIONI INVISIBILI 50/50 CON HOVER TRIGGER (MECCANISMO CANVA 1:1)   */}
+        {/* ========================================================================= */}
 
-      {/* Top bar discreta e semi-trasparente */}
-      <div className="flex items-center justify-between gap-3 px-3 pt-2 sm:px-5">
-        {/* Brand */}
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[13px] sm:text-sm font-medium tracking-wide truncate">
-            La Terra degli Aranci
-          </span>
-          <span className="shrink-0 text-[10px] uppercase tracking-[0.2em] bg-white/10 text-[#c5a059] rounded-full px-2 py-0.5">
-            2026 EN
-          </span>
+        {/* Metà Sinistra (Slide Precedente) */}
+        <div
+          onClick={goToPrev}
+          onMouseEnter={() => setHoverLeft(true)}
+          onMouseLeave={() => setHoverLeft(false)}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: "50%",
+            zIndex: 30,
+            cursor: currentIndex > 0 ? "pointer" : "default",
+          }}
+          title={currentIndex > 0 ? "Slide precedente" : undefined}
+        />
+
+        {/* Metà Destra (Slide Successiva) */}
+        <div
+          onClick={goToNext}
+          onMouseEnter={() => setHoverRight(true)}
+          onMouseLeave={() => setHoverRight(false)}
+          style={{
+            position: "absolute",
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: "50%",
+            zIndex: 30,
+            cursor: currentIndex < totalSlides - 1 ? "pointer" : "default",
+          }}
+          title={currentIndex < totalSlides - 1 ? "Slide successiva" : undefined}
+        />
+
+        {/* Freccetta Sinistra (Canva Minimal Circolare) */}
+        <div
+          style={{
+            position: "absolute",
+            left: "24px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: "38px",
+            height: "38px",
+            borderRadius: "50%",
+            backgroundColor: "rgba(0, 0, 0, 0.72)",
+            color: "#ffffff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
+            border: "1px solid rgba(255,255,255,0.15)",
+            pointerEvents: "none",
+            opacity: hoverLeft && currentIndex > 0 ? 1 : 0,
+            transition: "opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease",
+            zIndex: 35,
+          }}
+          aria-hidden="true"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
         </div>
 
-        {/* Contatore slide */}
-        <div className="text-xs sm:text-sm text-white/60 tabular-nums">
+        {/* Freccetta Destra (Canva Minimal Circolare) */}
+        <div
+          style={{
+            position: "absolute",
+            right: "24px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: "38px",
+            height: "38px",
+            borderRadius: "50%",
+            backgroundColor: "rgba(0, 0, 0, 0.72)",
+            color: "#ffffff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.4)",
+            border: "1px solid rgba(255,255,255,0.15)",
+            pointerEvents: "none",
+            opacity: hoverRight && currentIndex < totalSlides - 1 ? 1 : 0,
+            transition: "opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease",
+            zIndex: 35,
+          }}
+          aria-hidden="true"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* BARRA CONTROLLI MINIMALE FLOATING A SCOMPARSA IN BASSO                    */}
+      {/* ========================================================================= */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "20px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 40,
+          display: "flex",
+          alignItems: "center",
+          gap: "14px",
+          backgroundColor: "rgba(24, 25, 27, 0.85)",
+          backdropFilter: "blur(14px)",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          borderRadius: "30px",
+          padding: "6px 16px",
+          color: "#ffffff",
+          fontSize: "13px",
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.45)",
+          opacity: controlsVisible ? 1 : 0,
+          pointerEvents: controlsVisible ? "auto" : "none",
+          transition: "opacity 0.3s ease",
+        }}
+      >
+        {/* Torna alla panoramica */}
+        <Link
+          href="/presentazioni"
+          style={{
+            color: "#ffffff",
+            textDecoration: "none",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+            opacity: 0.85,
+            fontSize: "12px",
+            fontWeight: 500,
+            cursor: "pointer",
+          }}
+          title="Torna all'elenco presentazioni"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          <span>Elenco</span>
+        </Link>
+
+        <span style={{ opacity: 0.25, userSelect: "none" }}>|</span>
+
+        {/* Contatore Slide */}
+        <span style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums", minWidth: "48px", textAlign: "center" }}>
           {currentIndex + 1} / {totalSlides}
-        </div>
+        </span>
 
-        {/* Azioni rapide */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <button
-            type="button"
-            onClick={toggleFullscreen}
-            aria-label={
-              isFullscreen ? "Esci da schermo intero" : "Schermo intero"
-            }
-            className="p-2 rounded-full bg-white/5 hover:bg-white/15 transition-colors"
-          >
-            {isFullscreen ? (
-              <Minimize className="w-4 h-4" />
-            ) : (
-              <Maximize2 className="w-4 h-4" />
-            )}
-          </button>
+        <span style={{ opacity: 0.25, userSelect: "none" }}>|</span>
 
-          <button
-            type="button"
-            onClick={handleShare}
-            aria-label="Condividi presentazione"
-            className="p-2 rounded-full bg-white/5 hover:bg-white/15 transition-colors"
-          >
-            {linkCopied ? (
-              <Check className="w-4 h-4 text-[#c5a059]" />
-            ) : (
-              <Share2 className="w-4 h-4" />
-            )}
-          </button>
-
-          <a
-            href={WHATSAPP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Contattaci su WhatsApp"
-            className="p-2 rounded-full bg-white/5 hover:bg-white/15 transition-colors"
-          >
-            <MessageCircle className="w-4 h-4" />
-          </a>
-        </div>
-      </div>
-
-      {/* Toast "Link copiato!" */}
-      {linkCopied && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-full bg-[#c5a059] text-[#0e1015] text-xs sm:text-sm font-medium shadow-lg">
-          Link copiato!
-        </div>
-      )}
-
-      {/* Area slide centrale */}
-      <div className="flex-1 flex items-center justify-center p-2 sm:p-4 relative overflow-hidden">
-        {/* Navigazione split screen 50/50 */}
+        {/* Schermo Intero */}
         <button
           type="button"
-          aria-label="Slide precedente"
-          onClick={goToPrevSlide}
-          disabled={currentIndex === 0}
-          className="absolute inset-y-0 left-0 w-1/2 z-10 disabled:cursor-default"
-        />
-        <button
-          type="button"
-          aria-label="Slide successiva"
-          onClick={goToNextSlide}
-          disabled={isLastSlide}
-          className="absolute inset-y-0 right-0 w-1/2 z-10 disabled:cursor-default"
-        />
-
-        {/* Freccia sinistra (desktop) */}
-        <button
-          type="button"
-          aria-label="Slide precedente"
-          onClick={goToPrevSlide}
-          disabled={currentIndex === 0}
-          className="absolute left-2 sm:left-5 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 transition-colors backdrop-blur-sm"
+          onClick={toggleFullscreen}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#ffffff",
+            opacity: 0.85,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            padding: "2px",
+          }}
+          title={isFullscreen ? "Esci da schermo intero" : "Schermo intero (F)"}
         >
-          <ChevronLeft className="w-5 h-5" />
+          {isFullscreen ? (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3" />
+            </svg>
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+            </svg>
+          )}
         </button>
 
-        {/* Freccia destra (desktop) */}
+        {/* Condividi */}
         <button
           type="button"
-          aria-label="Slide successiva"
-          onClick={goToNextSlide}
-          disabled={isLastSlide}
-          className="absolute right-2 sm:right-5 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10 transition-colors backdrop-blur-sm"
+          onClick={handleShare}
+          style={{
+            background: "none",
+            border: "none",
+            color: "#ffffff",
+            opacity: 0.85,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            padding: "2px",
+          }}
+          title="Condividi / Copia link"
         >
-          <ChevronRight className="w-5 h-5" />
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="5" r="3" />
+            <circle cx="6" cy="12" r="3" />
+            <circle cx="18" cy="19" r="3" />
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+          </svg>
         </button>
 
-        {/* Box slide 16:9 */}
-        <div className="border border-white/10 rounded-xl overflow-hidden shadow-2xl bg-black/60 aspect-video max-h-[85vh] max-w-[95vw] w-full flex items-center justify-center">
-          <img
-            key={currentSlide.id}
-            src={currentSlide.imageUrl}
-            alt={currentSlide.title}
-            className="w-full h-full object-contain pointer-events-none transition-opacity duration-200"
-          />
-        </div>
+        {/* WhatsApp */}
+        <a
+          href={WHATSAPP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            color: "#25D366",
+            textDecoration: "none",
+            display: "flex",
+            alignItems: "center",
+            padding: "2px",
+          }}
+          title="Contattaci su WhatsApp"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+          </svg>
+        </a>
       </div>
 
-      {/* Box d'azione su slide finale */}
-      {isLastSlide && (
-        <div className="px-3 pb-4 sm:px-5">
-          <div className="mx-auto max-w-2xl flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 rounded-2xl border border-[#c5a059]/40 bg-white/5 backdrop-blur-md px-4 py-3">
-            <span className="text-xs sm:text-sm text-white/70 text-center sm:text-left">
-              Grazie per aver seguito la presentazione
-            </span>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={restartPresentation}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/20 text-xs sm:text-sm hover:bg-white/10 transition-colors"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Ricomincia dall&apos;inizio
-              </button>
-              <a
-                href={WHATSAPP_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#c5a059] text-[#0e1015] text-xs sm:text-sm font-medium hover:bg-[#d4b06a] transition-colors"
-              >
-                <MessageCircle className="w-3.5 h-3.5" />
-                Contattaci su WhatsApp
-              </a>
-              <button
-                type="button"
-                onClick={handleShare}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/20 text-xs sm:text-sm hover:bg-white/10 transition-colors"
-              >
-                {linkCopied ? (
-                  <Check className="w-3.5 h-3.5 text-[#c5a059]" />
-                ) : (
-                  <Share2 className="w-3.5 h-3.5" />
-                )}
-                {linkCopied ? "Link copiato!" : "Copia link"}
-              </button>
-            </div>
-          </div>
+      {/* Toast Notifica */}
+      {toastMessage && (
+        <div
+          style={{
+            position: "fixed",
+            top: "24px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            backgroundColor: "#c5a059",
+            color: "#0e1015",
+            padding: "8px 18px",
+            borderRadius: "20px",
+            fontSize: "13px",
+            fontWeight: 600,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+            zIndex: 10000,
+          }}
+        >
+          {toastMessage}
         </div>
       )}
     </div>

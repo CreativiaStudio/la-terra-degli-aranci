@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
-
 import { getAllPresentations } from "@/lib/presentazioni";
 
 export const metadata: Metadata = {
@@ -17,140 +15,237 @@ export const metadata: Metadata = {
   },
 };
 
-const WHATSAPP_URL =
-  "https://wa.me/390817148768?text=Buongiorno%2C%20vorrei%20informazioni%20sulle%20presentazioni%20La%20Terra%20degli%20Aranci";
-
-function SlideIcon() {
-  return (
-    <svg
-      className="h-4 w-4 text-[#E58C2C]"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="2" y="5" width="20" height="12" rx="2" />
-      <path d="M6 21h12" />
-      <path d="M12 17v4" />
-    </svg>
-  );
-}
-
 export default function PresentazioniHubPage() {
   const presentations = getAllPresentations();
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#0e1015] text-[#FAF8F5]">
-      {/* Bagliori decorativi oro / verde botanico */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-40 left-1/2 h-[28rem] w-[42rem] -translate-x-1/2 rounded-full bg-[#E58C2C] opacity-[0.09] blur-3xl"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 right-0 h-[22rem] w-[30rem] translate-x-1/4 rounded-full bg-[#2D5A27] opacity-[0.12] blur-3xl"
-      />
-
-      <div className="relative">
+    <div
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#0e1015",
+        color: "#FAF8F5",
+        fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        padding: "48px 20px 80px 20px",
+        boxSizing: "border-box",
+      }}
+    >
+      <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
         {/* Header */}
-        <header className="mx-auto max-w-5xl px-4 pt-16 pb-4 text-center">
-          <p className="text-xs font-medium uppercase tracking-[0.35em] text-[#E58C2C]">
+        <header style={{ textAlign: "center", marginBottom: "48px" }}>
+          <div
+            style={{
+              display: "inline-block",
+              fontSize: "11px",
+              fontWeight: 600,
+              letterSpacing: "0.28em",
+              textTransform: "uppercase",
+              color: "#c5a059",
+              backgroundColor: "rgba(197, 160, 89, 0.12)",
+              padding: "6px 16px",
+              borderRadius: "20px",
+              marginBottom: "16px",
+              border: "1px solid rgba(197, 160, 89, 0.25)",
+            }}
+          >
             La Terra degli Aranci
-          </p>
-          <h1 className="mt-4 font-serif text-4xl font-semibold tracking-tight text-[#FAF8F5] sm:text-5xl">
+          </div>
+          <h1
+            style={{
+              fontSize: "clamp(2rem, 4vw, 3rem)",
+              fontWeight: 400,
+              fontFamily: "Georgia, 'Times New Roman', serif",
+              letterSpacing: "-0.02em",
+              color: "#FAF8F5",
+              margin: "0 0 16px 0",
+            }}
+          >
             Presentazioni Ufficiali
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-[#FAF8F5]/70 sm:text-lg">
-            Esplora i format, gli spazi e le esperienze esclusive di Villa La
-            Terra degli Aranci attraverso le presentazioni interattive
-            dedicate.
+          <p
+            style={{
+              fontSize: "clamp(0.95rem, 1.8vw, 1.1rem)",
+              color: "rgba(250, 248, 245, 0.65)",
+              maxWidth: "640px",
+              margin: "0 auto",
+              lineHeight: 1.6,
+            }}
+          >
+            Sfoglia i format, gli spazi e le esperienze esclusive della nostra tenuta
+            attraverso il visualizzatore interattivo a tutto schermo.
           </p>
         </header>
 
-        {/* Griglia presentazioni */}
-        <main
-          className="grid grid-cols-1 gap-6 py-8 mx-auto max-w-5xl px-4 md:grid-cols-2"
-          role="list"
+        {/* Griglia 4 Card Presentazioni */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "28px",
+          }}
         >
-          {presentations.map((presentation) => (
+          {presentations.map((p) => (
             <Link
-              key={presentation.slug}
-              href={`/presentazioni/${presentation.slug}`}
-              role="listitem"
-              className="group block overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04] shadow-lg shadow-black/40 backdrop-blur-sm transition-colors duration-300 hover:border-[#E58C2C]/50 hover:bg-white/[0.07]"
+              key={p.slug}
+              href={`/presentazioni/${p.slug}`}
+              style={{
+                textDecoration: "none",
+                color: "inherit",
+                display: "flex",
+                flexDirection: "column",
+                backgroundColor: "#16181f",
+                borderRadius: "18px",
+                overflow: "hidden",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                boxShadow: "0 10px 30px rgba(0, 0, 0, 0.4)",
+                transition: "transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease",
+              }}
             >
-              {/* Copertina 16:9 con micro-hover zoom */}
-              <div className="relative aspect-video overflow-hidden">
-                <Image
-                  src={presentation.coverImage}
-                  alt={`Copertina — ${presentation.title}`}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 512px"
-                  className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+              {/* Anteprima Copertina 16:9 */}
+              <div
+                style={{
+                  position: "relative",
+                  width: "100%",
+                  aspectRatio: "16 / 9",
+                  backgroundColor: "#0d0e12",
+                  overflow: "hidden",
+                }}
+              >
+                <img
+                  src={p.coverImage}
+                  alt={p.title}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
                 />
-                <div
-                  aria-hidden="true"
-                  className="absolute inset-0 bg-gradient-to-t from-[#0e1015]/70 via-transparent to-transparent"
-                />
-                {presentation.badge ? (
-                  <span className="absolute top-3 right-3 rounded-full bg-[#E58C2C] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#2B2B2B] shadow-md">
-                    {presentation.badge}
+                {/* Badge Categoria */}
+                {p.badge && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "12px",
+                      right: "12px",
+                      backgroundColor: "rgba(14, 16, 21, 0.85)",
+                      backdropFilter: "blur(8px)",
+                      color: "#c5a059",
+                      border: "1px solid rgba(197, 160, 89, 0.3)",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.08em",
+                      padding: "4px 10px",
+                      borderRadius: "12px",
+                    }}
+                  >
+                    {p.badge}
                   </span>
-                ) : null}
+                )}
+                {/* Pill Slide Count */}
+                <span
+                  style={{
+                    position: "absolute",
+                    bottom: "12px",
+                    left: "12px",
+                    backgroundColor: "rgba(0, 0, 0, 0.75)",
+                    backdropFilter: "blur(6px)",
+                    color: "#FAF8F5",
+                    fontSize: "11px",
+                    fontWeight: 500,
+                    padding: "3px 8px",
+                    borderRadius: "8px",
+                  }}
+                >
+                  {p.totalSlides} slide
+                </span>
               </div>
 
-              {/* Contenuto card */}
-              <div className="flex flex-col gap-3 p-5">
-                <h2 className="font-serif text-xl font-semibold text-[#FAF8F5] transition-colors duration-300 group-hover:text-[#E58C2C]">
-                  {presentation.title}
-                </h2>
-                <p className="text-sm font-medium text-[#E58C2C]/90">
-                  {presentation.subtitle}
-                </p>
-                <p className="text-sm leading-relaxed text-[#FAF8F5]/60">
-                  {presentation.description}
-                </p>
+              {/* Informazioni Card */}
+              <div
+                style={{
+                  padding: "22px 24px 24px 24px",
+                  display: "flex",
+                  flexDirection: "column",
+                  flexGrow: 1,
+                  justifyContent: "space-between",
+                }}
+              >
+                <div>
+                  <h2
+                    style={{
+                      fontSize: "1.25rem",
+                      fontWeight: 600,
+                      color: "#FAF8F5",
+                      margin: "0 0 8px 0",
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    {p.title}
+                  </h2>
+                  <p
+                    style={{
+                      fontSize: "0.88rem",
+                      color: "rgba(250, 248, 245, 0.65)",
+                      margin: "0 0 18px 0",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {p.subtitle}
+                  </p>
+                </div>
 
-                <div className="mt-1 flex items-center justify-between border-t border-white/10 pt-4">
-                  <span className="inline-flex items-center gap-2 text-xs text-[#FAF8F5]/60">
-                    <SlideIcon />
-                    {presentation.totalSlides} slide interattive
+                {/* Call to action button */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    paddingTop: "14px",
+                    borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      color: "#c5a059",
+                      letterSpacing: "0.02em",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    Sfoglia presentazione
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
                   </span>
-                  <span className="inline-flex items-center gap-2 rounded-full bg-[#E58C2C] px-4 py-2 text-xs font-semibold text-[#2B2B2B] shadow-md transition-transform duration-300 group-hover:translate-x-1">
-                    Sfoglia Presentazione
-                    <span aria-hidden="true">→</span>
+                  <span
+                    style={{
+                      fontSize: "11px",
+                      color: "rgba(250, 248, 245, 0.4)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Canva View
                   </span>
                 </div>
               </div>
             </Link>
           ))}
-        </main>
-
-        {/* Footer */}
-        <footer className="border-t border-white/10 px-4 py-10">
-          <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 text-center">
-            <a
-              href={WHATSAPP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-[#E58C2C]/40 px-5 py-2 text-sm font-medium text-[#E58C2C] transition-colors duration-300 hover:bg-[#E58C2C]/10"
-            >
-              WhatsApp rapido
-              <span aria-hidden="true">›</span>
-            </a>
-            <p className="text-xs leading-relaxed text-[#FAF8F5]/50">
-              Segreteria: segreteriatda@gmail.com · Un Giardino di Emozioni nel
-              Cuore di Napoli
-            </p>
-            <p className="text-xs text-[#FAF8F5]/40">
-              © {new Date().getFullYear()} La Terra degli Aranci · Santo Stefano
-              S.r.l. · Iovino Banqueting S.r.l. — Tutti i diritti riservati
-            </p>
-          </div>
-        </footer>
+        </div>
       </div>
     </div>
   );
