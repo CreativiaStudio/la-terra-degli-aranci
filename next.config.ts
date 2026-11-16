@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['sharp'],
   allowedDevOrigins: ['192.168.0.132', 'localhost', 'localhost:3000', '192.168.0.132:3000'],
 };
 

@@ -363,7 +363,7 @@ export default function PresentazioniAdminClient({
 
               <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
                 <img
-                  src="/api/admin/presentazioni/qr?slug=hub&format=png&size=360"
+                  src="/api/admin/presentazioni/qr?slug=hub&format=svg"
                   alt="QR Code Hub Presentazioni"
                   width={116}
                   height={116}
@@ -486,7 +486,7 @@ export default function PresentazioniAdminClient({
               {/* QR Preview + Azioni */}
               <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
                 <img
-                  src={`/api/admin/presentazioni/qr?slug=${encodeURIComponent(p.slug)}&format=png&size=360`}
+                  src={`/api/admin/presentazioni/qr?slug=${encodeURIComponent(p.slug)}&format=svg`}
                   alt={`QR Code ${p.title}`}
                   width={124}
                   height={124}

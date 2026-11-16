@@ -24,6 +24,7 @@ const secretAccessKey = envSecretAccessKey || MASTER_SECRET_ACCESS_KEY;
 export const r2Client = new S3Client({
   region: "auto",
   endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+  forcePathStyle: true,
   credentials: {
     accessKeyId,
     secretAccessKey,
@@ -34,6 +35,7 @@ export const r2Client = new S3Client({
 const masterR2Client = new S3Client({
   region: "auto",
   endpoint: `https://${MASTER_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  forcePathStyle: true,
   credentials: {
     accessKeyId: MASTER_ACCESS_KEY_ID,
     secretAccessKey: MASTER_SECRET_ACCESS_KEY,

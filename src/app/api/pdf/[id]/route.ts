@@ -57,9 +57,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       listPdfsInR2("contratti/eventi/")
     ]).then(([w, e]) => [...(w || []), ...(e || [])]).catch(() => []);
 
+    const idClean = id.toLowerCase().replace(/[^a-z0-9]/g, "");
     const matchedPdf = signedPdfs.find(pdf => {
       const keyLower = pdf.key.toLowerCase().replace(/[^a-z0-9]/g, "");
-      return (nomeRaw && keyLower.includes(nomeRaw)) || (cognomeRaw && keyLower.includes(cognomeRaw));
+      if (idClean && keyLower.includes(idClean)) return true;
+      return Boolean(nomeRaw && cognomeRaw && keyLower.includes(nomeRaw) && keyLower.includes(cognomeRaw));
     });
 
     if (matchedPdf?.url) {

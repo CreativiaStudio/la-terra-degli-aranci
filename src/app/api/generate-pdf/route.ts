@@ -229,6 +229,6 @@ export async function POST(req: NextRequest) {
     logError("CONTRATTI", "Sistema", "ERRORE_GENERAZIONE_PDF_CONTRATTO", error, {
       preventivo: body?.preventivo,
     });
-    return NextResponse.json({ success: false, error: "Errore interno durante la generazione del PDF", message: error.message, stack: error.stack }, { status: 500 });
+    return NextResponse.json({ success: false, error: "Errore interno durante la generazione del PDF" }, { status: 500 });
   }
 }

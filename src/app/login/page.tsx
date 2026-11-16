@@ -15,7 +15,9 @@ interface DemoAccount {
   desc: string;
 }
 
-const DEMO_ACCOUNTS: DemoAccount[] = [
+const DEMO_ACCOUNTS: DemoAccount[] =
+  process.env.NODE_ENV === "development"
+    ? [
   {
     role: "admin",
     label: "Amministrazione Direzionale",
@@ -82,7 +84,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
     color: "#3b82f6",
     desc: "Post-Evento • Prezzi Mascherati, Prevendite 48h & Ticket Villa",
   },
-];
+] : [];
 
 function LoginForm() {
   const router = useRouter();
@@ -399,6 +401,8 @@ function LoginForm() {
           </div>
         </form>
 
+        {DEMO_ACCOUNTS.length > 0 && (
+          <>
         {/* Separatore Decorativo */}
         <div
           style={{
@@ -538,6 +542,8 @@ function LoginForm() {
             );
           })}
         </div>
+          </>
+        )}
       </div>
     </div>
   );

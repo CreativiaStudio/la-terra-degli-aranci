@@ -286,7 +286,7 @@ export async function POST(request: NextRequest) {
     // 5. Tentativo di pubblicazione reale su WordPress REST API
     const wpUrl = process.env.WP_URL || "https://www.laterradegliaranci.it";
     const wpUser = process.env.WP_USERNAME || "Mario";
-    const wpPass = process.env.WP_APPLICATION_PASSWORD || process.env.WP_APP_PASSWORD || "zz2cYH6PHLw9eDfhVg0sbPqQ";
+    const wpPass = process.env.WP_APPLICATION_PASSWORD || process.env.WP_APP_PASSWORD || "";
 
     let wpResult: any = null;
     let publishMode: "wordpress_live" | "ecosystem_approved" = "ecosystem_approved";
@@ -407,7 +407,7 @@ export async function DELETE(request: NextRequest) {
 
     const wpUrl = process.env.WP_URL || "https://www.laterradegliaranci.it";
     const wpUser = process.env.WP_USERNAME || "Mario";
-    const wpPass = process.env.WP_APPLICATION_PASSWORD || process.env.WP_APP_PASSWORD || "zz2cYH6PHLw9eDfhVg0sbPqQ";
+    const wpPass = process.env.WP_APPLICATION_PASSWORD || process.env.WP_APP_PASSWORD || "";
 
     let wpDeleted = false;
 

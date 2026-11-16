@@ -15,11 +15,9 @@ export const dynamic = 'force-dynamic';
 export default async function Page({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const params = await searchParams;
   
-  // Permette l'accesso diretto sia tramite link con sig sia tramite session dal Project Builder
-  const session = params.session as string | undefined;
-  const prezzo = (params.prezzo as string) || "15330";
-  const preventivo = (params.preventivo as string) || session || "TDA-2027-089";
-  const sig = (params.sig as string) || (session ? generateSignature(prezzo, preventivo) : undefined);
+  const prezzo = params.prezzo as string | undefined;
+  const preventivo = params.preventivo as string | undefined;
+  const sig = params.sig as string | undefined;
 
   if (!prezzo || !preventivo || !sig) {
     return (

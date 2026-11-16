@@ -3,11 +3,11 @@
 import { useEffect, useRef } from "react";
 
 export default function PresentationTracker({ slug }: { slug: string }) {
-  const trackedRef = useRef(false);
+  const trackedSlugRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (trackedRef.current) return;
-    trackedRef.current = true;
+    if (!slug || trackedSlugRef.current === slug) return;
+    trackedSlugRef.current = slug;
 
     try {
       const params = new URLSearchParams(window.location.search);
@@ -15,11 +15,18 @@ export default function PresentationTracker({ slug }: { slug: string }) {
       const source: "qr" | "direct" = srcParam.startsWith("qr") ? "qr" : "direct";
 
       const storageKey = `tda_pres_seen_${slug}_${source}`;
-      const alreadySeen = window.sessionStorage?.getItem(storageKey) === "1";
-
-      if (!alreadySeen) {
+      let alreadySeen = false;
+      try {
+        alreadySeen = window.localStorage?.getItem(storageKey) === "1";
+        if (!alreadySeen) {
+          window.localStorage?.setItem(storageKey, "1");
+        }
+      } catch {
         try {
-          window.sessionStorage?.setItem(storageKey, "1");
+          alreadySeen = window.sessionStorage?.getItem(storageKey) === "1";
+          if (!alreadySeen) {
+            window.sessionStorage?.setItem(storageKey, "1");
+          }
         } catch {
           // ignore storage errors
         }
