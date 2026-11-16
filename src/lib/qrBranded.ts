@@ -1,5 +1,4 @@
 import QRCode from "qrcode";
-import sharp from "sharp";
 import { TDA_LOGO_BASE64 } from "./tdaLogoBase64";
 
 const QR_COLORS = {
@@ -7,12 +6,10 @@ const QR_COLORS = {
   light: "#FFFFFF",
 };
 
-const LOGO_BUFFER = Buffer.from(TDA_LOGO_BASE64, "base64");
-
 /**
  * Genera un QR Code PNG ad alta risoluzione (default 1200x1200) con il logotipo
  * ufficiale La Terra degli Aranci centrato in un badge con bordo oro.
- * Zero dipendenza da filesystem (fs.readFileSync): usa il buffer in memoria.
+ * Importa sharp dinamicamente in try/catch per non bloccare il modulo su runtime serverless.
  */
 export async function generateBrandedQrPng(url: string, size: number = 1200): Promise<Buffer> {
   const qrBuffer = await QRCode.toBuffer(url, {
@@ -22,35 +19,44 @@ export async function generateBrandedQrPng(url: string, size: number = 1200): Pr
     color: QR_COLORS,
   });
 
-  const badgeSize = Math.round(size * 0.23);
-  const logoInnerSize = Math.round(badgeSize * 0.76);
-  const radius = Math.round(badgeSize * 0.22);
+  try {
+    const sharpMod = await import("sharp");
+    const sharp = sharpMod.default;
+    const logoBuffer = Buffer.from(TDA_LOGO_BASE64, "base64");
 
-  const resizedLogo = await sharp(LOGO_BUFFER)
-    .resize(logoInnerSize, logoInnerSize, {
-      fit: "contain",
-      background: { r: 255, g: 255, b: 255, alpha: 0 },
-    })
-    .png()
-    .toBuffer();
+    const badgeSize = Math.round(size * 0.23);
+    const logoInnerSize = Math.round(badgeSize * 0.76);
+    const radius = Math.round(badgeSize * 0.22);
 
-  const badgeSvg = Buffer.from(`
-    <svg width="${badgeSize}" height="${badgeSize}" viewBox="0 0 ${badgeSize} ${badgeSize}" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2" y="2" width="${badgeSize - 4}" height="${badgeSize - 4}" rx="${radius}" fill="#FFFFFF" stroke="#C5A059" stroke-width="4" />
-    </svg>
-  `);
+    const resizedLogo = await sharp(logoBuffer)
+      .resize(logoInnerSize, logoInnerSize, {
+        fit: "contain",
+        background: { r: 255, g: 255, b: 255, alpha: 0 },
+      })
+      .png()
+      .toBuffer();
 
-  return sharp(qrBuffer)
-    .composite([
-      { input: badgeSvg, gravity: "center" },
-      { input: resizedLogo, gravity: "center" },
-    ])
-    .png()
-    .toBuffer();
+    const badgeSvg = Buffer.from(`
+      <svg width="${badgeSize}" height="${badgeSize}" viewBox="0 0 ${badgeSize} ${badgeSize}" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="2" width="${badgeSize - 4}" height="${badgeSize - 4}" rx="${radius}" fill="#FFFFFF" stroke="#C5A059" stroke-width="4" />
+      </svg>
+    `);
+
+    return await sharp(qrBuffer)
+      .composite([
+        { input: badgeSvg, gravity: "center" },
+        { input: resizedLogo, gravity: "center" },
+      ])
+      .png()
+      .toBuffer();
+  } catch (err) {
+    console.warn("[qrBranded] Fallback QR PNG puro senza sharp:", err);
+    return qrBuffer;
+  }
 }
 
 /**
- * Genera un QR Code SVG vettoriale puro JS (zero sharp, zero filesystem)
+ * Genera un QR Code SVG vettoriale 100% puro JS (zero sharp, zero filesystem)
  * con il logotipo ufficiale La Terra degli Aranci al centro.
  */
 export async function generateBrandedQrSvg(url: string): Promise<string> {
