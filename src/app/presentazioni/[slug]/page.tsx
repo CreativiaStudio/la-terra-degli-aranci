@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { getPresentationBySlug } from "@/lib/presentazioni";
+import { getPresentationBySlugDynamic } from "@/lib/presentazioniCloud";
 import PresentationViewer from "@/components/presentazioni/PresentationViewer";
+
+export const dynamic = "force-dynamic";
 
 interface PresentationSlugPageProps {
   params: Promise<{ slug: string }>;
@@ -14,7 +16,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const presentation = getPresentationBySlug(slug);
+  const presentation = await getPresentationBySlugDynamic(slug);
 
   if (!presentation) {
     return {
@@ -66,7 +68,7 @@ export default async function PresentationSlugPage({
   params,
 }: PresentationSlugPageProps) {
   const { slug } = await params;
-  const presentation = getPresentationBySlug(slug);
+  const presentation = await getPresentationBySlugDynamic(slug);
 
   if (!presentation) {
     notFound();

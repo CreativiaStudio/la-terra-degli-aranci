@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { Presentation } from "@/lib/presentazioni";
+import PresentationTracker from "./PresentationTracker";
 
 interface PresentationViewerProps {
   presentation: Presentation;
@@ -150,6 +151,7 @@ export default function PresentationViewer({ presentation }: PresentationViewerP
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      <PresentationTracker slug={presentation.slug} />
       {/* Wrapper Slide Centrato 16:9 */}
       <div
         style={{

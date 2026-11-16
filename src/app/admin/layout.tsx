@@ -27,6 +27,7 @@ const SETTINGS: NavItem[] = [
   { href: "/admin/preventivi", label: "Preventivi & Proposte", icon: "📝" },
   { href: "/admin/contratti", label: "Contratti & Opzioni", icon: "✍️" },
   { href: "/admin/openday", label: "Open Day Live", icon: "🌿" },
+  { href: "/admin/presentazioni", label: "Presentazioni & QR", icon: "🎞️" },
   { href: "/admin/statistiche", label: "Statistiche", icon: "📊" },
   { href: "/admin/catalogo", label: "Listino servizi", icon: "⚙️" },
   { href: "/admin/articoli", label: "Blog", icon: "📰" },

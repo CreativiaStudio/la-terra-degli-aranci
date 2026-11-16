@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getAllPresentations } from "@/lib/presentazioni";
+import { getPresentationsDynamic } from "@/lib/presentazioniCloud";
+import PresentationTracker from "@/components/presentazioni/PresentationTracker";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Presentazioni Ufficiali | La Terra degli Aranci",
@@ -33,8 +36,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PresentazioniHubPage() {
-  const presentations = getAllPresentations();
+export default async function PresentazioniHubPage() {
+  const presentations = await getPresentationsDynamic();
 
   return (
     <div
@@ -47,6 +50,7 @@ export default function PresentazioniHubPage() {
         boxSizing: "border-box",
       }}
     >
+      <PresentationTracker slug="hub" />
       <style>{`
         .tda-pres-grid {
           display: grid;
